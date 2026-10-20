@@ -4,7 +4,7 @@
 
 import { addConnected, connect, isFlowchart, nodeIdFromSvgId, relabel } from './patch/flowchart.mjs';
 
-const HINT = 'Click a node to edit · scroll to zoom, drag to move';
+const HINT = 'Click a node to edit, double-click to rename · scroll to zoom, drag to move';
 const VIEW_HINT = 'Scroll to zoom, drag to move';
 
 /**
@@ -193,6 +193,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     save,
     viewChanged: () => { if (selected) positionMenu(); },
     clicked,
+
+    /** Double-click on a node renames it. Returns whether it was one. */
+    doubleClicked(target) {
+      const id = editable && target.closest('g.node[data-node-id]')?.dataset.nodeId;
+      if (!id) return false;
+      select(id);
+      openRename(id);
+      return true;
+    },
 
     /** A new version of the file is on screen: tag its nodes, and keep the selection if its node is still there. */
     rendered(text) {

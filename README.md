@@ -27,7 +27,8 @@ no login.
 
 ## The page
 
-The wheel zooms at the cursor, a drag moves the diagram, and a double-click (or Reset view) fits it to the window.
+The wheel zooms at the cursor, a drag moves the diagram, and a double-click on empty space (or Reset view) fits it
+to the window.
 Once you have zoomed or moved it, edits keep your view. A save with a syntax error keeps the last good render on
 screen, with the error above it. Copy SVG and Download SVG export the diagram as the browser drew it.
 
@@ -39,7 +40,7 @@ In a flowchart, click a node for its menu:
   new neighbour in the same subgraph), then opens Rename on it.
 - **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
   neither node moves.
-- **Rename** edits the label in place: Enter saves, Escape cancels. Only the label changes, where the node is first
+- **Rename** (or double-click the node) edits the label in place: Enter saves, Escape cancels. Only the label changes, where the node is first
   given a shape; a node that only appears bare gets brackets at its first appearance.
 
 Every other byte of the file stays as it was: comments, directives, frontmatter, spacing. Each edit is checked with

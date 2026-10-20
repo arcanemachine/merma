@@ -41,6 +41,7 @@ let editor = null;
 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onClick: (target) => editor?.clicked(target),
+  onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onViewChange: () => editor?.viewChanged(),
 });
 

@@ -25,9 +25,11 @@ export const parse = (text) => mermaid.parse(text);
  * @param {HTMLElement} els.stage the element inside it that holds the SVG and is moved and scaled
  * @param {object} [hooks]
  * @param {(target: Element) => void} [hooks.onClick] a click, with the element pressed
+ * @param {(target: Element) => boolean} [hooks.onDoubleClick] a double-click, with the element pressed; return true to
+ *   say it was handled, or the view is fitted
  * @param {() => void} [hooks.onViewChange] the diagram moved or was zoomed on screen
  */
-export function createViewer({ diagram, stage }, { onClick = () => {}, onViewChange = () => {} } = {}) {
+export function createViewer({ diagram, stage }, { onClick = () => {}, onDoubleClick = () => false, onViewChange = () => {} } = {}) {
   // A scale and offset applied to the stage. Until the user zooms or drags, the view fits the diagram to the window
   // (never enlarging it); after that, it is kept across re-renders so edits do not reset it.
   const view = { x: 0, y: 0, k: 1 };
@@ -69,6 +71,7 @@ export function createViewer({ diagram, stage }, { onClick = () => {}, onViewCha
   // The pointer is captured on press, so the move and the release reach the diagram even off its edge. That also makes
   // the browser's own click events target the diagram itself, so a click is reported with the element pressed.
   let drag = null;
+  let clicked = null;   // the element the last click pressed, for the double-click that follows it
   diagram.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || e.target.closest('[data-overlay]')) return;
     drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moving: false, target: e.target };
@@ -92,10 +95,14 @@ export function createViewer({ diagram, stage }, { onClick = () => {}, onViewCha
   diagram.addEventListener('pointerup', () => {
     const press = drag;
     endDrag();
-    if (press && !press.moving) onClick(press.target);
+    clicked = press && !press.moving ? press.target : null;
+    if (clicked) onClick(clicked);
   });
   diagram.addEventListener('pointercancel', endDrag);
-  diagram.addEventListener('dblclick', (e) => { if (!e.target.closest('[data-overlay]')) fit(); });
+  diagram.addEventListener('dblclick', (e) => {
+    if (e.target.closest('[data-overlay]')) return;
+    if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
+  });
   // Refit when the diagram's box changes (window resize, the header growing when the host path arrives, an error
   // message appearing above it).
   new ResizeObserver(() => { if (!touched) fit(); }).observe(diagram);
