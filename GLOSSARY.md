@@ -1,7 +1,10 @@
 # Glossary
 
 The words merma uses, in the page, the docs and the code. Use them as written here, and add a word here when a new
-one comes in. Where Mermaid has a term, it is used; otherwise a plain word. A word in `code` is Mermaid syntax.
+one comes in. Where Mermaid has a word, it is used; a word of merma's own says why. "Mermaid's word" means the one in
+the flowchart syntax page of the Mermaid version pinned in `web/viewer.mjs` (12.2.0), or in the ids and `data-*`
+attributes it draws. Where Mermaid has two words, one is used and the other noted, as for edge. A word in `code` is
+Mermaid syntax.
 
 ## The diagram
 

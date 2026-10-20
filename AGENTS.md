@@ -11,6 +11,13 @@ and where the two differ, the local file wins.
 about the work; when a new word comes in, add it there in the same commit. Where Mermaid has a word for something
 (node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case.
 
+`docs/ux.md` holds the rules the page follows, and why. Read it before changing anything the user sees, and update it
+in the same commit when a rule changes.
+
+**No sprawl.** Each fact lives in one place: words in `GLOSSARY.md`, UX rules in `docs/ux.md`, what merma is and how
+to run it in `README.md`. Each doc says at its top what goes in it; link to it rather than repeating it, and write
+down only what someone will read again.
+
 ## Contributing
 
 - **No runtime dependencies.** The server uses Node's standard library; the page uses the browser and Mermaid from
