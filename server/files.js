@@ -26,11 +26,11 @@ function real(path) {
 
 /**
  * @param {object} options
- * @param {string[]} options.roots folders whose .mmd files may be served
+ * @param {string[]} options.roots folders whose .mmd files may be served, or single .mmd files
  * @param {[string, string][]} [options.pathMap] [server prefix, host prefix] pairs, for showing a file's host path
  */
 export function createFiles({ roots, pathMap = [] }) {
-  const realRoots = roots.map((root) => real(root).replace(/\/*$/, '/'));
+  const realRoots = roots.map((root) => (root.endsWith('.mmd') ? real(root) : real(root).replace(/\/*$/, '/')));
 
   return {
     roots: realRoots,
@@ -38,7 +38,7 @@ export function createFiles({ roots, pathMap = [] }) {
     allowed(path) {
       if (typeof path !== 'string' || !isAbsolute(path)) return false;
       const p = real(path);
-      return p.endsWith('.mmd') && realRoots.some((root) => p.startsWith(root));
+      return p.endsWith('.mmd') && realRoots.some((root) => (root.endsWith('/') ? p.startsWith(root) : p === root));
     },
 
     /** The file's text, or null when it does not exist. Call only with an allowed path. */
