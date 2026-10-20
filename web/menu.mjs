@@ -18,7 +18,7 @@ import { place } from './place.mjs';
  * @param {Record<string, { el: HTMLElement, focus(): void }>} [options.submenus] by an item's `submenu`
  * @param {(action: string) => void} options.onRun
  * @param {(why: string) => void} options.onRefuse an item that does not apply was chosen
- * @param {() => void} [options.onClose] it closed by its own key (Escape) or by running an item
+ * @param {() => void} [options.onClose] it closed, by whatever means
  */
 export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, onRun, onRefuse, onClose = () => {} }) {
   const el = popover('menu');
@@ -67,7 +67,6 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     if (!applies(item)) { onRefuse(item.why(state)); return; }
     if (item.submenu) { if (openSub === item) closeSub(); else openSubmenu(item); return; }
     close();
-    onClose();
     onRun(item.action);
   }
 
@@ -115,8 +114,10 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function close() {
     closeSub();
     const had = el.contains(document.activeElement) || sub.contains(document.activeElement);
-    if (isOpen()) el.hidePopover();
+    if (!isOpen()) return;
+    el.hidePopover();
     if (had) returnFocus.focus();
+    onClose();
   }
 
   el.addEventListener('keydown', (e) => {
@@ -137,7 +138,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     } else if (e.key === 'Escape') {
       e.preventDefault();
       if (openSub) closeSub();
-      else { close(); onClose(); }
+      else close();
     } else if (byKey && e.key.length === 1) {
       e.preventDefault();
       buttons[items.indexOf(byKey)].focus();
