@@ -24,6 +24,7 @@ header .status { color: #666; white-space: nowrap; }
 /* The hand everywhere on the diagram, labels included, and no text selection while dragging. */
 #diagram, #diagram * { user-select: none; }
 #stage, #stage * { cursor: inherit !important; }
+#diagram:focus { outline: none; }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #stage svg { display: block; max-width: none; }
 footer { padding: 12px 16px; border-top: 1px solid #ddd; display: flex; gap: 8px; justify-content: center; align-items: center;
@@ -53,18 +54,29 @@ footer button:disabled { cursor: default; opacity: 0.5; }
    selected, since it has no line to glow. */
 #stage path[data-page-only] { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
 #stage path.edge-thickness-invisible[data-page-selected] + path[data-page-only] { stroke: rgba(9, 105, 218, 0.3); }
-.menu { position: absolute; display: none; z-index: 5; flex-direction: column; padding: 4px; background: #fff;
+/* Menus are manual popovers (top layer), placed in viewport coordinates beside what they belong to. */
+.menu { position: fixed; inset: auto; margin: 0; flex-direction: column; padding: 4px; background: #fff; color: #222;
         border: 1px solid #bbb; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); cursor: default; }
-.menu.show { display: flex; }
+.menu:popover-open { display: flex; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
-               background: none; cursor: pointer; white-space: nowrap; }
+               background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
 .menu button:hover, .menu button:focus-visible { background: #eef3fb; outline: none; }
-/* The arrow types, as a grid of their Mermaid syntax; the edge's own is marked. */
-.menu .arrows { display: grid; grid-template-columns: repeat(5, auto); gap: 2px; padding: 2px 0;
-                border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin: 2px 0; }
-.menu .arrows button { font-family: ui-monospace, monospace; font-size: 12px; padding: 4px 6px; text-align: center; }
-.menu .arrows button[aria-pressed="true"] { background: #dbe8fb; }
-/* Laid exactly over the node being renamed, so the text is edited in place. */
-#rename { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
+.menu button u { text-underline-offset: 2px; }
+.menu button .more { margin-left: auto; color: #888; }
+.menu button[aria-expanded="true"] { background: #eef3fb; }
+.menu button.separated { margin-top: 5px; position: relative; }
+.menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }
+/* An item that does not apply now: greyed, still focusable, its reason in its title. */
+.menu button[aria-disabled="true"] { color: #aaa; cursor: default; }
+/* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
+.picker { padding: 2px; }
+.picker-title { font-size: 12px; color: #666; padding: 2px 4px 4px; }
+.picker-grid { display: grid; grid-template-columns: repeat(5, auto); gap: 2px; }
+.menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
+.picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
+.menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
+.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; }
+/* The label box: laid exactly over the label being edited, so it is edited in place. */
+#label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid #0969da; border-radius: 4px;
           background: #fff; resize: none; overflow: hidden; user-select: text; cursor: text; }

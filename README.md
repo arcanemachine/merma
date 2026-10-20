@@ -59,12 +59,12 @@ working copy reloads its pages on every save.
 
 In a flowchart, click a node to select it, and right-click it (or long-press on a touch screen) for its menu:
 
-- **Add connected node** adds a new node with an edge from this one, then opens Rename on it. The edge is appended at
+- **Add connected node** adds a new node with an edge from this one, then opens the label box on it. The edge is appended at
   the end of the file; if the node's last statement is inside a subgraph, the new node is declared there, so it
   joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
   neither node moves.
-- **Rename** (or double-click the node, or Enter or F2 on a selected one) edits the label in place: Enter saves,
+- **Edit label** (or double-click the node, or Enter or F2 on a selected one) edits the label in place: Enter saves,
   Shift+Enter starts a new line (written as `<br>`), Escape cancels. Only the label changes, where the node is first
   given a shape; a node that only appears bare gets brackets at its first appearance.
 - **Delete node** (or Delete or Backspace on a selected one) removes the node from every statement, with its edges,
@@ -73,10 +73,11 @@ In a flowchart, click a node to select it, and right-click it (or long-press on 
 Click an edge's line or its label to select it, and right-click it for its menu:
 
 - **Edit label** (or double-click the edge, or Enter or F2 on a selected one) edits the label in place; the label is
-  written as `-->|"label"|`, and an empty one removes it.
-- **Reverse** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes partly by
+  written as `-->|"label"|`.
+- **Remove label** removes it (greyed when the edge has none).
+- **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes partly by
   the order it first meets them, so the layout may shift a little.
-- The **arrow types** (`-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~` and more) change the arrow, keeping
+- **Edit arrow type ▸** opens the arrow types (`-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~` and more); one changes the arrow, keeping
   its label and its length (`---->` asks for a longer edge, and stays longer).
 - **Delete edge** (or Delete or Backspace) removes it. Its nodes stay.
 
@@ -116,7 +117,11 @@ diagram types are view-only.
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
-| `web/editor.mjs` | Selection, the node and empty-space menus, keys, renaming in place, saving, undo |
+| `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
+| `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |
+| `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types) |
+| `web/arrow-types.mjs` | The arrow types in their fixed, numbered order, with their names and icons |
+| `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |

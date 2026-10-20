@@ -14,24 +14,9 @@
   </header>
   <div id="error"></div>
   <div id="notice" role="status"></div>
-  <div id="diagram">
+  <div id="diagram" tabindex="-1">
     <div id="stage"></div>
-    <div id="menu" class="menu" role="menu" data-overlay>
-      <button id="menu-add" role="menuitem" title="Add a new node with an edge from this one">Add connected node</button>
-      <button id="menu-connect" role="menuitem" title="Then click the node to draw an edge to">Connect to…</button>
-      <button id="menu-rename" role="menuitem" title="Change this node's label">Rename</button>
-      <button id="menu-delete" role="menuitem" title="Delete this node and its edges (Delete)">Delete node</button>
-    </div>
-    <div id="edge-menu" class="menu" role="menu" data-overlay>
-      <button id="edge-label" role="menuitem" title="Change this edge's label (Enter or double-click); empty removes it">Edit label</button>
-      <button id="edge-reverse" role="menuitem" title="Turn this edge around">Reverse</button>
-      <div id="edge-arrows" class="arrows" role="group" aria-label="Arrow type"></div>
-      <button id="edge-delete" role="menuitem" title="Delete this edge; its nodes stay (Delete)">Delete edge</button>
-    </div>
-    <div id="space-menu" class="menu" role="menu" data-overlay>
-      <button id="space-add" role="menuitem" title="Add a new node; Mermaid places it">Add node</button>
-    </div>
-    <textarea id="rename" rows="1" aria-label="Node label" title="Enter saves, Shift+Enter starts a new line, Escape cancels" data-overlay></textarea>
+    <textarea id="label-box" rows="1" aria-label="Node label" title="Enter saves, Shift+Enter starts a new line, Escape cancels" data-overlay></textarea>
   </div>
   <footer>
     <button id="copy-svg" disabled title="Copy the diagram's SVG markup to the clipboard">Copy SVG</button>
@@ -49,14 +34,14 @@
     <h2>Editing <span class="note">(flowcharts only)</span></h2>
     <ul>
       <li><kbd>Click</kbd> a node to select it. <kbd>Right-click</kbd> it (or long-press) for its menu: add a connected
-        node, connect it to another, rename it, or delete it.</li>
+        node, connect it to another, edit its label, or delete it.</li>
       <li><kbd>Click</kbd> an edge (its line or its label) to select it; <kbd>right-click</kbd> it to edit its label,
         reverse it, change its arrow or delete it. <kbd>Double-click</kbd> it to edit its label.</li>
       <li><kbd>Right-click</kbd> empty space to add a node (inside a subgraph, it goes in that subgraph).</li>
-      <li><kbd>N</kbd> adds a node: connected to the selected one, if any. <kbd>Enter</kbd> or <kbd>F2</kbd> renames the
-        selected node (or the selected edge's label). <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes the selected
+      <li><kbd>N</kbd> adds a node: connected to the selected one, if any. <kbd>Enter</kbd> or <kbd>F2</kbd> edits the
+        selected node's or edge's label. <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes the selected
         node or edge.</li>
-      <li><kbd>Double-click</kbd> a node to rename it: <kbd>Enter</kbd> saves, <kbd>Shift</kbd>+<kbd>Enter</kbd> starts
+      <li><kbd>Double-click</kbd> a node or an edge to edit its label: <kbd>Enter</kbd> saves, <kbd>Shift</kbd>+<kbd>Enter</kbd> starts
         a new line, <kbd>Esc</kbd> cancels.</li>
       <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Z</kbd> on a Mac) undoes this page's last edit;
         <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) or

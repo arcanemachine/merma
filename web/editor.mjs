@@ -4,11 +4,15 @@
 // change saved meanwhile by an agent or an editor is never overwritten. What this adds to the drawing is marked
 // `data-page-…`, which the SVG export leaves out.
 
+import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
+import { createMenu } from './menu.mjs';
+import { GLOBAL_KEYS, MENUS } from './menu-items.mjs';
 import {
-  ARROWS, addConnected, addNode, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
+  addConnected, addNode, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, subgraphIdFromSvgId,
 } from './patch/flowchart.mjs';
+import { createPicker } from './picker.mjs';
 
 /**
  * @param {object} deps
@@ -17,21 +21,20 @@ import {
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
- * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'menuDelete'|'edgeMenu'|'edgeLabel'|'edgeReverse'|'edgeArrows'|'edgeDelete'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'labelBox', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
   let selected = null;        // { kind: 'node', id } or { kind: 'edge', id }: a Mermaid node id, or an edge's SVG id
-  let menuOpen = false;       // the selection's menu is showing
   let shownText = null;       // the text on screen, which edge ids refer to
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let spaceSubgraph = null;   // the subgraph the empty-space menu adds into, or null for the top level
   let connecting = false;     // after "Connect to…": the next node clicked is the edge's target
-  let pendingRename = null;   // a node just added: open Rename on it once it is drawn
+  let pendingLabel = null;    // a node just added: open the label box on it once it is drawn
   const history = createHistory();
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
-  let renaming = null;        // { kind: 'node' | 'edge', id } while the rename box is open over it
+  let labelling = null;       // { kind: 'node' | 'edge', id } while the label box is open over it
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-page-node]')].find((g) => g.dataset.pageNode === id);
   const edgeEls = (id) => [...els.stage.querySelectorAll('[data-page-edge]')].filter((e) => e.dataset.pageEdge === id);
@@ -39,40 +42,92 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const nodeOf = (target) => target.closest('g.node[data-page-node]')?.dataset.pageNode;
   const edgeOf = (target) => (edgesOk ? target.closest('[data-page-edge]')?.dataset.pageEdge : undefined);
   const selectedNode = () => (selected?.kind === 'node' ? selected.id : null);
-  const input = /** @type {HTMLTextAreaElement} */ (els.rename);
+  const shownEdge = (id) => edges(shownText).find((e) => e.svgId === id);
+  const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
   function setEditable(on) {
     editable = on;
     els.stage.classList.toggle('editable', on);
-    if (!on) { deselect(); closeRename(); }
+    if (!on) { deselect(); closeLabelBox(); }
   }
 
-  // --- selection and the menus ---------------------------------------------------------------------------------
+  // --- the menus -----------------------------------------------------------------------------------------------
+
+  // What each menu item does (menu-items.mjs lists them). An item with a submenu does nothing itself.
+  const handlers = {
+    'add-connected-node': () => addAndName((text) => addConnected(text, selected.id)),
+    'connect': () => {
+      connecting = true;
+      ui.notice(`Click the node to connect ${selected.id} to. Escape cancels.`);
+    },
+    'edit-label': () => openLabelBox(selected),
+    'delete-node': () => deleteSelected(),
+    'delete-edge': () => deleteSelected(),
+    'remove-label': () => { const id = selected.id; editDrawn((text) => setEdgeLabel(text, id, '')); },
+    'reverse-edge': () => { const id = selected.id; editDrawn((text) => reverseEdge(text, id)); },
+    'add-node': () => { const subgraph = spaceSubgraph; addAndName((text) => addNode(text, { subgraph })); },
+  };
+  // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
+  // menu item that does nothing.
+  const actions = new Set(Object.values(MENUS).flat().filter((i) => !i.submenu).map((i) => i.action));
+  for (const a of actions) if (!handlers[a]) throw new Error(`No handler for the menu action ${a}`);
+  for (const a of Object.keys(handlers)) if (!actions.has(a)) throw new Error(`No menu item runs ${a}`);
+
+  const arrowPicker = createPicker({
+    title: 'Arrow type',
+    entries: ARROW_TYPES,
+    onPick: (arrow) => {
+      const id = selected.id;
+      editDrawn((text) => setEdgeArrow(text, id, arrow));
+    },
+  });
+
+  const menuOptions = {
+    parent: els.diagram,
+    bounds: () => els.diagram.getBoundingClientRect(),
+    returnFocus: els.diagram,
+    submenus: { 'arrow-types': arrowPicker },
+    onRun: (action) => handlers[action](),
+    onRefuse: (why) => ui.notice(why, true),
+    onClose: () => ui.hideNotice(),
+  };
+  const menus = {
+    node: createMenu(MENUS.node, menuOptions),
+    edge: createMenu(MENUS.edge, menuOptions),
+    space: createMenu(MENUS.space, menuOptions),
+  };
+  const closeMenus = () => { for (const m of Object.values(menus)) m.close(); };
+  const menuOpen = () => menus.node.isOpen() || menus.edge.isOpen();
+
+  /** What the menus need to know to label and grey their items. */
+  function menuState() {
+    return { edgesOk, hasLabel: selected?.kind === 'edge' && Boolean(shownEdge(selected.id)?.label), title: '' };
+  }
+
+  // --- selection -----------------------------------------------------------------------------------------------
 
   const unglow = () => { for (const e of els.stage.querySelectorAll('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
 
-  /** Select a node or an edge (it glows); with `menu`, also open its menu. */
+  /** Select a node or an edge (it glows); with `menu`, also open its menu beside it. */
   function select(sel, { keepMode = false, menu = false } = {}) {
     unglow();
-    closeSpaceMenu();
+    closeMenus();
     selected = sel;
     for (const e of sel.kind === 'node' ? [nodeEl(sel.id)] : edgeEls(sel.id)) e.setAttribute('data-page-selected', '');
     if (!keepMode) connecting = false;
-    menuOpen = menu && !connecting;
-    els.menu.classList.toggle('show', menuOpen && sel.kind === 'node');
-    els.edgeMenu.classList.toggle('show', menuOpen && sel.kind === 'edge');
-    if (sel.kind === 'edge') markArrow(sel.id);
-    positionMenu();
+    if (!menu || connecting) return;
+    if (sel.kind === 'edge') {
+      const arrow = shownEdge(sel.id)?.arrow ?? '';
+      arrowPicker.current(arrowType(arrow), arrow);
+    }
+    menus[sel.kind].open(selectedEl().getBoundingClientRect(), menuState());
   }
 
   function deselect() {
     unglow();
     selected = null;
     connecting = false;
-    menuOpen = false;
-    els.menu.classList.remove('show');
-    els.edgeMenu.classList.remove('show');
-    closeSpaceMenu();
+    closeMenus();
   }
 
   // The empty-space menu, at the pointer: it adds a node, into the subgraph the pointer was over if any. Mermaid lays
@@ -81,38 +136,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     deselect();
     const cluster = target.closest('g.cluster');
     spaceSubgraph = cluster ? subgraphIdFromSvgId(cluster.id, viewer.renderId) : null;
-    const title = cluster?.querySelector('.cluster-label, .nodeLabel')?.textContent.trim() || spaceSubgraph;
-    els.spaceAdd.textContent = spaceSubgraph ? `Add node in ${title}` : 'Add node';
-    els.spaceMenu.classList.add('show');
-    const box = els.diagram.getBoundingClientRect();
-    const w = els.spaceMenu.offsetWidth, h = els.spaceMenu.offsetHeight;
-    els.spaceMenu.style.left = Math.min(x - box.left, box.width - w) + 'px';
-    els.spaceMenu.style.top = Math.min(y - box.top, box.height - h) + 'px';
+    const title = spaceSubgraph ? cluster.querySelector('.cluster-label, .nodeLabel')?.textContent.trim() || spaceSubgraph : '';
+    menus.space.open({ left: x, top: y, right: x, bottom: y }, { ...menuState(), title }, { gap: 0 });
   }
 
-  function closeSpaceMenu() { els.spaceMenu.classList.remove('show'); }
-
-  /** Add a node and open Rename on it once it is drawn; naming it is part of the same undo step. */
+  /** Add a node and open the label box on it once it is drawn; naming it is part of the same undo step. */
   function addAndName(change) {
     edit(change, (result, entry) => {
-      pendingRename = result.id;
+      pendingLabel = result.id;
       naming = { id: result.id, entry };
     });
-  }
-
-  // Beside the selection, inside the diagram area: to its right, or to its left when there is no room.
-  function positionMenu() {
-    const g = selectedEl();
-    if (!g) return;
-    const menu = selected.kind === 'node' ? els.menu : els.edgeMenu;
-    const box = els.diagram.getBoundingClientRect();
-    const r = g.getBoundingClientRect();
-    const w = menu.offsetWidth, h = menu.offsetHeight;
-    let left = r.right - box.left + 8;
-    if (left + w > box.width) left = Math.max(0, r.left - box.left - w - 8);
-    const top = Math.min(Math.max(0, r.top - box.top), Math.max(0, box.height - h));
-    menu.style.left = left + 'px';
-    menu.style.top = top + 'px';
   }
 
   function clicked(target) {
@@ -158,53 +191,36 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function deleteSelected() {
     const sel = selected;
     if (!sel) return;
-    if (!edgesOk) { ui.notice('Deleting is off for this diagram: merma cannot match its edges to the text.', true); return; }
+    if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(), true); return; }
     editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
       if (sel.kind === 'edge') ui.toast('Deleted the edge');
       else ui.toast(`Deleted ${sel.id}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
     });
   }
 
-  els.menuAdd.addEventListener('click', () => addAndName((text) => addConnected(text, selected.id)));
-  els.spaceAdd.addEventListener('click', () => {
-    const subgraph = spaceSubgraph;
-    closeSpaceMenu();
-    addAndName((text) => addNode(text, { subgraph }));
-  });
-  els.menuConnect.addEventListener('click', () => {
-    connecting = true;
-    els.menu.classList.remove('show');
-    ui.notice(`Click the node to connect ${selected.id} to. Escape cancels.`);
-  });
-  els.menuRename.addEventListener('click', () => openRename(selected));
-  els.menuDelete.addEventListener('click', deleteSelected);
-  els.edgeDelete.addEventListener('click', deleteSelected);
-  els.edgeLabel.addEventListener('click', () => openRename(selected));
-  els.edgeReverse.addEventListener('click', () => {
-    const id = selected.id;
-    editDrawn((text) => reverseEdge(text, id));
-  });
-  // One button per arrow type, showing its Mermaid syntax; the edge's own type is marked.
-  for (const arrow of Object.keys(ARROWS)) {
-    const b = document.createElement('button');
-    b.textContent = arrow;
-    b.title = `Make this edge ${arrow}`;
-    b.dataset.arrow = arrow;
-    b.addEventListener('click', () => {
-      const id = selected.id;
-      editDrawn((text) => setEdgeArrow(text, id, arrow));
-    });
-    els.edgeArrows.append(b);
-  }
-  function markArrow(id) {
-    const type = arrowType(edges(shownText).find((e) => e.svgId === id)?.arrow ?? '');
-    for (const b of els.edgeArrows.children) b.setAttribute('aria-pressed', String(b.dataset.arrow === type));
-  }
-
-  // Keys: Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS opens its
-  // History with it); N adds a node (connected to the selected node, if any); Enter or F2 renames the selected node or
-  // edits the selected edge's label; Delete or Backspace deletes the selection; Escape backs out of whatever is open.
-  // None of them while the rename box (or another field) has the keyboard.
+  // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
+  // opens its History with it); N adds a node (connected to the selected node, if any); Enter or F2 edits the selected
+  // item's label; Delete or Backspace deletes the selection; Escape backs out of whatever is open. None of them while
+  // the label box (or another field) has the keyboard; an open menu takes its own keys first.
+  const keys = {
+    n: () => {
+      if (connecting) return false;
+      const from = selectedNode();
+      addAndName((text) => (from ? addConnected(text, from) : addNode(text)));
+      return true;
+    },
+    enter: () => selected && !connecting && (openLabelBox(selected), true),
+    f2: () => selected && !connecting && (openLabelBox(selected), true),
+    delete: () => selected && !connecting && (deleteSelected(), true),
+    backspace: () => selected && !connecting && (deleteSelected(), true),
+    escape: () => {
+      if (connecting) { connecting = false; ui.hideNotice(); select(selected); return true; }
+      deselect();
+      ui.hideNotice();
+      return true;
+    },
+  };
+  for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   document.addEventListener('keydown', (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
     const key = e.key.toLowerCase();
@@ -218,30 +234,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       redo();
       return;
     }
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (editable && e.key.toLowerCase() === 'n' && !connecting) {
-      e.preventDefault();
-      const from = selectedNode();
-      addAndName((text) => (from ? addConnected(text, from) : addNode(text)));
-      return;
-    }
-    if (editable && selected && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
-      e.preventDefault();
-      openRename(selected);
-      return;
-    }
-    if (editable && selected && !connecting && (e.key === 'Delete' || e.key === 'Backspace')) {
-      e.preventDefault();
-      deleteSelected();
-      return;
-    }
-    if (e.key !== 'Escape') return;
-    if (connecting) { connecting = false; ui.hideNotice(); select(selected); return; }
-    deselect();
-    ui.hideNotice();
+    if (e.ctrlKey || e.metaKey || e.altKey || !keys[key] || (!editable && key !== 'escape')) return;
+    if (keys[key]()) e.preventDefault();
   });
 
-  // --- renaming in place ---------------------------------------------------------------------------------------
+  // --- the label box: editing a label in place -----------------------------------------------------------------
 
   // The box is laid exactly over the node, or over the edge's label (the middle of its line if it has none): that size,
   // or larger when the text needs it, kept centred as it grows. Enter saves; Shift+Enter starts a new line, which the
@@ -249,8 +246,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const measure = document.createElement('canvas').getContext('2d');
   const LINE_HEIGHT = 18;
 
-  /** What the rename box covers: the node, the edge's label, or a point at the middle of the edge's line. */
-  function renameRect(target) {
+  /** What the label box covers: the node, the edge's label, or a point at the middle of the edge's line. */
+  function labelBoxRect(target) {
     if (target.kind === 'node') return nodeEl(target.id)?.getBoundingClientRect();
     const parts = edgeEls(target.id);
     const label = parts.find((e) => e.matches('g.edgeLabel'));
@@ -263,13 +260,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  function openRename(target) {
-    const r = renameRect(target);
+  function openLabelBox(target) {
+    const r = labelBoxRect(target);
     if (!r) return;
-    els.menu.classList.remove('show');
-    els.edgeMenu.classList.remove('show');
-    menuOpen = false;
-    renaming = target;
+    closeMenus();
+    labelling = target;
     // innerText, not textContent: a label's line breaks (<br>) come through as newlines.
     // An SVG element (a label Mermaid drew as SVG text) has no innerText.
     const shown = target.kind === 'node'
@@ -279,13 +274,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.dataset.initial = input.value;
     input.setAttribute('aria-label', target.kind === 'node' ? 'Node label' : 'Edge label');
     input.style.display = 'block';
-    sizeRename();
+    sizeLabelBox();
     input.focus();
     input.select();
   }
 
-  function sizeRename() {
-    const r = renaming && renameRect(renaming);
+  function sizeLabelBox() {
+    const r = labelling && labelBoxRect(labelling);
     if (!r) return;
     const box = els.diagram.getBoundingClientRect();
     measure.font = getComputedStyle(input).font;
@@ -298,23 +293,23 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.style.top = (r.top - box.top + r.height / 2 - h / 2) + 'px';
   }
 
-  function closeRename() {
+  function closeLabelBox() {
     input.style.display = 'none';
-    renaming = null;
+    labelling = null;
   }
 
-  input.addEventListener('input', sizeRename);
-  input.addEventListener('blur', () => { if (renaming) closeRename(); });
+  input.addEventListener('input', sizeLabelBox);
+  input.addEventListener('blur', () => { if (labelling) closeLabelBox(); });
   input.addEventListener('keydown', (e) => {
-    const target = renaming;
-    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (target) select(target); return; }
+    const target = labelling;
+    if (e.key === 'Escape') { e.stopPropagation(); closeLabelBox(); naming = null; if (target) select(target); return; }
     if (e.key !== 'Enter' || e.shiftKey || !target) return;
     e.preventDefault();
     const label = input.value;
     // A node needs a label; an edge's can be emptied, which removes it.
     if (target.kind === 'node' && !label.trim()) { ui.notice('A label cannot be empty.', true); return; }
     const unchanged = label === input.dataset.initial;
-    closeRename();
+    closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label.
     if (unchanged) { deselect(); naming = null; return; }
     if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label)); return; }
@@ -332,7 +327,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const drawn = [...els.stage.querySelectorAll('path[data-edge="true"]')];
     const ids = edges(text).map((e) => e.svgId);
     edgesOk = ids.length === drawn.length && drawn.every((p, k) => p.dataset.id === ids[k]);
-    els.menuDelete.hidden = !edgesOk;
     if (!edgesOk) {
       ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
         + 'deleted here; edit those in the file.');
@@ -406,7 +400,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!(await save(redoing.text, base.version))) return;
       history.redone();
       deselect();
-      closeRename();
+      closeLabelBox();
       await display(redoing.text);
       ui.toast('Redone');
     });
@@ -426,7 +420,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!(await save(undoing.text, base.version))) return;
       history.pop();
       deselect();
-      closeRename();
+      closeLabelBox();
       await display(undoing.text);
       ui.toast('Undone');
     });
@@ -454,11 +448,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   return {
     save,
-    viewChanged: () => { if (selected) positionMenu(); closeSpaceMenu(); },
+    viewChanged: () => {
+      if (selected && selectedEl()) menus[selected.kind].reposition(selectedEl().getBoundingClientRect());
+      menus.space.close();
+    },
     clicked,
     contextMenu,
 
-    /** Double-click on a node renames it; on an edge it edits the edge's label. Returns whether it was either. */
+    /** Double-click on a node or an edge edits its label. Returns whether it was either. */
     doubleClicked(target) {
       if (!editable) return false;
       const id = nodeOf(target);
@@ -466,7 +463,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!id && !edge) return false;
       const sel = id ? { kind: 'node', id } : { kind: 'edge', id: edge };
       select(sel);
-      openRename(sel);
+      openLabelBox(sel);
       return true;
     },
 
@@ -484,14 +481,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         if (id) g.dataset.pageNode = id;
       }
       tagEdges(text);
-      if (selected?.kind === 'node' && nodeEl(selected.id)) select(selected, { keepMode: true, menu: menuOpen });
-      else if (selected?.kind === 'edge' && !changed && edgeEls(selected.id).length) select(selected, { menu: menuOpen });
+      const menu = menuOpen();
+      if (selected?.kind === 'node' && nodeEl(selected.id)) select(selected, { keepMode: true, menu });
+      else if (selected?.kind === 'edge' && !changed && edgeEls(selected.id).length) select(selected, { menu });
       else deselect();
-      if (pendingRename && nodeEl(pendingRename)) {
-        const id = pendingRename;
-        pendingRename = null;
+      if (pendingLabel && nodeEl(pendingLabel)) {
+        const id = pendingLabel;
+        pendingLabel = null;
         select({ kind: 'node', id });
-        openRename({ kind: 'node', id });
+        openLabelBox({ kind: 'node', id });
       }
     },
 
@@ -502,7 +500,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       selected: selectedNode(), selectedEdge: selected?.kind === 'edge' ? selected.id : null, connecting, editable, edgesOk,
     }),
 
-    /** Nothing in progress that a reload would lose: no edit being saved, no rename open, no connection half made. */
-    idle: () => !busy && !renaming && !connecting,
+    /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
+    idle: () => !busy && !labelling && !connecting,
   };
 }

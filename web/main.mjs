@@ -95,13 +95,7 @@ const source = createSource(file, { onText: display, onError: showError, onBuild
 
 editor = createEditor({
   source, viewer, parse, display, ui,
-  els: {
-    stage: el('stage'), diagram: el('diagram'), menu: el('menu'), menuAdd: el('menu-add'),
-    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), menuDelete: el('menu-delete'),
-    edgeMenu: el('edge-menu'), edgeLabel: el('edge-label'), edgeReverse: el('edge-reverse'),
-    edgeArrows: el('edge-arrows'), edgeDelete: el('edge-delete'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'),
-    rename: el('rename'),
-  },
+  els: { stage: el('stage'), diagram: el('diagram'), labelBox: el('label-box') },
 });
 
 // The header: the file's path, and its host path when the server knows it. Click either to copy it; localhost is a
