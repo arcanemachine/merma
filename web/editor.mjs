@@ -23,6 +23,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let connecting = false;     // after "Connect to…": the next node clicked is the edge's target
   let pendingRename = null;   // a node just added: open Rename on it once it is drawn
   const history = createHistory();
+  let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-node-id]')].find((g) => g.dataset.nodeId === id);
@@ -167,54 +168,75 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- saving --------------------------------------------------------------------------------------------------
 
-  // Make an edit to the file's latest text and save it. The edit runs on the text as the page has it now, so a change
-  // it has already picked up is kept; one it has not yet seen makes the save fail. `into` is the history entry this
-  // edit completes, if any.
-  async function edit(change, afterSave, into = null) {
-    ui.hideNotice();
-    if (source.text === null || !source.version) return;
-    const before = source.text;
-    let result;
+  // One edit or undo at a time: a second one started while the first is saving (a held Ctrl+Z, a double-clicked menu
+  // item) would be based on the text from before the first.
+  async function exclusively(work) {
+    if (busy) return;
+    busy = true;
     try {
-      result = change(before);
-    } catch (e) {
-      ui.notice('Not saved: ' + (e.message || e), true);
-      return;
+      await work();
+    } finally {
+      busy = false;
     }
-    if (!(await save(result.text))) return;
-    const entry = history.record(before, result.text, into);
-    // The action is done: drop the selection, so its menu does not linger over the diagram.
-    deselect();
-    afterSave?.(result, entry);
-    await display(result.text);
   }
 
-  async function undo() {
-    if (source.text === null) return;
-    ui.hideNotice();
-    const undoing = history.peek(source.text);
-    if (!undoing.ok) {
-      if (undoing.reason === 'empty') ui.notice('Nothing to undo.');
-      else ui.notice('Cannot undo: the file has changed since that edit.', true);
-      return;
-    }
-    if (!(await save(undoing.text))) return;
-    history.pop();
-    deselect();
-    closeRename();
-    await display(undoing.text);
-    ui.toast('Undone');
+  // Make an edit to the file's latest text and save it over that text's version. The edit runs on the text as the page
+  // has it now, so a change it has already picked up is kept; one it has not yet seen, even one that arrives while the
+  // edit is being checked, makes the save fail rather than be overwritten. `into` is the history entry this edit
+  // completes, if any.
+  function edit(change, afterSave, into = null) {
+    return exclusively(async () => {
+      ui.hideNotice();
+      const base = source.snapshot();
+      if (base.text === null || !base.version) return;
+      let result;
+      try {
+        result = change(base.text);
+      } catch (e) {
+        ui.notice('Not saved: ' + (e.message || e), true);
+        return;
+      }
+      if (!(await save(result.text, base.version))) return;
+      const entry = history.record(base.text, result.text, into);
+      // The action is done: drop the selection, so its menu does not linger over the diagram.
+      deselect();
+      afterSave?.(result, entry);
+      await display(result.text);
+    });
   }
 
-  /** Save text for the file, after checking it parses. Returns true when saved. */
-  async function save(text) {
+  function undo() {
+    return exclusively(async () => {
+      const base = source.snapshot();
+      if (base.text === null) return;
+      ui.hideNotice();
+      const undoing = history.peek(base.text);
+      if (!undoing.ok) {
+        if (undoing.reason === 'empty') ui.notice('Nothing to undo.');
+        else ui.notice('Cannot undo: the file has changed since that edit.', true);
+        return;
+      }
+      if (!(await save(undoing.text, base.version))) return;
+      history.pop();
+      deselect();
+      closeRename();
+      await display(undoing.text);
+      ui.toast('Undone');
+    });
+  }
+
+  /**
+   * Save text for the file over version `base` (default: the version the page has now), after checking it parses.
+   * Returns true when saved.
+   */
+  async function save(text, base = source.version) {
     try {
       await parse(text);
     } catch (e) {
       ui.notice('Not saved: the edit would make the diagram invalid.\n' + (e.message || e), true);
       return false;
     }
-    const saved = await source.save(text);
+    const saved = await source.save(text, base);
     if (!saved.ok) {
       ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), true);
       return false;

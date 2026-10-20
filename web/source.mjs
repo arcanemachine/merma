@@ -31,18 +31,20 @@ export function createSource(file, { onText, onError }) {
   }
 
   /**
-   * Save `next` over the version last read. On a conflict (the file changed since), the new version is fetched and
-   * passed to onText as usual.
+   * Save `next` over `base`, the version the edit was made from (from snapshot(), taken when the edit began). The
+   * caller passes it rather than this reading the latest, because a poll can bring in a newer version while the edit
+   * is being checked; saving over that one would throw away the change it brought. On a conflict (the file changed
+   * since), the new version is fetched and passed to onText as usual.
    * @returns {Promise<{ ok: true } | { ok: false, conflict?: boolean, message: string }>}
    */
-  async function save(next) {
+  async function save(next, base) {
     saves++;
     try {
       let res;
       try {
         res = await fetch('/edit?f=' + q, {
           method: 'POST',
-          headers: { 'If-Match': version, 'Content-Type': 'text/plain; charset=utf-8' },
+          headers: { 'If-Match': base, 'Content-Type': 'text/plain; charset=utf-8' },
           body: next,
         });
       } catch {
@@ -65,6 +67,8 @@ export function createSource(file, { onText, onError }) {
   return {
     get text() { return text; },
     get version() { return version; },
+    /** The text and its version together, as one consistent pair to base an edit on. */
+    snapshot: () => ({ text, version }),
     poll,
     save,
     start() { poll(); if (!timer) timer = setInterval(poll, 1000); },
