@@ -1,7 +1,9 @@
-// The page: wires the file (source.mjs) to the view (viewer.mjs), and runs the header and footer.
+// The page: wires the file (source.mjs), the view (viewer.mjs) and editing (editor.mjs) together, and runs the header
+// and footer. The three never reach into each other; everything they share passes through here.
 
+import { createEditor } from './editor.mjs';
 import { createSource } from './source.mjs';
-import { createViewer } from './viewer.mjs';
+import { createViewer, parse } from './viewer.mjs';
 
 const el = (id) => document.getElementById(id);
 
@@ -24,17 +26,46 @@ function showError(message) {
   el('error').style.display = message ? 'block' : 'none';
 }
 
-const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') });
-
-const source = createSource(file, {
-  async onText(text) {
-    const shown = await viewer.show(text);
-    if (!shown.ok) { showError('Syntax error; showing the last good render.\n' + shown.error); return; }
-    for (const b of ['copy-svg', 'download-svg', 'reset-view']) el(b).disabled = false;
-    showError('');
-    el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
+const ui = {
+  toast,
+  notice(message, bad = false) {
+    el('notice').textContent = message;
+    el('notice').classList.add('show');
+    el('notice').classList.toggle('bad', bad);
   },
-  onError: showError,
+  hideNotice: () => el('notice').classList.remove('show'),
+};
+
+/** @type {ReturnType<typeof createEditor> | null} set once the source and viewer it needs exist */
+let editor = null;
+
+const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
+  onClick: (target) => editor?.clicked(target),
+  onViewChange: () => editor?.viewChanged(),
+});
+
+// Show a version of the file: a new one polled from the server, or one the editor just saved.
+async function display(text) {
+  const shown = await viewer.show(text);
+  if (!shown.ok) {
+    showError('Syntax error; showing the last good render.\n' + shown.error);
+    editor?.failed();
+    return;
+  }
+  for (const b of ['copy-svg', 'download-svg', 'reset-view']) el(b).disabled = false;
+  showError('');
+  el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
+  editor?.rendered(text);
+}
+
+const source = createSource(file, { onText: display, onError: showError });
+
+editor = createEditor({
+  source, viewer, parse, display, ui,
+  els: {
+    stage: el('stage'), diagram: el('diagram'), menu: el('menu'), menuAdd: el('menu-add'),
+    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), rename: el('rename'), hint: el('hint'),
+  },
 });
 
 // The header: the file's path, and its host path when the server knows it. Click either to copy it; localhost is a
@@ -76,5 +107,8 @@ el('download-svg').addEventListener('click', () => {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   toast('SVG downloaded');
 });
+
+// For tests: hold polling to set up a stale save, or save text directly to exercise the parse check.
+window.merma = { start: source.start, stop: source.stop, save: editor.save, state: () => ({ ...editor.state(), version: source.version }) };
 
 source.start();

@@ -1,10 +1,12 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, symlinkSync, realpathSync } from 'node:fs';
+import {
+  chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createFiles, parsePathMap, parseRoots } from '../server/files.js';
-import { createServer } from '../server/server.js';
+import { createServer, MAX_EDIT_BYTES } from '../server/server.js';
 
 const ROOT = realpathSync(mkdtempSync(join(tmpdir(), 'merma-root-')));
 const OUTSIDE = realpathSync(mkdtempSync(join(tmpdir(), 'merma-outside-')));
@@ -89,4 +91,90 @@ test('other methods are refused', async () => {
 test('settings parse from their environment forms', () => {
   assert.deepEqual(parseRoots(' /a/, /b/ ,,'), ['/a/', '/b/']);
   assert.deepEqual(parsePathMap('/workspace/=/home/me/ws,junk,/x=/y'), [['/workspace', '/home/me/ws'], ['/x', '/y']]);
+});
+
+// --- edits ---------------------------------------------------------------------------------------------------
+
+const edit = (path, body, headers = {}) => get('/edit?f=' + q(path), { method: 'POST', body, headers });
+const versionOf = async (path) => (await get('/source?f=' + q(path))).headers.get('etag');
+const read = (path) => readFileSync(path, 'utf8');
+
+test('source carries a version that follows the content', async () => {
+  const path = file('v.mmd');
+  const before = await versionOf(path);
+  assert.match(before, /^"[0-9a-f]{16}"$/);
+  writeFileSync(path, 'flowchart TD\n  A --> C\n');
+  assert.notEqual(await versionOf(path), before);
+});
+
+test('an edit from the current version saves and returns the new version', async () => {
+  const path = file('e1.mmd');
+  const res = await edit(path, 'flowchart TD\n  A --> B\n  B --> C\n', { 'If-Match': await versionOf(path) });
+  assert.equal(res.status, 200);
+  assert.equal(read(path), 'flowchart TD\n  A --> B\n  B --> C\n');
+  assert.equal(res.headers.get('etag'), await versionOf(path));
+});
+
+test('a stale edit is refused, keeps the file, and returns the current version', async () => {
+  const path = file('e2.mmd');
+  const stale = await versionOf(path);
+  writeFileSync(path, 'flowchart TD\n  A --> Z\n');
+  const res = await edit(path, 'flowchart TD\n  X\n', { 'If-Match': stale });
+  assert.equal(res.status, 409);
+  assert.equal(read(path), 'flowchart TD\n  A --> Z\n');
+  assert.equal(res.headers.get('etag'), await versionOf(path));
+});
+
+test('an edit needs If-Match', async () => {
+  const path = file('e3.mmd');
+  assert.equal((await edit(path, 'flowchart TD\n  X\n')).status, 428);
+  assert.equal(read(path), 'flowchart TD\n  A --> B\n');
+});
+
+test('edits outside the roots, through symlinks, and to other files are refused', async () => {
+  const outside = file('target.mmd', 'keep', OUTSIDE);
+  symlinkSync(outside, join(ROOT, 'edit-link.mmd'));
+  const txt = file('edit-notes.txt', 'keep');
+  for (const path of [outside, join(ROOT, 'edit-link.mmd'), txt]) {
+    assert.equal((await edit(path, 'x', { 'If-Match': '"x"' })).status, 403, path);
+  }
+  assert.equal(read(outside), 'keep');
+  assert.equal(read(txt), 'keep');
+});
+
+test("edits from another site's page are refused; this server's own page is accepted", async () => {
+  const path = file('e4.mmd');
+  const v = await versionOf(path);
+  assert.equal((await edit(path, 'flowchart TD\n  X\n', { 'If-Match': v, Origin: 'https://evil.example' })).status, 403);
+  assert.equal(read(path), 'flowchart TD\n  A --> B\n');
+  assert.equal((await edit(path, 'flowchart TD\n  X\n', { 'If-Match': v, Origin: base })).status, 200);
+});
+
+test('an edit to a missing file is 404 and creates nothing', async () => {
+  const path = join(ROOT, 'never.mmd');
+  assert.equal((await edit(path, 'flowchart TD\n', { 'If-Match': '"x"' })).status, 404);
+  assert.equal(existsSync(path), false);
+});
+
+test('invalid UTF-8 and oversized edits are refused', async () => {
+  const path = file('e5.mmd');
+  const v = await versionOf(path);
+  assert.equal((await edit(path, Buffer.from([0xff, 0xfe]), { 'If-Match': v })).status, 400);
+  assert.equal((await edit(path, 'x'.repeat(MAX_EDIT_BYTES + 1), { 'If-Match': v })).status, 413);
+  assert.equal(read(path), 'flowchart TD\n  A --> B\n');
+});
+
+test('an edit keeps the file mode and leaves no temporary file', async () => {
+  const path = file('e6.mmd');
+  chmodSync(path, 0o640);
+  await edit(path, 'flowchart TD\n  X\n', { 'If-Match': await versionOf(path) });
+  assert.equal(statSync(path).mode & 0o777, 0o640);
+  assert.deepEqual(readdirSync(ROOT).filter((n) => n.startsWith('.merma-')), []);
+});
+
+test('of several edits from one version, exactly one is saved', async () => {
+  const path = file('e7.mmd');
+  const v = await versionOf(path);
+  const results = await Promise.all(Array.from({ length: 8 }, (_, i) => edit(path, `flowchart TD\n  N${i}\n`, { 'If-Match': v })));
+  assert.deepEqual(results.map((r) => r.status).sort(), [200, 409, 409, 409, 409, 409, 409, 409]);
 });

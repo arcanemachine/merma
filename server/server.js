@@ -2,7 +2,9 @@
 //
 //   GET /                  the page
 //   GET /<file>.mjs|.css   the page's modules and styles
-//   GET /source?f=<path>   a diagram file's text
+//   GET /source?f=<path>   a diagram file's text, with its version as the ETag
+//   POST /edit?f=<path>    replace the file with the request body, only if If-Match names its current version;
+//                          409 otherwise, so an edit made in the page never overwrites a change saved meanwhile
 //   GET /hostpath?f=<path> where that file is on the host, for a server in a container ('' when unknown)
 //   GET /health            "ok pid=<pid> script=<path>", so a caller can tell which server holds the port
 
@@ -10,9 +12,11 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { version } from './files.js';
 
 const WEB = fileURLToPath(new URL('../web/', import.meta.url));
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.mjs': 'text/javascript' };
+export const MAX_EDIT_BYTES = 1_000_000;
 
 /**
  * @param {object} options
@@ -29,6 +33,7 @@ export function createServer({ files, script }) {
   async function handle(req, res) {
     const url = new URL(req.url, 'http://localhost');
     const f = url.searchParams.get('f') || '';
+    if (req.method === 'POST' && url.pathname === '/edit') return edit(req, res, f);
     if (req.method !== 'GET') return send(res, 405, 'Method not allowed');
 
     if (url.pathname === '/health') return send(res, 200, `ok pid=${process.pid} script=${script}`);
@@ -38,10 +43,44 @@ export function createServer({ files, script }) {
       if (!files.allowed(f)) return send(res, 403, 'Only .mmd files under ' + files.roots.join(', ') + ' are served.');
       const text = files.read(f);
       if (text === null) return send(res, 404, 'File not found: ' + f);
-      return send(res, 200, text);
+      return send(res, 200, text, 'text/plain', { ETag: version(text) });
     }
 
     return serveWeb(url.pathname, res);
+  }
+
+  async function edit(req, res, f) {
+    // A page from another site can send a POST to localhost. Requiring If-Match (not a CORS-safelisted header) makes
+    // the browser ask first, and this server never says yes; the Origin check refuses any request that gets through.
+    const origin = req.headers.origin;
+    if (origin && new URL(origin).host !== req.headers.host) {
+      return send(res, 403, "Edits are accepted only from this server's own page.");
+    }
+    if (!files.allowed(f)) return send(res, 403, 'Only .mmd files under ' + files.roots.join(', ') + ' can be edited.');
+    const base = req.headers['if-match'];
+    if (!base) return send(res, 428, 'If-Match is required: the version (ETag) the edit was based on.');
+
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > MAX_EDIT_BYTES) return send(res, 413, `Edits are limited to ${MAX_EDIT_BYTES} bytes.`);
+      chunks.push(chunk);
+    }
+    let text;
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+    } catch {
+      return send(res, 400, 'The edit is not valid UTF-8.');
+    }
+
+    const result = files.writeIfVersion(f, base, text);
+    if (result === 'missing') return send(res, 404, 'File not found: ' + f);
+    if (result === 'conflict') {
+      return send(res, 409, 'The file changed since the page read it; reload and edit again.', 'text/plain',
+        { ETag: version(files.read(f) ?? '') });
+    }
+    return send(res, 200, 'saved', 'text/plain', { ETag: version(text) });
   }
 
   return server;

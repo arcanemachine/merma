@@ -1,0 +1,61 @@
+{
+ "01-basic.mmd": [
+  "A",
+  "B",
+  "C",
+  "D"
+ ],
+ "02-graph-header-bare.mmd": [
+  "A",
+  "B",
+  "C"
+ ],
+ "03-directive-comments.mmd": [
+  "B",
+  "D",
+  "S",
+  "U",
+  "X"
+ ],
+ "04-frontmatter.mmd": [
+  "A",
+  "B",
+  "C"
+ ],
+ "05-chains-shapes.mmd": [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K"
+ ],
+ "06-subgraphs-classes.mmd": [
+  "archive",
+  "charge",
+  "done",
+  "record",
+  "start"
+ ],
+ "07-tricky-labels.mmd": [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E"
+ ],
+ "08-new-shape-syntax.mmd": [
+  "A",
+  "B",
+  "C"
+ ],
+ "09-no-trailing-newline.mmd": [
+  "A",
+  "B"
+ ]
+}

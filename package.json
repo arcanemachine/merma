@@ -1,7 +1,7 @@
 {
   "name": "merma",
   "version": "0.1.0",
-  "description": "A live view of Mermaid diagram files in the browser",
+  "description": "A live view of Mermaid diagram files in the browser, with point-and-click editing",
   "keywords": ["mermaid", "diagram", "live", "viewer"],
   "license": "MIT",
   "type": "module",

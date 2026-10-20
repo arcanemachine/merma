@@ -1,4 +1,5 @@
-// The diagram file, as the server has it: polled every second, with a callback whenever its text changes.
+// The diagram file, as the server has it: polled every second, with a callback whenever its text changes, and saved
+// with the version it was based on, so a save never overwrites a change made in the meantime.
 
 /**
  * @param {string} file the file's absolute path
@@ -9,13 +10,18 @@
 export function createSource(file, { onText, onError }) {
   const q = encodeURIComponent(file);
   let text = null;
+  let version = null;
   let timer = null;
+  let saves = 0;   // bumped as a save starts and ends, so a poll that overlaps one is dropped
 
   async function poll() {
+    const started = saves;
     try {
       const res = await fetch('/source?f=' + q, { cache: 'no-store' });
       const body = await res.text();
+      if (started !== saves) return;
       if (!res.ok) { onError(body); return; }
+      version = res.headers.get('ETag');
       if (body === text) return;
       text = body;
       await onText(body);
@@ -24,9 +30,43 @@ export function createSource(file, { onText, onError }) {
     }
   }
 
+  /**
+   * Save `next` over the version last read. On a conflict (the file changed since), the new version is fetched and
+   * passed to onText as usual.
+   * @returns {Promise<{ ok: true } | { ok: false, conflict?: boolean, message: string }>}
+   */
+  async function save(next) {
+    saves++;
+    try {
+      let res;
+      try {
+        res = await fetch('/edit?f=' + q, {
+          method: 'POST',
+          headers: { 'If-Match': version, 'Content-Type': 'text/plain; charset=utf-8' },
+          body: next,
+        });
+      } catch {
+        return { ok: false, message: 'server unreachable.' };
+      }
+      if (res.status === 409) {
+        text = null;
+        queueMicrotask(poll);
+        return { ok: false, conflict: true, message: 'the file changed since this page last read it.' };
+      }
+      if (!res.ok) return { ok: false, message: await res.text() };
+      version = res.headers.get('ETag');
+      text = next;
+      return { ok: true };
+    } finally {
+      saves++;
+    }
+  }
+
   return {
     get text() { return text; },
+    get version() { return version; },
     poll,
+    save,
     start() { poll(); if (!timer) timer = setInterval(poll, 1000); },
     stop() { clearInterval(timer); timer = null; },
     async hostPath() { return (await fetch('/hostpath?f=' + q)).text(); },

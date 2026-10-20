@@ -1,0 +1,14 @@
+flowchart TD
+  classDef warn fill:#fdd,stroke:#c00
+  start[Begin] --> pay
+  subgraph pay [Payment]
+    direction LR
+    charge[Charge card] --> record[Record]
+  end
+  record --> done[Finished]:::warn
+  subgraph tail
+    done --> archive[(Archive)]
+  end
+  class archive warn
+  style start fill:#eef
+  click start "https://example.com" "Open"

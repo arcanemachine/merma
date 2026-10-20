@@ -1,0 +1,10 @@
+%%{init: {"flowchart": {"wrappingWidth": 260}}}%%
+%% The order below matters: keep Search before Book.
+flowchart TD
+  %% entry point
+  U([User]) --> S[Search]
+
+  S --> D{Available?}
+  %% the happy path
+  D -- yes --> B[Book]
+  D -. no .-> X[Show error]

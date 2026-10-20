@@ -1,8 +1,15 @@
-// Which .mmd files the server may touch, and reading them. Every path is resolved through symlinks before it is
-// checked, so a link inside an allowed folder cannot reach a file outside it.
+// Which .mmd files the server may touch, reading them, and writing them only over the version an edit was based on.
+// Every path is resolved through symlinks before it is checked, so a link inside an allowed folder cannot reach a
+// file outside it.
 
-import { readFileSync, realpathSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { chmodSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
+
+/** A file's version: a hash of its content, quoted as an HTTP ETag. */
+export function version(text) {
+  return '"' + createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16) + '"';
+}
 
 /** The real path of `path`, or for a file that does not exist yet, its real folder joined to its name. */
 function real(path) {
@@ -42,6 +49,34 @@ export function createFiles({ roots, pathMap = [] }) {
         if (e.code === 'ENOENT') return null;
         throw e;
       }
+    },
+
+    /**
+     * Replace the file with `text`, but only if it is still at version `base`. Returns 'saved', 'conflict' (it has
+     * changed since) or 'missing'. Synchronous on purpose: no other request can run between the check and the write.
+     * The write goes to a temporary file that is renamed over the old one, so a reader never sees half a file, and it
+     * keeps the file's permissions.
+     */
+    writeIfVersion(path, base, text) {
+      let current;
+      try {
+        current = readFileSync(path, 'utf8');
+      } catch (e) {
+        if (e.code === 'ENOENT') return 'missing';
+        throw e;
+      }
+      if (version(current) !== base) return 'conflict';
+      const target = real(path);
+      const tmp = join(dirname(target), `.merma-${process.pid}-${Date.now()}.tmp`);
+      try {
+        writeFileSync(tmp, text);
+        chmodSync(tmp, statSync(target).mode & 0o777);
+        renameSync(tmp, target);
+      } catch (e) {
+        try { unlinkSync(tmp); } catch { /* already gone */ }
+        throw e;
+      }
+      return 'saved';
     },
 
     hostPath(path) {

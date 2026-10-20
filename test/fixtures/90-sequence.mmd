@@ -1,0 +1,15 @@
+%%{init: {"sequence": {"wrap": true}}}%%
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant A as App
+  participant S as Server
+  U->>A: Open the page
+  A->>S: GET /source
+  S-->>A: the diagram text
+  alt the file changed
+    A->>A: re-render
+  else unchanged
+    A->>A: nothing to do
+  end
+  Note over A,S: polls every second
