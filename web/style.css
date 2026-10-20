@@ -45,9 +45,14 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice { display: none; padding: 8px 16px; background: #fff4d6; color: #5c4400; font-size: 13px; white-space: pre-wrap; }
 #notice.show { display: block; }
 #notice.bad { background: #fde2e2; color: #7b1d1d; }
-/* Flowchart nodes can be clicked to edit; the selected one glows, whatever its shape. */
-#stage.editable g.node[data-node-id], #stage.editable g.node[data-node-id] * { cursor: pointer !important; }
-#stage g.node.selected { filter: drop-shadow(0 0 2px #0969da) drop-shadow(0 0 4px #0969da); }
+/* Flowchart nodes and edges can be clicked to edit; the selected one glows, whatever its shape. */
+#stage.editable g.node[data-page-node], #stage.editable g.node[data-page-node] *,
+#stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
+#stage [data-page-selected]:not([data-page-only]) { filter: drop-shadow(0 0 2px #0969da) drop-shadow(0 0 4px #0969da); }
+/* An edge's line is hard to hit, so a wide invisible path lies over it. An invisible edge (~~~) shows through it when
+   selected, since it has no line to glow. */
+#stage path[data-page-only] { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
+#stage path.edge-thickness-invisible[data-page-selected] + path[data-page-only] { stroke: rgba(9, 105, 218, 0.3); }
 .menu { position: absolute; display: none; z-index: 5; flex-direction: column; padding: 4px; background: #fff;
         border: 1px solid #bbb; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); cursor: default; }
 .menu.show { display: flex; }

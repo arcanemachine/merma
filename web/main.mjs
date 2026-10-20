@@ -97,7 +97,9 @@ editor = createEditor({
   source, viewer, parse, display, ui,
   els: {
     stage: el('stage'), diagram: el('diagram'), menu: el('menu'), menuAdd: el('menu-add'),
-    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'), rename: el('rename'),
+    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), menuDelete: el('menu-delete'),
+    edgeMenu: el('edge-menu'), edgeDelete: el('edge-delete'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'),
+    rename: el('rename'),
   },
 });
 

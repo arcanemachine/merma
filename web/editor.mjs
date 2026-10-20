@@ -1,10 +1,13 @@
-// Editing a flowchart by pointing: click a node to select it, right-click (or long-press) for its menu, or right-click
-// empty space to add a node; each action is a small text edit to the file (patch/flowchart.mjs). Each edit is checked with Mermaid's parser before it is saved, and saved over the version it
-// was based on (source.mjs), so a change saved meanwhile by an agent or an editor is never overwritten.
+// Editing a flowchart by pointing: click a node or an edge to select it, right-click (or long-press) for its menu, or
+// right-click empty space to add a node; each action is a small text edit to the file (patch/flowchart.mjs). Each edit
+// is checked with Mermaid's parser before it is saved, and saved over the version it was based on (source.mjs), so a
+// change saved meanwhile by an agent or an editor is never overwritten. What this adds to the drawing is marked
+// `data-page-…`, which the SVG export leaves out.
 
 import { createHistory } from './history.mjs';
 import {
-  addConnected, addNode, connect, isFlowchart, nodeIdFromSvgId, relabel, subgraphIdFromSvgId,
+  addConnected, addNode, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId, relabel,
+  subgraphIdFromSvgId,
 } from './patch/flowchart.mjs';
 
 /**
@@ -14,12 +17,14 @@ import {
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
- * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'menuDelete'|'edgeMenu'|'edgeDelete'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
-  let selected = null;        // the selected node's Mermaid id
-  let menuOpen = false;       // the selected node's menu is showing
+  let selected = null;        // { kind: 'node', id } or { kind: 'edge', id }: a Mermaid node id, or an edge's SVG id
+  let menuOpen = false;       // the selection's menu is showing
+  let shownText = null;       // the text on screen, which edge ids refer to
+  let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let spaceSubgraph = null;   // the subgraph the empty-space menu adds into, or null for the top level
   let connecting = false;     // after "Connect to…": the next node clicked is the edge's target
   let pendingRename = null;   // a node just added: open Rename on it once it is drawn
@@ -27,7 +32,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
 
-  const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-node-id]')].find((g) => g.dataset.nodeId === id);
+  const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-page-node]')].find((g) => g.dataset.pageNode === id);
+  const edgeEls = (id) => [...els.stage.querySelectorAll('[data-page-edge]')].filter((e) => e.dataset.pageEdge === id);
+  const selectedEl = () => (selected?.kind === 'node' ? nodeEl(selected.id) : selected && edgeEls(selected.id)[0]);
+  const nodeOf = (target) => target.closest('g.node[data-page-node]')?.dataset.pageNode;
+  const edgeOf = (target) => (edgesOk ? target.closest('[data-page-edge]')?.dataset.pageEdge : undefined);
+  const selectedNode = () => (selected?.kind === 'node' ? selected.id : null);
   const input = /** @type {HTMLTextAreaElement} */ (els.rename);
 
   function setEditable(on) {
@@ -38,24 +48,28 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection and the menus ---------------------------------------------------------------------------------
 
-  /** Select a node (it glows); with `menu`, also open its menu. */
-  function select(id, { keepMode = false, menu = false } = {}) {
-    for (const g of els.stage.querySelectorAll('g.node.selected')) g.classList.remove('selected');
+  const unglow = () => { for (const e of els.stage.querySelectorAll('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
+
+  /** Select a node or an edge (it glows); with `menu`, also open its menu. */
+  function select(sel, { keepMode = false, menu = false } = {}) {
+    unglow();
     closeSpaceMenu();
-    selected = id;
-    nodeEl(id).classList.add('selected');
+    selected = sel;
+    for (const e of sel.kind === 'node' ? [nodeEl(sel.id)] : edgeEls(sel.id)) e.setAttribute('data-page-selected', '');
     if (!keepMode) connecting = false;
     menuOpen = menu && !connecting;
-    els.menu.classList.toggle('show', menuOpen);
+    els.menu.classList.toggle('show', menuOpen && sel.kind === 'node');
+    els.edgeMenu.classList.toggle('show', menuOpen && sel.kind === 'edge');
     positionMenu();
   }
 
   function deselect() {
-    for (const g of els.stage.querySelectorAll('g.node.selected')) g.classList.remove('selected');
+    unglow();
     selected = null;
     connecting = false;
     menuOpen = false;
     els.menu.classList.remove('show');
+    els.edgeMenu.classList.remove('show');
     closeSpaceMenu();
   }
 
@@ -84,47 +98,67 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     });
   }
 
-  // Beside the node, inside the diagram area: to its right, or to its left when there is no room.
+  // Beside the selection, inside the diagram area: to its right, or to its left when there is no room.
   function positionMenu() {
-    const g = selected && nodeEl(selected);
+    const g = selectedEl();
     if (!g) return;
+    const menu = selected.kind === 'node' ? els.menu : els.edgeMenu;
     const box = els.diagram.getBoundingClientRect();
     const r = g.getBoundingClientRect();
-    const w = els.menu.offsetWidth, h = els.menu.offsetHeight;
+    const w = menu.offsetWidth, h = menu.offsetHeight;
     let left = r.right - box.left + 8;
     if (left + w > box.width) left = Math.max(0, r.left - box.left - w - 8);
     const top = Math.min(Math.max(0, r.top - box.top), Math.max(0, box.height - h));
-    els.menu.style.left = left + 'px';
-    els.menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
   }
 
   function clicked(target) {
     if (!editable) return;
-    const id = target.closest('g.node[data-node-id]')?.dataset.nodeId;
+    const id = nodeOf(target);
     if (connecting) {
-      const from = selected;
+      const from = selectedNode();
       connecting = false;
       ui.hideNotice();
       if (!id) { deselect(); return; }
-      if (id === from) { ui.notice('Pick a different node to connect to.'); select(from); return; }
+      if (id === from) { ui.notice('Pick a different node to connect to.'); select(selected); return; }
       deselect();
       edit((text) => connect(text, from, id));
       return;
     }
-    if (!id) { deselect(); ui.hideNotice(); return; }
-    select(id);
+    const edge = !id && edgeOf(target);
+    if (id) select({ kind: 'node', id });
+    else if (edge) select({ kind: 'edge', id: edge });
+    else { deselect(); ui.hideNotice(); }
   }
 
   function contextMenu(target, x, y) {
     if (!editable) return false;
-    const id = target.closest('g.node[data-node-id]')?.dataset.nodeId;
     if (connecting) return true;
-    if (id) select(id, { menu: true });
+    const id = nodeOf(target);
+    const edge = !id && edgeOf(target);
+    if (id) select({ kind: 'node', id }, { menu: true });
+    else if (edge) select({ kind: 'edge', id: edge }, { menu: true });
     else openSpaceMenu(target, x, y);
     return true;
   }
 
-  els.menuAdd.addEventListener('click', () => addAndName((text) => addConnected(text, selected)));
+  /** Delete the selected node or edge. Edge ids are only good for the text they were drawn from. */
+  function deleteSelected() {
+    const sel = selected;
+    if (!sel) return;
+    if (!edgesOk) { ui.notice('Deleting is off for this diagram: merma cannot match its edges to the text.', true); return; }
+    const drawnFrom = shownText;
+    edit((text) => {
+      if (text !== drawnFrom) throw new Error('the diagram changed; select it again.');
+      return sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id);
+    }, (result) => {
+      if (sel.kind === 'edge') ui.toast('Deleted the edge');
+      else ui.toast(`Deleted ${sel.id}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
+    });
+  }
+
+  els.menuAdd.addEventListener('click', () => addAndName((text) => addConnected(text, selected.id)));
   els.spaceAdd.addEventListener('click', () => {
     const subgraph = spaceSubgraph;
     closeSpaceMenu();
@@ -133,12 +167,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   els.menuConnect.addEventListener('click', () => {
     connecting = true;
     els.menu.classList.remove('show');
-    ui.notice(`Click the node to connect ${selected} to. Escape cancels.`);
+    ui.notice(`Click the node to connect ${selected.id} to. Escape cancels.`);
   });
-  els.menuRename.addEventListener('click', () => openRename(selected));
+  els.menuRename.addEventListener('click', () => openRename(selected.id));
+  els.menuDelete.addEventListener('click', deleteSelected);
+  els.edgeDelete.addEventListener('click', deleteSelected);
 
-  // Keys: Ctrl+Z undoes; N adds a node (connected to the selected one, if any); Enter or F2 renames the selected node;
-  // Escape backs out of whatever is open. None of them while the rename box (or another field) has the keyboard.
+  // Keys: Ctrl+Z undoes; N adds a node (connected to the selected node, if any); Enter or F2 renames the selected node;
+  // Delete or Backspace deletes the selection; Escape backs out of whatever is open. None of them while the rename box
+  // (or another field) has the keyboard.
   document.addEventListener('keydown', (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
@@ -149,13 +186,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (editable && e.key.toLowerCase() === 'n' && !connecting) {
       e.preventDefault();
-      const from = selected;
+      const from = selectedNode();
       addAndName((text) => (from ? addConnected(text, from) : addNode(text)));
       return;
     }
-    if (editable && selected && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
+    if (editable && selectedNode() && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
       e.preventDefault();
-      openRename(selected);
+      openRename(selected.id);
+      return;
+    }
+    if (editable && selected && !connecting && (e.key === 'Delete' || e.key === 'Backspace')) {
+      e.preventDefault();
+      deleteSelected();
       return;
     }
     if (e.key !== 'Escape') return;
@@ -212,7 +254,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   input.addEventListener('blur', () => { if (input.dataset.nodeId) closeRename(); });
   input.addEventListener('keydown', (e) => {
     const id = input.dataset.nodeId;
-    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (id) select(id); return; }
+    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (id) select({ kind: 'node', id }); return; }
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     const label = input.value;
@@ -225,6 +267,36 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     naming = null;
     edit((text) => relabel(text, id, label), null, into);
   });
+
+  // --- edges ---------------------------------------------------------------------------------------------------
+
+  // Edges can be selected only when the text's edges are exactly the ones drawn, in order: then an edge's SVG id says
+  // which text it is. Each gets a wide invisible path over it, since a line is hard to hit, and its label selects it
+  // too. Nodes are drawn after edges, so a click near a node still picks the node.
+  function tagEdges(text) {
+    const drawn = [...els.stage.querySelectorAll('path[data-edge="true"]')];
+    const ids = edges(text).map((e) => e.svgId);
+    edgesOk = ids.length === drawn.length && drawn.every((p, k) => p.dataset.id === ids[k]);
+    els.menuDelete.hidden = !edgesOk;
+    if (!edgesOk) {
+      ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
+        + 'deleted here; edit those in the file.');
+      return;
+    }
+    for (const p of drawn) {
+      p.dataset.pageEdge = p.dataset.id;
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hit.setAttribute('d', p.getAttribute('d'));
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('data-page-only', '');
+      hit.dataset.pageEdge = p.dataset.id;
+      p.after(hit);
+    }
+    for (const g of els.stage.querySelectorAll('g.edgeLabel')) {
+      const id = g.querySelector('[data-id]')?.dataset.id;
+      if (id) g.dataset.pageEdge = id;
+    }
+  }
 
   // --- saving --------------------------------------------------------------------------------------------------
 
@@ -311,29 +383,37 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clicked,
     contextMenu,
 
-    /** Double-click on a node renames it. Returns whether it was one. */
+    /** Double-click on a node renames it; on an edge it does nothing. Returns whether it was either. */
     doubleClicked(target) {
-      const id = editable && target.closest('g.node[data-node-id]')?.dataset.nodeId;
-      if (!id) return false;
-      select(id);
+      if (!editable) return false;
+      const id = nodeOf(target);
+      if (!id) return Boolean(edgeOf(target));
+      select({ kind: 'node', id });
       openRename(id);
       return true;
     },
 
-    /** A new version of the file is on screen: tag its nodes, and keep the selection if its node is still there. */
+    /**
+     * A new version of the file is on screen: tag its nodes and edges, and keep the selection if it is still there
+     * (an edge's only while the text is the same: edge ids are renumbered when edges come and go).
+     */
     rendered(text) {
       setEditable(isFlowchart(text));
       if (!editable) return;
+      const changed = text !== shownText;
+      shownText = text;
       for (const g of els.stage.querySelectorAll('g.node')) {
         const id = nodeIdFromSvgId(g.id, viewer.renderId);
-        if (id) g.dataset.nodeId = id;
+        if (id) g.dataset.pageNode = id;
       }
-      if (selected && nodeEl(selected)) select(selected, { keepMode: true, menu: menuOpen });
+      tagEdges(text);
+      if (selected?.kind === 'node' && nodeEl(selected.id)) select(selected, { keepMode: true, menu: menuOpen });
+      else if (selected?.kind === 'edge' && !changed && edgeEls(selected.id).length) select(selected, { menu: menuOpen });
       else deselect();
       if (pendingRename && nodeEl(pendingRename)) {
         const id = pendingRename;
         pendingRename = null;
-        select(id);
+        select({ kind: 'node', id });
         openRename(id);
       }
     },
@@ -341,7 +421,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     /** The file no longer renders: what is on screen is an older version, so editing it would edit something else. */
     failed() { setEditable(false); },
 
-    state: () => ({ selected, connecting, editable }),
+    state: () => ({
+      selected: selectedNode(), selectedEdge: selected?.kind === 'edge' ? selected.id : null, connecting, editable, edgesOk,
+    }),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no rename open, no connection half made. */
     idle: () => !busy && !input.dataset.nodeId && !connecting,

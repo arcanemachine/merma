@@ -53,12 +53,23 @@ In a flowchart, click a node to select it, and right-click it (or long-press on 
 - **Rename** (or double-click the node, or Enter or F2 on a selected one) edits the label in place: Enter saves,
   Shift+Enter starts a new line (written as `<br>`), Escape cancels. Only the label changes, where the node is first
   given a shape; a node that only appears bare gets brackets at its first appearance.
+- **Delete node** (or Delete or Backspace on a selected one) removes the node from every statement, with its edges,
+  its `style` and `click` lines and its name in `class` lines.
+
+Click an edge's line or its label to select it, and right-click it for **Delete edge** (or press Delete or
+Backspace). Its nodes stay. A deleted edge's statement is rewritten in place: a chain is split there, and an `&` group
+is written one statement per start node, so every other edge keeps its place. `linkStyle` numbers follow: the deleted
+edge's goes, and the ones after it move down. A node left out of a rewritten statement is kept as a bare statement when
+it has a shape or label there, or when nothing else in its subgraph names it, so no node disappears or moves.
+Edges can be selected only when merma can match the drawn edges to the text, edge for edge; when it cannot (a node id
+with `-` or `.`, a label spread over several lines), the page says so, and edges and node deletes are left to the
+file.
 
 Right-click empty space to add a node; over a subgraph, it goes inside that subgraph. **N** adds a node too: connected
 to the selected one, if any. Mermaid lays the diagram out, so a new node lands where the layout puts it.
 
-No edit ever puts an edge before an existing one: `linkStyle N` styles the Nth edge in the file, so that would
-restyle the edges after it.
+No edit ever puts an edge before an existing one or changes the order of the edges: `linkStyle N` styles the Nth edge
+in the file, so that would restyle the edges after it.
 
 **Ctrl+Z** undoes the page's last edit (adding a node and naming it count as one), as long as the file has not changed
 since; it is refused otherwise, so it never throws away someone else's change.
