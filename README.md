@@ -21,9 +21,10 @@ diagram, `/tmp/mermaid-diagrams/scratch.mmd`, created on start if missing.
 | `MERMA_ROOTS` | Folders whose `.mmd` files may be served, comma-separated. Default `/tmp/mermaid-diagrams/` |
 | `MERMA_PATH_MAP` | `server=host` path prefixes, comma-separated. The page shows a file's host path, for a server in a container |
 | `MERMA_IDLE` | Seconds with no requests before the server exits. Default 300. An open page polls every second, so the server runs while any tab is open |
+| `MERMA_HOSTS` | Host names the page may be opened under, besides `localhost`, `127.0.0.1` and `[::1]` (and the bound address, when it is a single one), comma-separated. Requests addressed to any other name are refused, which stops DNS rebinding |
 
-Binding to anything other than `127.0.0.1` lets anyone who can reach the machine read the served diagrams: there is
-no login.
+Binding to anything other than `127.0.0.1` lets anyone who can reach the machine read and edit the served diagrams:
+there is no login.
 
 ## The page
 

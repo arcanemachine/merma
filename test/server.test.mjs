@@ -1,5 +1,6 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import http from 'node:http';
 import {
   chmodSync, existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, statSync, symlinkSync, writeFileSync,
 } from 'node:fs';
@@ -177,4 +178,52 @@ test('of several edits from one version, exactly one is saved', async () => {
   const v = await versionOf(path);
   const results = await Promise.all(Array.from({ length: 8 }, (_, i) => edit(path, `flowchart TD\n  N${i}\n`, { 'If-Match': v })));
   assert.deepEqual(results.map((r) => r.status).sort(), [200, 409, 409, 409, 409, 409, 409, 409]);
+});
+
+// --- host names ----------------------------------------------------------------------------------------------
+
+/** A request with a chosen Host header, which fetch does not allow setting. */
+function withHost(host, path, method = 'GET', headers = {}) {
+  return new Promise((resolve, reject) => {
+    const req = http.request(base + path, { method, agent: false, headers: { ...headers, Host: host } }, (res) => {
+      let body = '';
+      res.on('data', (c) => { body += c; });
+      res.on('end', () => resolve({ status: res.statusCode, text: body }));
+    });
+    req.on('error', reject);
+    req.end(method === 'POST' ? 'flowchart TD\n  X\n' : undefined);
+  });
+}
+
+test('requests addressed to another host name are refused on every route (DNS rebinding)', async () => {
+  const path = file('h1.mmd');
+  const v = await versionOf(path);
+  for (const [route, method] of [['/source?f=' + q(path), 'GET'], ['/edit?f=' + q(path), 'POST'], ['/', 'GET'], ['/health', 'GET']]) {
+    const res = await withHost('evil.example:6376', route, method, { 'If-Match': v, Origin: 'http://evil.example:6376' });
+    assert.equal(res.status, 403, route);
+  }
+  assert.equal(read(path), 'flowchart TD\n  A --> B\n');
+});
+
+test('the loopback names are accepted, with any port and in any case', async () => {
+  const path = file('h2.mmd');
+  for (const host of ['localhost:6376', 'LOCALHOST', '127.0.0.1:1', '[::1]:6376']) {
+    assert.equal((await withHost(host, '/source?f=' + q(path))).status, 200, host);
+  }
+});
+
+test('a server can be told to answer to more host names', async () => {
+  const files = createFiles({ roots: [ROOT] });
+  const other = createServer({ files, script: 'x', hosts: ['localhost', 'box.lan'] });
+  await new Promise((resolve) => other.listen(0, '127.0.0.1', resolve));
+  const at = `http://127.0.0.1:${other.address().port}`;
+  const status = (host) => new Promise((resolve) => {
+    http.get(at + '/health', { agent: false, headers: { Host: host } }, (res) => { res.resume(); resolve(res.statusCode); });
+  });
+  try {
+    assert.equal(await status('box.lan:80'), 200);
+    assert.equal(await status('127.0.0.1'), 403);
+  } finally {
+    other.close();
+  }
 });

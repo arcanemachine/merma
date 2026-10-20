@@ -7,6 +7,10 @@
 //                          409 otherwise, so an edit made in the page never overwrites a change saved meanwhile
 //   GET /hostpath?f=<path> where that file is on the host, for a server in a container ('' when unknown)
 //   GET /health            "ok pid=<pid> script=<path>", so a caller can tell which server holds the port
+//
+// Every route answers only requests addressed to a known host name (`hosts`), whatever the port. That stops DNS
+// rebinding: a page on another site can point its own domain at this machine, and its requests would then be
+// same-origin to the browser, but they still carry that domain as their Host.
 
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -18,12 +22,21 @@ const WEB = fileURLToPath(new URL('../web/', import.meta.url));
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.mjs': 'text/javascript' };
 export const MAX_EDIT_BYTES = 1_000_000;
 
+export const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
+
+/** The host name from a Host header, without its port: `localhost:6376` → `localhost`, `[::1]:6376` → `[::1]`. */
+function hostName(header = '') {
+  return header.startsWith('[') ? header.slice(0, header.indexOf(']') + 1) : header.split(':')[0];
+}
+
 /**
  * @param {object} options
  * @param {ReturnType<import('./files.js').createFiles>} options.files
  * @param {string} options.script the path /health reports
+ * @param {string[]} [options.hosts] host names requests may be addressed to (default: loopback only)
  */
-export function createServer({ files, script }) {
+export function createServer({ files, script, hosts = LOOPBACK_HOSTS }) {
+  const allowedHosts = new Set(hosts.map((h) => h.toLowerCase()));
   const server = http.createServer((req, res) => {
     server.lastRequest = Date.now();
     handle(req, res).catch((e) => send(res, 500, String(e.message || e)));
@@ -31,6 +44,9 @@ export function createServer({ files, script }) {
   server.lastRequest = Date.now();
 
   async function handle(req, res) {
+    if (!allowedHosts.has(hostName(req.headers.host).toLowerCase())) {
+      return send(res, 403, 'Unknown host: ' + (req.headers.host || '(none)'));
+    }
     const url = new URL(req.url, 'http://localhost');
     const f = url.searchParams.get('f') || '';
     if (req.method === 'POST' && url.pathname === '/edit') return edit(req, res, f);
