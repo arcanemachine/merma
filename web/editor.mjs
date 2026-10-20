@@ -35,6 +35,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
   let labelling = null;       // { kind: 'node' | 'edge', id } while the label box is open over it
+  let refused = false;        // the notice shows why a menu item does not apply
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-page-node]')].find((g) => g.dataset.pageNode === id);
   const edgeEls = (id) => [...els.stage.querySelectorAll('[data-page-edge]')].filter((e) => e.dataset.pageEdge === id);
@@ -88,8 +89,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     returnFocus: els.diagram,
     submenus: { 'arrow-types': arrowPicker },
     onRun: (action) => handlers[action](),
-    onRefuse: (why) => ui.notice(why, true),
-    onClose: () => ui.hideNotice(),
+    onRefuse: (why) => { refused = true; ui.notice(why, true); },
+    // Only a menu's own notice goes with it; the one saying there is no edge match stays.
+    onClose: () => { if (refused) ui.hideNotice(); refused = false; },
   };
   const menus = {
     node: createMenu(MENUS.node, menuOptions),
@@ -111,7 +113,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** Select a node or an edge (it glows); with `menu`, also open its menu beside it. */
   function select(sel, { keepMode = false, menu = false } = {}) {
     unglow();
-    closeMenus();
+    // A menu opened again for the same item stays open, so a change to the file does not reset it.
+    const same = selected?.kind === sel.kind && selected.id === sel.id;
+    for (const [kind, m] of Object.entries(menus)) if (!(menu && same && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of sel.kind === 'node' ? [nodeEl(sel.id)] : edgeEls(sel.id)) e.setAttribute('data-page-selected', '');
     if (!keepMode) connecting = false;

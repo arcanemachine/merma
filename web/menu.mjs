@@ -38,6 +38,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     if (item.separated) b.classList.add('separated');
     if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
     b.addEventListener('click', () => choose(item));
+    // The item under the pointer is the focused one, so there is one highlight and Enter runs what it shows.
+    b.addEventListener('pointerenter', () => b.focus());
     el.append(b);
     return b;
   });
@@ -153,15 +155,19 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   return {
     el,
-    /** Open beside `at` for `menuState`, focusing its first item that applies; `gap` is 0 to open at a point. */
+    /**
+     * Open beside `at` for `menuState`, focusing its first item that applies; `gap` is 0 to open at a point. When it is
+     * open already, it is only redrawn and moved.
+     */
     open(at, menuState, { gap: g = 8 } = {}) {
       state = menuState;
       gap = g;
       render();
-      if (!isOpen()) el.showPopover();
-      anchor = at;
+      // Already open (the file changed under it): keep its submenu and its focus.
+      const fresh = !isOpen();
+      if (fresh) el.showPopover();
       reposition(at);
-      (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
+      if (fresh) (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
     },
     reposition,
     close,
