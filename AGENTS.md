@@ -8,7 +8,8 @@ and where the two differ, the local file wins.
 ## Words
 
 `GLOSSARY.md` holds the words merma uses. Use them as written there, in the page, the docs, the code and messages
-about the work; when a new word comes in, add it there in the same commit. Mermaid's terms where it has one.
+about the work; when a new word comes in, add it there in the same commit. Where Mermaid has a word for something
+(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case.
 
 ## Contributing
 
