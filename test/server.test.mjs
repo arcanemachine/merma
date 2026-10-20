@@ -278,3 +278,15 @@ test('the build id changes when a page file changes under a running server', asy
     other.close();
   }
 });
+
+test('a root that is a .mmd file allows that file only, also when reached through a symlink', () => {
+  const one = file('single.mmd');
+  const sibling = file('sibling.mmd');
+  const link = join(OUTSIDE, 'link-to-single.mmd');
+  symlinkSync(one, link);
+  const files = createFiles({ roots: [one] });
+  assert.equal(files.allowed(one), true);
+  assert.equal(files.allowed(link), true);
+  assert.equal(files.allowed(sibling), false);
+  assert.equal(files.allowed(one + '.mmd'), false);
+});

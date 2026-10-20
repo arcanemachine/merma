@@ -10,15 +10,27 @@ No runtime dependencies beyond Node (22 or later). The page loads Mermaid 12.2.0
 ## Run
 
 ```bash
+./run.sh path/to/diagram.mmd    # from a checkout; the same as: merma path/to/diagram.mmd
+```
+
+It prints the page's address; open it. Only that file is served, on a free port. Give a port as well
+(`merma diagram.mmd 6378`) to get the same address each time: if a merma already serves the file there, it prints
+that address instead of starting another. Set `BROWSER` to a command, and the page is opened with it.
+
+To serve every diagram in some folders, from one long-running server:
+
+```bash
 merma serve [port] [host]       # defaults 63762, 127.0.0.1
 ```
 
 Then open `http://localhost:<port>/?f=<absolute path to a .mmd file>`. With no `?f=`, the page shows a scratch
 diagram, `/tmp/mermaid-diagrams/scratch.mmd`, created on start if missing.
 
+Either way the server stops on its own a while after the last page is closed (`MERMA_IDLE`).
+
 | Setting | What it does |
 |---|---|
-| `MERMA_ROOTS` | Folders whose `.mmd` files may be served, comma-separated. Default `/tmp/mermaid-diagrams/` |
+| `MERMA_ROOTS` | For `serve`: folders whose `.mmd` files may be served, comma-separated. Default `/tmp/mermaid-diagrams/` |
 | `MERMA_PATH_MAP` | `server=host` path prefixes, comma-separated. The page shows a file's host path, for a server in a container |
 | `MERMA_IDLE` | Seconds with no requests before the server exits. Default 300. An open page polls every second, so the server runs while any tab is open |
 | `MERMA_HOSTS` | Host names the page may be opened under, besides `localhost`, `127.0.0.1` and `[::1]` (and the bound address, when it is a single one), comma-separated. Requests addressed to any other name are refused, which stops DNS rebinding |
@@ -93,7 +105,8 @@ diagram types are view-only.
 
 | Path | What it is |
 |---|---|
-| `bin/merma.js` | The command line: settings, the scratch file, idle exit |
+| `bin/merma.js` | The command line: opening one file, serving folders, settings, idle exit |
+| `run.sh` | Runs `bin/merma.js` from a checkout |
 | `server/server.js` | The routes (listed at the top of the file) |
 | `server/files.js` | Which files may be served, reading them, and writing over a known version |
 | `server/build.js` | The build id: which version of the code a page is running |
