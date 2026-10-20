@@ -1,3 +1,4 @@
+// Mermaid's own node ids and edge ids for every flowchart fixture (checks/README.md): { nodes, edges, fails }.
 async () => {
   const mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs')).default;
   const dir = new URLSearchParams(location.search).get('f').replace(/[^/]+$/, '');
