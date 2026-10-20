@@ -58,10 +58,7 @@ function mask(line) {
       blank(i, stop);
       i = stop;
     } else if (c === '|') {
-      // An edge label: |text| or |"text"|, where the quoted form may itself hold a pipe.
-      const q = line[i + 1] === '"' ? line.indexOf('"', i + 2) : i;
-      const end = line.indexOf('|', q < 0 ? i + 1 : q + 1);
-      const stop = end < 0 ? line.length : end + 1;
+      const stop = pipeEnd(line, i);
       blank(i, stop);
       i = stop;
     } else if (c === '@' && line[i + 1] === '{') {
@@ -79,6 +76,13 @@ function mask(line) {
     }
   }
   return out.join('');
+}
+
+/** For an edge label at `at` (`|text|`, or `|"text"|`, which may itself hold a pipe), the index just past it. */
+function pipeEnd(line, at) {
+  const q = line[at + 1] === '"' ? line.indexOf('"', at + 2) : at;
+  const end = line.indexOf('|', q < 0 ? at + 1 : q + 1);
+  return end < 0 ? line.length : end + 1;
 }
 
 /** For a shape opener at `at`, where its label starts and ends and where the whole shape ends. */
@@ -294,6 +298,144 @@ export function relabel(text, id, label) {
   const at = bare.col + id.length;
   ls[bare.line] = s.slice(0, at) + `[${quoted}]` + s.slice(at);
   return { text: ls.join('') };
+}
+
+// Connectors, as Mermaid 12.2.0's lexer reads them. A link: optional head (`<`, `o`, `x`), then a solid, thick, dotted
+// or invisible body, then an optional tail. A text-form opener (`--`, `==`, `-.` with a head) starts a label that runs
+// to the next closer: `A -- yes --> B` is `A -->|yes| B`.
+const LINK = /^[xo<]?(?:-{2,}[-xo>]|={2,}[=xo>]|-?\.+-[xo>]?|~{3,})/;
+const OPENER = /^[xo<]?(?:--|==|-\.)/;
+const CLOSERS = { '-': /\s*-{2,}[-xo>]/y, '=': /\s*={2,}[=xo>]/y, '.': /\s*\.+-[xo>]?/y };
+const ID_AT = new RegExp(`^${ID}`, 'u');
+
+/**
+ * Every edge in the file, in Mermaid's order: statements in text order, a chain left to right, `A & B --> C & D` as
+ * A→C, A→D, B→C, B→D. Positions are offsets into `text`.
+ * - `index`: the edge's number for `linkStyle`.
+ * - `svgId`: the `data-id` Mermaid gives its path. The first a→b edge is `L_a_b_0`; the k-th repeat (k ≥ 1) is
+ *   `L_a_b_{k+1}`. An edge id (`A e1@--> B`, kept in `userId`) is used as is, unless an earlier edge has that id.
+ * - `link`: the connector, from any edge id through any label; `arrow`: the connector without its label (`-->`,
+ *   `-.->`, `<-->`, `~~~`, …); `label`: the label as written in the source (quotes kept) and where it is, or null.
+ * - `fromRef`, `toRef`: the two node references as written (`A[Start]:::cls`); `statement`: the whole statement;
+ *   `step`: which connector of the statement this edge is from (a chain has several; an `&` group shares one).
+ * Statements are read one line at a time, so one that spans lines (a multi-line quoted label) is missed, and a node id
+ * with `-` or `.` in it (valid in Mermaid, not here) ends its statement early: compare the result with what Mermaid
+ * drew before relying on it. Not a flowchart: [].
+ */
+export function edges(text) {
+  if (!isFlowchart(text)) return [];
+  const ls = lines(text);
+  const header = headerIndex(ls);
+  const found = [];
+  let offset = 0;
+  for (let n = 0; n < ls.length; offset += ls[n].length, n++) {
+    if (n <= header) continue;
+    const line = ls[n], m = mask(line);
+    for (const part of m.matchAll(/[^;\n]+/g)) {
+      // Trimmed on the line itself: in the mask, a shape at the end of the statement is blank.
+      const st = part.index + part[0].search(/\S|$/);
+      let end = part.index + part[0].length;
+      while (end > st && /\s/.test(line[end - 1])) end--;
+      if (st < end) statementEdges(line, m, st, end, offset, found);
+    }
+  }
+  const pairs = new Map(), taken = new Set();
+  for (const e of found) {
+    const k = `${e.from}\0${e.to}`;
+    const count = pairs.get(k) ?? 0;
+    pairs.set(k, count + 1);
+    e.svgId = e.userId && !taken.has(e.userId) ? e.userId : `L_${e.from}_${e.to}_${count ? count + 1 : 0}`;
+    taken.add(e.svgId);
+  }
+  return found.map((e, index) => ({ index, ...e }));
+}
+
+/** The edge Mermaid drew with `data-id` `svgId`, or null. */
+export function edgeBySvgId(text, svgId) {
+  return edges(text).find((e) => e.svgId === svgId) ?? null;
+}
+
+/** Read one statement (`m.slice(st, end)`): node groups joined by connectors. Pushes its edges onto `out`. */
+function statementEdges(line, m, st, end, offset, out) {
+  let i = st, step = 0;
+  const skip = () => { while (i < end && /\s/.test(m[i])) i++; };
+  const group = () => {
+    const refs = [];
+    for (;;) {
+      skip();
+      const id = m.slice(i, end).match(ID_AT);
+      if (!id) return refs;
+      const from = i;
+      i += id[0].length;
+      if (line.startsWith('@{', i)) i = line.indexOf('}', i) + 1 || end;
+      else if (SHAPES.some(([open]) => line.startsWith(open, i))) i = shapeSpan(line, i)?.end ?? end;
+      const cls = m.slice(i, end).match(new RegExp(`^:::${ID}`, 'u'));
+      if (cls) i += cls[0].length;
+      refs.push({ id: id[0], start: offset + from, end: offset + i });
+      skip();
+      if (m[i] !== '&') return refs;
+      i++;
+    }
+  };
+  let starts = group();
+  while (starts.length && i < end) {
+    const link = connector(line, m, i, end);
+    if (!link) return;
+    i = link.end;
+    const ends = group();
+    if (!ends.length) return;
+    for (const a of starts) {
+      for (const b of ends) {
+        const named = a === starts.at(-1) && b === ends[0];
+        out.push({
+          from: a.id, to: b.id, userId: named ? link.userId : null,
+          link: { start: offset + link.start, end: offset + link.end }, arrow: link.arrow,
+          label: link.label && { ...link.label, start: offset + link.label.start, end: offset + link.label.end },
+          fromRef: { start: a.start, end: a.end }, toRef: { start: b.start, end: b.end },
+          statement: { start: offset + st, end: offset + end }, step,
+        });
+      }
+    }
+    starts = ends;
+    step++;
+  }
+}
+
+/** The connector at `i`: { start, end, arrow, label, userId }, or null. */
+function connector(line, m, i, end) {
+  const start = i;
+  let userId = null;
+  const named = m.slice(i, end).match(new RegExp(`^(${ID})@`, 'u'));
+  if (named) { userId = named[1]; i += named[0].length; }
+  const rest = m.slice(i, end);
+  const plain = rest.match(LINK);
+  if (plain) {
+    i += plain[0].length;
+    let label = null;
+    const pipe = line.slice(i).match(/^\s*\|/);
+    if (pipe) {
+      const from = i + pipe[0].length;
+      const close = pipeEnd(line, from - 1);
+      label = { text: line.slice(from, close - 1), start: from, end: close - 1 };
+      i = close;
+    }
+    return { start, end: i, arrow: plain[0], label, userId };
+  }
+  const open = rest.match(OPENER);
+  if (!open) return null;
+  const closer = CLOSERS[open[0].at(-1)];
+  for (let k = i + open[0].length; k < end; k++) {
+    closer.lastIndex = k;
+    const c = closer.exec(m);
+    if (!c || c.index + c[0].length > end) continue;
+    const textStart = i + open[0].length, raw = line.slice(textStart, k);
+    const lead = raw.length - raw.trimStart().length;
+    const label = { text: raw.trim(), start: textStart + lead, end: textStart + lead + raw.trim().length };
+    const tail = c[0].trimStart();
+    const arrow = open[0].slice(0, -2) + (tail[0] === '.' ? '-' : '') + tail;
+    return { start, end: k + c[0].length, arrow, label, userId };
+  }
+  return null;
 }
 
 /** The subgraph id behind an SVG cluster element's id: `<render id>-<subgraph id>`. */
