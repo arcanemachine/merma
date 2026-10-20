@@ -1,17 +1,20 @@
 // Tests for web/patch/flowchart.mjs.
-// Exact cases first, then properties checked for every node of every fixture (node-ids.json holds the ids Mermaid
-// itself reported for each fixture). Whether the results parse is checked in the browser, where Mermaid runs.
+// Exact cases first, then properties checked for every node and edge of every fixture (node-ids.json and
+// edge-ids.json hold the ids Mermaid itself reported for each fixture: checks/README.md). Whether the results parse
+// is checked in the browser, where Mermaid runs.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId,
+  addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
+  edgeBySvgId,
 } from '../web/patch/flowchart.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
 const fixture = (name) => readFileSync(join(FIXTURES, name), 'utf8');
 const NODE_IDS = JSON.parse(fixture('node-ids.json'));
+const EDGE_IDS = JSON.parse(fixture('edge-ids.json'));
 
 /** Lines removed from `a` and added in `b`, by a plain longest-common-subsequence diff. */
 function lineDiff(a, b) {
@@ -171,6 +174,90 @@ test('nodeIdFromSvgId', () => {
   assert.equal(nodeIdFromSvgId('d3-flowchart-a-b-2', 'd3'), 'a-b');
   assert.equal(nodeIdFromSvgId('d3-L_A_B_0', 'd3'), null);
 });
+
+// --- edges ---------------------------------------------------------------------------------------------------
+
+const slice = (text, span) => text.slice(span.start, span.end);
+
+test('edges reads every connector as Mermaid does', () => {
+  const src = fixture('11-edge-kinds.mmd');
+  const got = edges(src).slice(0, 17).map((e) => [e.from, slice(src, e.link), e.arrow, e.to]);
+  assert.deepEqual(got, [
+    ['A', '-->', '-->', 'B'], ['A', '---', '---', 'C'], ['A', '-.->', '-.->', 'D'], ['A', '==>', '==>', 'E'],
+    ['A', '--o', '--o', 'F'], ['A', '--x', '--x', 'G'], ['A', '<-->', '<-->', 'H'], ['A', 'o--o', 'o--o', 'B'],
+    ['A', 'x--x', 'x--x', 'C'], ['A', '~~~', '~~~', 'D'], ['A', '---->', '---->', 'E'], ['A', '-..->', '-..->', 'F'],
+    ['A', '===>', '===>', 'G'], ['A', '---o', '---o', 'B'], ['A', '---x', '---x', 'B'], ['Ao', '--o', '--o', 'B'],
+    ['A', '-->', '-->', 'B'],
+  ]);
+});
+
+test('edges finds each label, in text form or between pipes, and its arrow without it', () => {
+  const src = fixture('11-edge-kinds.mmd');
+  const got = edges(src).filter((e) => e.label)
+    .map((e) => [slice(src, e.link), e.arrow, e.label.text, slice(src, e.label)]);
+  assert.deepEqual(got, [
+    ['-- a-b -->', '-->', 'a-b', 'a-b'], ['-. maybe .->', '-.->', 'maybe', 'maybe'],
+    ['== strong ==>', '==>', 'strong', 'strong'], ['-->|pipe|', '-->', 'pipe', 'pipe'],
+  ]);
+  const tricky = fixture('07-tricky-labels.mmd');
+  const quoted = edges(tricky).find((e) => e.label);
+  assert.equal(quoted.label.text, '"label with | pipe"');
+  assert.equal(slice(tricky, quoted.label), '"label with | pipe"');
+  assert.equal(edges('flowchart LR\n  A <-- both --> B\n')[0].arrow, '<-->');
+});
+
+test('edges keeps each node reference whole: shape, label and class', () => {
+  const src = 'flowchart LR\n  a1["x --> y; z"] --> b1([Two words]):::hot --> c1@{ shape: circle }\n';
+  const got = edges(src).map((e) => [slice(src, e.fromRef), slice(src, e.toRef)]);
+  assert.deepEqual(got, [['a1["x --> y; z"]', 'b1([Two words]):::hot'], ['b1([Two words]):::hot', 'c1@{ shape: circle }']]);
+});
+
+test('edges expands chains and & groups in Mermaid\'s order, one step per connector', () => {
+  const src = 'flowchart LR\n  A & B e9@--> C & D --> E\n';
+  const got = edges(src).map((e) => [e.index, e.from, e.to, e.step, e.userId, e.svgId]);
+  assert.deepEqual(got, [
+    [0, 'A', 'C', 0, null, 'L_A_C_0'], [1, 'A', 'D', 0, null, 'L_A_D_0'],
+    [2, 'B', 'C', 0, 'e9', 'e9'], [3, 'B', 'D', 0, null, 'L_B_D_0'],
+    [4, 'C', 'E', 1, null, 'L_C_E_0'], [5, 'D', 'E', 1, null, 'L_D_E_0'],
+  ]);
+  for (const e of edges(src)) assert.equal(slice(src, e.statement), 'A & B e9@--> C & D --> E');
+});
+
+test('edges numbers repeats of a pair as Mermaid does, and an edge id only once', () => {
+  const src = 'flowchart LR\n  A --> B\n  A e1@--> B\n  A e1@--> B\n  A --> B\n';
+  assert.deepEqual(edges(src).map((e) => e.svgId), ['L_A_B_0', 'e1', 'L_A_B_3', 'L_A_B_4']);
+  assert.equal(edgeBySvgId(src, 'L_A_B_3').index, 2);
+  assert.equal(edgeBySvgId(src, 'L_A_B_2'), null);
+});
+
+test('edges splits statements at semicolons, and finds none in comments, style lines or subgraph titles', () => {
+  const src = 'flowchart LR\n  %% A --> Z\n  C --> D; D --> C\n  linkStyle 0 stroke:red\n  style C fill:#eef;\n'
+    + '  class C,D hot\n  click C "https://example.com"\n  subgraph s [A --> B]\n    E --> F\n  end\n'
+    + '  E e1@--> F\n  e1@{ animate: true }\n';
+  const got = edges(src).map((e) => [e.from, e.to, slice(src, e.statement)]);
+  assert.deepEqual(got, [
+    ['C', 'D', 'C --> D'], ['D', 'C', 'D --> C'], ['E', 'F', 'E --> F'], ['E', 'F', 'E e1@--> F'],
+  ]);
+});
+
+test('edges of a diagram that is not a flowchart is empty', () => {
+  assert.deepEqual(edges(fixture('90-sequence.mmd')), []);
+  assert.deepEqual(edges('stateDiagram-v2\n  [*] --> A\n  A --> B\n'), []);
+});
+
+for (const [name, ids] of Object.entries(EDGE_IDS)) {
+  test(`${name}: edges gives every edge Mermaid draws, in its order, with its id`, () => {
+    const src = fixture(name);
+    const found = edges(src);
+    assert.deepEqual(found.map((e) => e.svgId), ids);
+    for (const e of found) {
+      assert.ok(e.statement.start <= e.fromRef.start && e.fromRef.end <= e.link.start, `${e.svgId} from`);
+      assert.ok(e.link.end <= e.toRef.start && e.toRef.end <= e.statement.end, `${e.svgId} to`);
+      assert.ok(slice(src, e.fromRef).startsWith(e.from) && slice(src, e.toRef).startsWith(e.to), e.svgId);
+      if (e.label) assert.ok(e.link.start < e.label.start && e.label.end < e.link.end, `${e.svgId} label`);
+    }
+  });
+}
 
 // --- properties over every node of every fixture -------------------------------------------------------------
 

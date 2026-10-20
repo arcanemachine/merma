@@ -1,0 +1,100 @@
+{
+ "01-basic.mmd": [
+  "L_A_B_0",
+  "L_B_C_0",
+  "L_B_D_0",
+  "L_D_A_0"
+ ],
+ "02-graph-header-bare.mmd": [
+  "L_A_B_0",
+  "L_B_C_0",
+  "L_C_A_0"
+ ],
+ "03-directive-comments.mmd": [
+  "L_U_S_0",
+  "L_S_D_0",
+  "L_D_B_0",
+  "L_D_X_0"
+ ],
+ "04-frontmatter.mmd": [
+  "L_A_B_0",
+  "L_B_C_0"
+ ],
+ "05-chains-shapes.mmd": [
+  "L_A_B_0",
+  "L_B_C_0",
+  "L_C_D_0",
+  "L_C_E_0",
+  "L_E_F_0",
+  "L_F_G_0",
+  "L_G_H_0",
+  "L_H_I_0",
+  "L_I_J_0",
+  "L_J_K_0"
+ ],
+ "06-subgraphs-classes.mmd": [
+  "L_start_pay_0",
+  "L_charge_record_0",
+  "L_record_done_0",
+  "L_done_archive_0"
+ ],
+ "07-tricky-labels.mmd": [
+  "L_A_B_0",
+  "L_B_C_0",
+  "L_C_D_0",
+  "L_D_E_0"
+ ],
+ "08-new-shape-syntax.mmd": [
+  "L_A_B_0",
+  "L_B_C_0"
+ ],
+ "09-no-trailing-newline.mmd": [
+  "L_A_B_0"
+ ],
+ "10-linkstyle-subgraph.mmd": [
+  "L_A_B_0",
+  "L_C_D_0",
+  "L_B_C_0",
+  "L_D_E_0"
+ ],
+ "11-edge-kinds.mmd": [
+  "L_A_B_0",
+  "L_A_C_0",
+  "L_A_D_0",
+  "L_A_E_0",
+  "L_A_F_0",
+  "L_A_G_0",
+  "L_A_H_0",
+  "L_A_B_2",
+  "L_A_C_2",
+  "L_A_D_2",
+  "L_A_E_2",
+  "L_A_F_2",
+  "L_A_G_2",
+  "L_A_B_3",
+  "L_A_B_4",
+  "L_Ao_B_0",
+  "L_A_B_5",
+  "L_A_C_3",
+  "L_A_D_3",
+  "L_A_E_3",
+  "L_A_F_3",
+  "e1",
+  "L_A_G_4",
+  "L_A_H_2",
+  "L_C_D_0",
+  "L_D_C_0",
+  "L_A_C_4",
+  "L_A_D_4",
+  "L_B_C_0",
+  "L_B_D_0",
+  "L_B_D_2",
+  "L_B_E_0",
+  "e2",
+  "L_C_E_0",
+  "L_B_C_2",
+  "L_C_B_0",
+  "L_oak_xen_0",
+  "L_in1_in2_0"
+ ]
+}

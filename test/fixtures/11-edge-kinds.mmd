@@ -1,0 +1,37 @@
+flowchart LR
+  %% every connector the scanner reads
+  A --> B
+  A --- C
+  A -.-> D
+  A ==> E
+  A --o F
+  A --x G
+  A <--> H
+  A o--o B
+  A x--x C
+  A ~~~ D
+  A ----> E
+  A -..-> F
+  A ===> G
+  A---oB
+  A---xB
+  Ao--oB
+  A-->B
+  A -- a-b --> C
+  A -. maybe .-> D
+  A == strong ==> E
+  A -->|pipe| F
+  A e1@--> G
+  e1@{ animate: true }
+  A --> G
+  A e1@--> H
+  C --> D; D --> C
+  A & B --> C & D
+  B & C e2@--> D & E
+  B --> C --> B
+  oak --> xen
+  subgraph box [Inside]
+    in1[In] --> in2([Out]):::hot
+  end
+  classDef hot fill:#fdd
+  linkStyle 0 stroke:red
