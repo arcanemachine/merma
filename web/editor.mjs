@@ -1,9 +1,11 @@
-// Editing a flowchart by pointing: click a node, pick an action from its menu, and the file gets a small text edit
-// (patch/flowchart.mjs). Each edit is checked with Mermaid's parser before it is saved, and saved over the version it
+// Editing a flowchart by pointing: click a node to select it, right-click (or long-press) for its menu, or right-click
+// empty space to add a node; each action is a small text edit to the file (patch/flowchart.mjs). Each edit is checked with Mermaid's parser before it is saved, and saved over the version it
 // was based on (source.mjs), so a change saved meanwhile by an agent or an editor is never overwritten.
 
 import { createHistory } from './history.mjs';
-import { addConnected, connect, isFlowchart, nodeIdFromSvgId, relabel } from './patch/flowchart.mjs';
+import {
+  addConnected, addNode, connect, isFlowchart, nodeIdFromSvgId, relabel, subgraphIdFromSvgId,
+} from './patch/flowchart.mjs';
 
 /**
  * @param {object} deps
@@ -12,11 +14,13 @@ import { addConnected, connect, isFlowchart, nodeIdFromSvgId, relabel } from './
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
- * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'rename', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
   let selected = null;        // the selected node's Mermaid id
+  let menuOpen = false;       // the selected node's menu is showing
+  let spaceSubgraph = null;   // the subgraph the empty-space menu adds into, or null for the top level
   let connecting = false;     // after "Connect to…": the next node clicked is the edge's target
   let pendingRename = null;   // a node just added: open Rename on it once it is drawn
   const history = createHistory();
@@ -24,7 +28,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-node-id]')].find((g) => g.dataset.nodeId === id);
-  const input = /** @type {HTMLInputElement} */ (els.rename);
+  const input = /** @type {HTMLTextAreaElement} */ (els.rename);
 
   function setEditable(on) {
     editable = on;
@@ -32,14 +36,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!on) { deselect(); closeRename(); }
   }
 
-  // --- selection and the menu ----------------------------------------------------------------------------------
+  // --- selection and the menus ---------------------------------------------------------------------------------
 
-  function select(id, { keepMode = false } = {}) {
+  /** Select a node (it glows); with `menu`, also open its menu. */
+  function select(id, { keepMode = false, menu = false } = {}) {
     for (const g of els.stage.querySelectorAll('g.node.selected')) g.classList.remove('selected');
+    closeSpaceMenu();
     selected = id;
     nodeEl(id).classList.add('selected');
     if (!keepMode) connecting = false;
-    els.menu.classList.toggle('show', !connecting);
+    menuOpen = menu && !connecting;
+    els.menu.classList.toggle('show', menuOpen);
     positionMenu();
   }
 
@@ -47,7 +54,34 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const g of els.stage.querySelectorAll('g.node.selected')) g.classList.remove('selected');
     selected = null;
     connecting = false;
+    menuOpen = false;
     els.menu.classList.remove('show');
+    closeSpaceMenu();
+  }
+
+  // The empty-space menu, at the pointer: it adds a node, into the subgraph the pointer was over if any. Mermaid lays
+  // the diagram out, so the node lands where the layout puts it, not where the menu was opened.
+  function openSpaceMenu(target, x, y) {
+    deselect();
+    const cluster = target.closest('g.cluster');
+    spaceSubgraph = cluster ? subgraphIdFromSvgId(cluster.id, viewer.renderId) : null;
+    const title = cluster?.querySelector('.cluster-label, .nodeLabel')?.textContent.trim() || spaceSubgraph;
+    els.spaceAdd.textContent = spaceSubgraph ? `Add node in ${title}` : 'Add node';
+    els.spaceMenu.classList.add('show');
+    const box = els.diagram.getBoundingClientRect();
+    const w = els.spaceMenu.offsetWidth, h = els.spaceMenu.offsetHeight;
+    els.spaceMenu.style.left = Math.min(x - box.left, box.width - w) + 'px';
+    els.spaceMenu.style.top = Math.min(y - box.top, box.height - h) + 'px';
+  }
+
+  function closeSpaceMenu() { els.spaceMenu.classList.remove('show'); }
+
+  /** Add a node and open Rename on it once it is drawn; naming it is part of the same undo step. */
+  function addAndName(change) {
+    edit(change, (result, entry) => {
+      pendingRename = result.id;
+      naming = { id: result.id, entry };
+    });
   }
 
   // Beside the node, inside the diagram area: to its right, or to its left when there is no room.
@@ -81,11 +115,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     select(id);
   }
 
-  els.menuAdd.addEventListener('click', () => {
-    edit((text) => addConnected(text, selected), (result, entry) => {
-      pendingRename = result.id;
-      naming = { id: result.id, entry };
-    });
+  function contextMenu(target, x, y) {
+    if (!editable) return false;
+    const id = target.closest('g.node[data-node-id]')?.dataset.nodeId;
+    if (connecting) return true;
+    if (id) select(id, { menu: true });
+    else openSpaceMenu(target, x, y);
+    return true;
+  }
+
+  els.menuAdd.addEventListener('click', () => addAndName((text) => addConnected(text, selected)));
+  els.spaceAdd.addEventListener('click', () => {
+    const subgraph = spaceSubgraph;
+    closeSpaceMenu();
+    addAndName((text) => addNode(text, { subgraph }));
   });
   els.menuConnect.addEventListener('click', () => {
     connecting = true;
@@ -94,11 +137,25 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   });
   els.menuRename.addEventListener('click', () => openRename(selected));
 
+  // Keys: Ctrl+Z undoes; N adds a node (connected to the selected one, if any); Enter or F2 renames the selected node;
+  // Escape backs out of whatever is open. None of them while the rename box (or another field) has the keyboard.
   document.addEventListener('keydown', (e) => {
-    if (document.activeElement === input) return;
+    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
       e.preventDefault();
       undo();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (editable && e.key.toLowerCase() === 'n' && !connecting) {
+      e.preventDefault();
+      const from = selected;
+      addAndName((text) => (from ? addConnected(text, from) : addNode(text)));
+      return;
+    }
+    if (editable && selected && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
+      e.preventDefault();
+      openRename(selected);
       return;
     }
     if (e.key !== 'Escape') return;
@@ -109,20 +166,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- renaming in place ---------------------------------------------------------------------------------------
 
-  // The input is laid exactly over the node: its width, or wider when the text needs it, kept centred as it grows.
+  // The box is laid exactly over the node: its size, or larger when the text needs it, kept centred as it grows.
+  // Enter saves; Shift+Enter starts a new line, which the label keeps as a line break.
   const measure = document.createElement('canvas').getContext('2d');
+  const LINE_HEIGHT = 18;
 
   function openRename(id) {
     const g = nodeEl(id);
     if (!g) return;
     els.menu.classList.remove('show');
-    const box = els.diagram.getBoundingClientRect();
-    const r = g.getBoundingClientRect();
+    menuOpen = false;
     input.dataset.nodeId = id;
-    input.value = (g.querySelector('.nodeLabel') || g).textContent.trim();
+    // innerText, not textContent: a label's line breaks (<br>) come through as newlines.
+    input.value = (g.querySelector('.nodeLabel') || g).innerText.trim();
     input.dataset.initial = input.value;
-    input.style.height = Math.max(r.height, 28) + 'px';
-    input.style.top = (r.top - box.top + r.height / 2 - Math.max(r.height, 28) / 2) + 'px';
     input.style.display = 'block';
     sizeRename();
     input.focus();
@@ -135,9 +192,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const box = els.diagram.getBoundingClientRect();
     const r = g.getBoundingClientRect();
     measure.font = getComputedStyle(input).font;
-    const w = Math.max(r.width, measure.measureText(input.value).width + 24);
+    const textLines = input.value.split('\n');
+    const w = Math.max(r.width, ...textLines.map((l) => measure.measureText(l).width + 24));
+    const h = Math.max(r.height, 28, textLines.length * LINE_HEIGHT + 12);
     input.style.width = w + 'px';
+    input.style.height = h + 'px';
     input.style.left = (r.left - box.left + r.width / 2 - w / 2) + 'px';
+    input.style.top = (r.top - box.top + r.height / 2 - h / 2) + 'px';
   }
 
   function closeRename() {
@@ -150,7 +211,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   input.addEventListener('keydown', (e) => {
     const id = input.dataset.nodeId;
     if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (id) select(id); return; }
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
     const label = input.value;
     if (!label.trim()) { ui.notice('A label cannot be empty.', true); return; }
     const unchanged = label === input.dataset.initial;
@@ -243,8 +305,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   return {
     save,
-    viewChanged: () => { if (selected) positionMenu(); },
+    viewChanged: () => { if (selected) positionMenu(); closeSpaceMenu(); },
     clicked,
+    contextMenu,
 
     /** Double-click on a node renames it. Returns whether it was one. */
     doubleClicked(target) {
@@ -263,7 +326,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         const id = nodeIdFromSvgId(g.id, viewer.renderId);
         if (id) g.dataset.nodeId = id;
       }
-      if (selected && nodeEl(selected)) select(selected, { keepMode: true });
+      if (selected && nodeEl(selected)) select(selected, { keepMode: true, menu: menuOpen });
       else deselect();
       if (pendingRename && nodeEl(pendingRename)) {
         const id = pendingRename;
