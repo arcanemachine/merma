@@ -1,4 +1,6 @@
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { GLOBAL_KEYS, keyIndex, labelOf, MENUS, VERBS } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
@@ -90,4 +92,9 @@ test('arrow types: digits unique, every one is an arrow type merma can write, an
   }
   assert.deepEqual(ARROW_TYPES.map((a) => a.key).sort(), Object.keys(ARROWS).sort());
   assert.equal(new Set(ARROW_TYPES.map((a) => a.name)).size, ARROW_TYPES.length);
+});
+
+test('the guide lists every arrow type with its digit and syntax', () => {
+  const guide = readFileSync(join(import.meta.dirname, '..', 'docs', 'guide.md'), 'utf8');
+  for (const a of ARROW_TYPES) assert.ok(guide.includes(`| ${a.digit} | ${a.name} | \`${a.key}\` |`), `${a.name} ${a.key}`);
 });

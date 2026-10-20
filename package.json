@@ -17,6 +17,7 @@
     "bin/",
     "server/",
     "web/",
+    "docs/",
     "README.md",
     "LICENSE.md"
   ],
