@@ -25,7 +25,7 @@ Mermaid syntax.
 | **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. |
 | **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
 | **arrow** | An edge's connector syntax without its label: `-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~`… |
-| **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`). |
+| **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`): Arrow, Line, Dotted arrow, Dotted line, Thick arrow, Thick line, Circle, Cross, Two-way arrow (Mermaid: "multi directional"), Invisible. |
 | **length** | How much longer than its shortest form an arrow is; it asks Mermaid for a longer edge. |
 | **edge label** | An edge's text, as `-->|label|` (pipe form) or `-- label -->` (text form). merma writes the pipe form. |
 | **edge id** | A name given to an edge in the file: `A e1@--> B`. Its settings go in an `e1@{ … }` statement. |
@@ -34,10 +34,14 @@ Mermaid syntax.
 | **`&` group** | Several nodes on one side of a connector: `A & B --> C`, which is two edges. |
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
 | **subgraph title** | The text shown on a subgraph. |
+| **connect** | Make an edge between two nodes by pointing (Connect to…). |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
 
 ## The page
+
+Mermaid has no words for the page around the diagram, so these are merma's own: plain words where one fits, and a
+note where merma had to make one up.
 
 | Word | Meaning |
 |---|---|
@@ -45,15 +49,18 @@ Mermaid syntax.
 | **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
 | **select**, **selection** | Clicking a node or an edge marks it: it **glows**. One item at a time, for now. |
-| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, or the **empty-space menu**. |
-| **rename box** | The text box laid over a node or edge label to edit it in place. |
+| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
+| **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
+| **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types (later the shapes). Shows the current one. |
+| **greyed** | A menu item that does not apply right now: still there, with its reason. |
+| **label box** | The text box laid over a node's or an edge's label to edit it in place (Edit label). merma's own. |
 | **toast** | A short message at the top right that fades on its own: "Saved", "Undone". Never an error. |
 | **notice** | The bar above the diagram: what to do next, or (in red) what was not saved and why. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
-| **hit path** | The wide invisible line over each edge that makes it easy to click. |
-| **edge match** | Whether merma's reading of the edges agrees, edge for edge, with what Mermaid drew. Without it, edges can't be selected and nodes can't be deleted. |
-| **page marker** | A `data-page-…` attribute merma adds to the drawing; the SVG export leaves them out. |
+| **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |
+| **edge match** | Whether merma's reading of the edges agrees, edge for edge, with what Mermaid drew. Without it, edges can't be selected and nodes can't be deleted. merma's own. |
+| **page marker** | A `data-page-…` attribute merma adds to the drawing; the SVG export leaves them out. merma's own. |
 
 ## Working on merma
 
@@ -68,9 +75,3 @@ Mermaid syntax.
 | **browser check** | A check that needs Mermaid itself, run in a browser (`checks/README.md`). |
 | **mutation check** | Breaking the code on purpose to see a test fail (`checks/mutate.sh`). |
 | **UAT** | Acceptance testing: by Haiku agents for behaviour, by the user for look and feel. |
-
-## Words to settle
-
-- **Rename** (node menu) and **Edit label** (edge menu) do the same thing to different items. One word for both?
-- **Connect to…** makes an edge; the user's planned Shift+click "links" and "unlinks". Mermaid's older docs say
-  "link"; this glossary says edge. Keep "link" only for the gesture, or use "connect" / "disconnect"?
