@@ -1,0 +1,19 @@
+{
+  "name": "merma",
+  "version": "0.1.0",
+  "description": "A live view of Mermaid diagram files in the browser",
+  "keywords": ["mermaid", "diagram", "live", "viewer"],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "merma": "bin/merma.js"
+  },
+  "files": ["bin/", "server/", "web/", "README.md", "LICENSE.md"],
+  "scripts": {
+    "start": "node bin/merma.js serve",
+    "test": "node --test 'test/*.test.mjs'"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

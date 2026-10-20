@@ -1,0 +1,35 @@
+html, body { height: 100%; }
+body { margin: 0; display: flex; flex-direction: column; font-family: system-ui, sans-serif; background: #fff; color: #222; }
+header { padding: 8px 16px; border-bottom: 1px solid #ddd; font-size: 13px; display: flex; gap: 16px; }
+header h1 { margin: 0; font-size: 16px; white-space: nowrap; align-self: center; }
+header .paths { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+header .path { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+header .host { color: #666; }
+header .host:empty { display: none; }
+header .path[data-copy] { cursor: copy; }
+header .path[data-copy]:hover { text-decoration: underline; }
+header .right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+header .status { color: #666; white-space: nowrap; }
+/* Fixed below the "updated" line, so it shows wherever the page is scrolled and never moves the page. */
+.toast { position: fixed; top: 26px; right: 16px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.9);
+         color: #1a7f37; font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
+.toast.show { opacity: 1; transition: none; }
+#error { display: none; padding: 8px 16px; background: #fde2e2; color: #7b1d1d; font-family: ui-monospace, monospace;
+         font-size: 13px; white-space: pre-wrap; }
+/* The diagram fills the space between header and footer; the wheel zooms it and a drag moves it. */
+#diagram { flex: 1; min-height: 240px; position: relative; overflow: hidden; touch-action: none;
+           --hand: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' stroke='%23000' stroke-width='1.2' d='M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z'/%3E%3C/svg%3E") 12 12; cursor: var(--hand), grab; }
+/* An open-hand image (Material Icons "pan_tool", Apache-2.0), because some cursor themes draw grab as an arrow or a pointing hand. */
+#diagram.dragging { cursor: var(--hand), grabbing; }
+/* The hand everywhere on the diagram, labels included, and no text selection while dragging. */
+#diagram, #diagram * { user-select: none; }
+#stage, #stage * { cursor: inherit !important; }
+#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#stage svg { display: block; max-width: none; }
+footer { padding: 12px 16px; border-top: 1px solid #ddd; display: flex; gap: 8px; justify-content: center; align-items: center;
+         flex-wrap: wrap; font-size: 13px; }
+footer button { font: inherit; padding: 6px 12px; border: 1px solid #bbb; border-radius: 6px; background: #f6f6f6;
+                cursor: pointer; }
+footer button:hover { background: #eee; }
+footer button:disabled { cursor: default; opacity: 0.5; }
+footer .hint { color: #888; }

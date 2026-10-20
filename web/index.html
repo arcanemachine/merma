@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>merma</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>merma</h1>
+    <div class="paths"><span class="path" id="path"></span><span class="path host" id="host"></span></div>
+    <div class="right"><span class="status" id="status">loading…</span><span class="toast" id="toast"></span></div>
+  </header>
+  <div id="error"></div>
+  <div id="diagram"><div id="stage"></div></div>
+  <footer>
+    <button id="copy-svg" disabled title="Copy the diagram's SVG markup to the clipboard">Copy SVG</button>
+    <button id="download-svg" disabled title="Save the diagram as an .svg file">Download SVG</button>
+    <button id="reset-view" disabled title="Fit the diagram to the window (or double-click it)">Reset view</button>
+    <span class="hint" id="hint">Scroll to zoom, drag to move</span>
+  </footer>
+  <script type="module" src="/main.mjs"></script>
+</body>
+</html>
