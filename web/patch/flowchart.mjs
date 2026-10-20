@@ -1,6 +1,9 @@
 // Small text edits to a Mermaid flowchart, for the live page's edit menu. Each function takes the file's text and
 // returns new text that differs only where the edit must: comments, directives, frontmatter, spacing and every other
 // line stay byte-for-byte as they were. Plain functions with no DOM, so Node can test them.
+//
+// The rule every edit keeps: no edit puts an edge before an existing one. `linkStyle N` styles the Nth edge in the
+// file, so an edge inserted earlier would silently restyle every edge after it. New edges are appended at the end.
 
 const ID = String.raw`[\p{L}\p{N}_]+`;
 const ID_CHAR = /[\p{L}\p{N}_]/u;
@@ -127,11 +130,12 @@ function assertNode(text, id) {
 
 /**
  * A label as Mermaid source, quoted: the characters that would end the quote or be read as markup become Mermaid's
- * entity codes, so the node shows exactly what was typed. Line breaks become spaces.
+ * entity codes, so the node shows exactly what was typed. A line break becomes `<br>`, the one tag left as markup:
+ * it is how Mermaid breaks a label's line.
  */
 export function quoteLabel(label) {
   const codes = { '#': '#35;', '"': '#quot;', '<': '#lt;', '>': '#gt;', '&': '#amp;' };
-  return '"' + label.replace(/\r?\n/g, ' ').replace(/[#"<>&]/g, (c) => codes[c]) + '"';
+  return '"' + label.split(/\r?\n/).map((part) => part.replace(/[#"<>&]/g, (c) => codes[c])).join('<br>') + '"';
 }
 
 /** The first of `n1`, `n2`, … that appears nowhere in the text, labels and comments included. */
@@ -142,14 +146,26 @@ export function freeId(text) {
   }
 }
 
-/** Insert a line after line `n`, with the indentation of line `n`. */
-function insertAfter(text, n, body) {
+/** Insert a line after line `n`, with the indentation of line `n` (or `indent`). */
+function insertAfter(text, n, body, indent = null) {
   const ls = lines(text);
   const ref = ls[n];
-  const indent = ref.match(/^[ \t]*/)[0];
+  indent ??= ref.match(/^[ \t]*/)[0];
   const newline = ref.endsWith('\n') ? '' : '\n';
   ls.splice(n + 1, 0, newline + indent + body + (newline ? '' : '\n'));
   return ls.join('');
+}
+
+/** Append a line after the last line with content, indented like the header's first statement. */
+function appendLine(text, body) {
+  return insertAfter(text, lastContentLine(text), body, statementIndent(text));
+}
+
+/** The indentation of the first statement after the header, used for lines appended at the top level. */
+function statementIndent(text) {
+  const ls = lines(text);
+  for (let k = headerIndex(ls) + 1; k < ls.length; k++) if (ls[k].trim()) return ls[k].match(/^[ \t]*/)[0];
+  return '  ';
 }
 
 /** Index of the last line with any content. */
@@ -160,14 +176,71 @@ function lastContentLine(text) {
 }
 
 /**
- * Add a new node connected from `fromId`: `fromId --> nK["New node"]`, placed after the last line that mentions
- * `fromId`, so it lands in the same subgraph. Returns { text, id }.
+ * The subgraphs open at line `n`, innermost last: [{ id, start, end }] with the lines of `subgraph` and its `end`.
+ * A subgraph is named by its first word (`subgraph pay [Payment]` is `pay`); a quoted title has no usable id.
+ */
+function subgraphsAt(text, n) {
+  const ls = lines(text);
+  const open = [];
+  let found = null;
+  for (let k = headerIndex(ls) + 1; k < ls.length; k++) {
+    const m = mask(ls[k]);
+    const start = m.match(/^\s*subgraph\s+([\p{L}\p{N}_]+)?/u);
+    if (start) open.push({ id: start[1] ?? null, start: k, end: null });
+    else if (/^\s*end\s*;?\s*$/.test(m) && open.length) {
+      const closed = open.pop();
+      closed.end = k;
+    }
+    if (k === n) found = [...open];
+  }
+  return found ?? [];
+}
+
+/** The `subgraph` block whose id is `id`: { start, end } lines, or null. */
+function subgraphBlock(text, id) {
+  const ls = lines(text);
+  for (let k = headerIndex(ls) + 1; k < ls.length; k++) {
+    const m = mask(ls[k]).match(/^\s*subgraph\s+([\p{L}\p{N}_]+)/u);
+    if (m && m[1] === id) {
+      const inner = subgraphsAt(text, k).at(-1);
+      return inner && inner.id === id ? inner : null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Add a new node connected from `fromId`. No edit ever puts an edge in the middle of the file: `linkStyle` colours
+ * edges by their position, so an edge inserted earlier would recolour every edge after it. So the edge is appended
+ * at the end, outside any subgraph (an edge there moves nobody). When `fromId` was last mentioned inside a subgraph,
+ * the new node is declared after that line, so it joins the same subgraph. Returns { text, id }.
  */
 export function addConnected(text, fromId, label = 'New node') {
   assertNode(text, fromId);
   const id = freeId(text);
+  const node = `${id}[${quoteLabel(label)}]`;
   const last = mentions(text, fromId).at(-1).line;
-  return { text: insertAfter(text, last, `${fromId} --> ${id}[${quoteLabel(label)}]`), id };
+  if (!subgraphsAt(text, last).length) return { text: appendLine(text, `${fromId} --> ${node}`), id };
+  const declared = insertAfter(text, last, node);
+  return { text: appendLine(declared, `${fromId} --> ${id}`), id };
+}
+
+/**
+ * Add a new node with no edges: inside subgraph `subgraph` (before its `end`) when given, else at the end of the
+ * file. Returns { text, id }.
+ */
+export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
+  const id = freeId(text);
+  const node = `${id}[${quoteLabel(label)}]`;
+  if (!subgraph) return { text: appendLine(text, node), id };
+  const block = subgraphBlock(text, subgraph);
+  if (!block) throw new Error(`Subgraph ${subgraph} is not in the file.`);
+  const ls = lines(text);
+  // Indented like the subgraph's own lines: the line above `end`, or one step deeper than `end` for an empty one.
+  const above = block.end - 1 > block.start ? ls[block.end - 1] : null;
+  const indent = above ? above.match(/^[ \t]*/)[0] : ls[block.end].match(/^[ \t]*/)[0] + '  ';
+  ls.splice(block.end, 0, indent + node + '\n');
+  return { text: ls.join(''), id };
 }
 
 /**
@@ -177,7 +250,7 @@ export function addConnected(text, fromId, label = 'New node') {
 export function connect(text, a, b) {
   assertNode(text, a);
   assertNode(text, b);
-  return { text: insertAfter(text, lastContentLine(text), `${a} --> ${b}`) };
+  return { text: appendLine(text, `${a} --> ${b}`) };
 }
 
 /**
@@ -217,6 +290,11 @@ export function relabel(text, id, label) {
   const at = bare.col + id.length;
   ls[bare.line] = s.slice(0, at) + `[${quoted}]` + s.slice(at);
   return { text: ls.join('') };
+}
+
+/** The subgraph id behind an SVG cluster element's id: `<render id>-<subgraph id>`. */
+export function subgraphIdFromSvgId(svgId, renderId) {
+  return svgId.startsWith(renderId + '-') ? svgId.slice(renderId.length + 1) : null;
 }
 
 /** The Mermaid node id behind an SVG node element's id: `<render id>-flowchart-<node id>-<n>`. */

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  addConnected, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId,
+  addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId,
 } from '../web/patch/flowchart.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
@@ -32,16 +32,49 @@ function lineDiff(a, b) {
 
 // --- exact cases ---------------------------------------------------------------------------------------------
 
-test('addConnected appends an edge to a new node after the node\'s last line', () => {
+test('addConnected on a top-level node appends one line, the edge and the new node, at the end', () => {
   const { text, id } = addConnected(fixture('01-basic.mmd'), 'C');
   assert.equal(id, 'n1');
-  assert.equal(text, 'flowchart TD\n  A[Start] --> B{OK?}\n  B -->|yes| C[Done]\n  C --> n1["New node"]\n'
-    + '  B -->|no| D[Retry]\n  D --> A\n');
+  assert.equal(text, fixture('01-basic.mmd') + '  C --> n1["New node"]\n');
 });
 
-test('addConnected keeps a node inside its subgraph, with that indentation', () => {
-  const { text } = addConnected(fixture('06-subgraphs-classes.mmd'), 'charge');
-  assert.ok(text.includes('    charge[Charge card] --> record[Record]\n    charge --> n1["New node"]\n  end\n'), text);
+test('addConnected inside a subgraph declares the node there and appends the edge at the end', () => {
+  const src = fixture('06-subgraphs-classes.mmd');
+  const { text } = addConnected(src, 'charge');
+  assert.ok(text.includes('    charge[Charge card] --> record[Record]\n    n1["New node"]\n  end\n'), text);
+  assert.ok(text.endsWith('  click start "https://example.com" "Open"\n  charge --> n1\n'), text);
+});
+
+test('no added edge comes before an existing one, so linkStyle keeps styling the same edges', () => {
+  const src = fixture('10-linkstyle-subgraph.mmd');
+  for (const id of ['A', 'C', 'D']) {
+    const { text } = addConnected(src, id);
+    const before = src.split('\n'), after = text.split('\n');
+    // Every line up to the last of the original is unchanged except for an added node declaration, and the new edge
+    // is the last line: so the original edges keep their numbers.
+    assert.ok(after.at(-2).includes(`${id} --> n1`), text);
+    assert.deepEqual(after.filter((l) => !/n1/.test(l)), before, text);
+  }
+});
+
+test('addNode appends a standalone node, or puts one inside a subgraph before its end', () => {
+  assert.equal(addNode(fixture('01-basic.mmd')).text, fixture('01-basic.mmd') + '  n1["New node"]\n');
+  const inside = addNode(fixture('06-subgraphs-classes.mmd'), { subgraph: 'pay' }).text;
+  assert.ok(inside.includes('    charge[Charge card] --> record[Record]\n    n1["New node"]\n  end\n'), inside);
+  const empty = addNode('flowchart TD\n  A\n  subgraph s\n  end\n', { subgraph: 's' }).text;
+  assert.equal(empty, 'flowchart TD\n  A\n  subgraph s\n    n1["New node"]\n  end\n');
+  assert.throws(() => addNode(fixture('01-basic.mmd'), { subgraph: 'nope' }), /not in the file/);
+});
+
+test('an end inside a label does not close a subgraph', () => {
+  const src = 'flowchart TD\n  subgraph s\n    A["the end"] --> B\n  end\n';
+  assert.equal(addNode(src, { subgraph: 's' }).text, 'flowchart TD\n  subgraph s\n    A["the end"] --> B\n    n1["New node"]\n  end\n');
+});
+
+test('nested subgraphs: a node is added to the innermost one', () => {
+  const src = 'flowchart TD\n  subgraph outer\n    subgraph inner\n      A --> B\n    end\n    C\n  end\n';
+  const { text } = addConnected(src, 'B');
+  assert.equal(text, 'flowchart TD\n  subgraph outer\n    subgraph inner\n      A --> B\n      n1["New node"]\n    end\n    C\n  end\n  B --> n1\n');
 });
 
 test('addConnected skips ids that appear anywhere, labels included', () => {
@@ -95,7 +128,8 @@ test('relabel with the @{ } syntax changes or adds the label key', () => {
 
 test('relabel escapes characters that would break the label', () => {
   assert.equal(quoteLabel('Say "hi" #1 <b> & [x]; |p|'), '"Say #quot;hi#quot; #35;1 #lt;b#gt; #amp; [x]; |p|"');
-  assert.equal(quoteLabel('two\nlines'), '"two lines"');
+  assert.equal(quoteLabel('two\nlines'), '"two<br>lines"');
+  assert.equal(quoteLabel('a<b\r\nc'), '"a#lt;b<br>c"');
 });
 
 test('a label word that matches an id is not taken for the node', () => {
@@ -119,6 +153,11 @@ test('freeId', () => {
   assert.equal(freeId('flowchart TD\n  n1 --> n2\n  n10\n'), 'n3');
 });
 
+test('subgraphIdFromSvgId', () => {
+  assert.equal(subgraphIdFromSvgId('d3-pay', 'd3'), 'pay');
+  assert.equal(subgraphIdFromSvgId('x-pay', 'd3'), null);
+});
+
 test('nodeIdFromSvgId', () => {
   assert.equal(nodeIdFromSvgId('d3-flowchart-charge-12', 'd3'), 'charge');
   assert.equal(nodeIdFromSvgId('d3-flowchart-a-b-2', 'd3'), 'a-b');
@@ -130,12 +169,17 @@ test('nodeIdFromSvgId', () => {
 for (const [name, ids] of Object.entries(NODE_IDS)) {
   const src = fixture(name);
   for (const id of ids) {
-    test(`${name} ${id}: add inserts exactly one line`, () => {
+    test(`${name} ${id}: add appends its edge last, with at most a node declaration elsewhere`, () => {
       const { text, id: newId } = addConnected(src, id);
       const d = lineDiff(src, text);
       assert.deepEqual(d.removed, [], 'nothing removed');
-      assert.equal(d.added.length, 1);
-      assert.equal(d.added[0].trim(), `${id} --> ${newId}["New node"]`);
+      const edge = text.trimEnd().split('\n').at(-1).trim();
+      if (d.added.length === 1) assert.equal(edge, `${id} --> ${newId}["New node"]`);
+      else {
+        assert.equal(d.added.length, 2);
+        assert.equal(edge, `${id} --> ${newId}`);
+        assert.ok(d.added.some((l) => l.trim() === `${newId}["New node"]`), d.added.join('|'));
+      }
     });
 
     test(`${name} ${id}: connect inserts exactly one line`, () => {
