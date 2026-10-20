@@ -14,9 +14,11 @@ its old `linkStyle` style.
 1. Start merma with a root you can write to, and open any diagram in that root in a browser.
 2. Write the cases next to it, as a `.mmd` file so the server will hand it to the page:
    `node checks/gen-cases.mjs > <that root>/_cases.json.mmd`
-3. In that page, evaluate `checks/parse-check.js` (a single async function; with pw-repl, flatten it to one line:
-   `pw-repl send eval --all "$(tr '\n' ' ' < checks/parse-check.js)"`).
-4. It returns `{ cases, fails }`. `fails` must be empty. Delete `_cases.json.mmd` afterwards.
+3. In that page, run `checks/parse-check.js` (a single async function, so its comments must be `/* */`, never `//`).
+   It takes longer than pw-repl's 15 s limit on one `eval`, so start it and read its result when done:
+   `pw-repl send eval "(() => { window.__check = null; ($(tr '\n' ' ' < checks/parse-check.js))().then((r) => { window.__check = r; }); return 'started'; })()"`,
+   then repeat `pw-repl send eval --all "window.__check"` until it is not null.
+4. It gives `{ cases, fails }`. `fails` must be empty. Delete `_cases.json.mmd` afterwards.
 
 ## Mermaid's own ids for the fixtures
 

@@ -98,7 +98,8 @@ editor = createEditor({
   els: {
     stage: el('stage'), diagram: el('diagram'), menu: el('menu'), menuAdd: el('menu-add'),
     menuConnect: el('menu-connect'), menuRename: el('menu-rename'), menuDelete: el('menu-delete'),
-    edgeMenu: el('edge-menu'), edgeDelete: el('edge-delete'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'),
+    edgeMenu: el('edge-menu'), edgeLabel: el('edge-label'), edgeReverse: el('edge-reverse'),
+    edgeArrows: el('edge-arrows'), edgeDelete: el('edge-delete'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'),
     rename: el('rename'),
   },
 });
