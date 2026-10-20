@@ -1,6 +1,6 @@
 // The diagram view: renders Mermaid text into the stage, and lets the user zoom (wheel), move (drag) and fit
-// (double-click) it. It knows nothing about files or editing: it reports clicks, and whoever wired it decides what a
-// click means. Elements marked `data-overlay` (a menu or an input laid over the diagram) are left to themselves.
+// (double-click) it. It knows nothing about files or editing: it reports clicks, double-clicks and context menus
+// (right-click, long-press), and whoever wired it decides what they mean. Elements marked `data-overlay` (a menu or an input laid over the diagram) are left to themselves.
 
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
 

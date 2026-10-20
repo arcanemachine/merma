@@ -5,7 +5,7 @@ page re-renders within a second whenever the file changes, whoever saves it: you
 made in the page are written back into the file as small text changes, so the file stays plain Mermaid and the only
 source of truth.
 
-No dependencies beyond Node (22 or later). The page loads Mermaid 12.2.0 from a CDN.
+No runtime dependencies beyond Node (22 or later). The page loads Mermaid 12.2.0 from a CDN.
 
 ## Run
 
@@ -29,9 +29,9 @@ there is no login.
 ## The page
 
 The wheel zooms at the cursor, a drag moves the diagram, and a double-click on empty space (or Reset view) fits it
-to the window.
-Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab. A save with a syntax error keeps the last good render on
-screen, with the error above it. Copy SVG and Download SVG export the diagram as the browser drew it.
+to the window. Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab. A save with a
+syntax error keeps the last good render on screen, with the error above it. Copy SVG and Download SVG export the
+diagram as the browser drew it. Help lists the controls.
 
 ## Updates
 
@@ -46,8 +46,8 @@ working copy reloads its pages on every save.
 In a flowchart, click a node to select it, and right-click it (or long-press on a touch screen) for its menu:
 
 - **Add connected node** adds a new node with an edge from this one, then opens Rename on it. The edge is appended at
-  the end of the file; if the node was last mentioned inside a subgraph, the new node is declared there, so it joins
-  the same subgraph.
+  the end of the file; if the node's last statement is inside a subgraph, the new node is declared there, so it
+  joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
   neither node moves.
 - **Rename** (or double-click the node, or Enter or F2 on a selected one) edits the label in place: Enter saves,
@@ -80,7 +80,7 @@ diagram types are view-only.
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
-| `web/editor.mjs` | Selection, the node menu, renaming in place, saving, undo |
+| `web/editor.mjs` | Selection, the node and empty-space menus, keys, renaming in place, saving, undo |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
