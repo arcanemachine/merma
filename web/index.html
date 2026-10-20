@@ -25,29 +25,25 @@
     <button popovertarget="help" title="How to use this page">Help</button>
   </footer>
   <div id="help" popover>
-    <h2>Viewing</h2>
-    <ul>
-      <li><kbd>Scroll</kbd> zooms at the cursor; <kbd>drag</kbd> moves the diagram.</li>
-      <li><kbd>Double-click</kbd> empty space, or <b>Reset view</b>, fits it to the window.</li>
-      <li>The page follows the file: save it anywhere and the diagram updates within a second.</li>
-    </ul>
-    <h2>Editing <span class="note">(flowcharts only)</span></h2>
-    <ul>
-      <li><kbd>Click</kbd> a node to select it. <kbd>Right-click</kbd> it (or long-press) for its menu: add a connected
-        node, connect it to another, edit its label, or delete it.</li>
-      <li><kbd>Click</kbd> an edge (its line or its label) to select it; <kbd>right-click</kbd> it to edit its label,
-        reverse it, change its arrow or delete it. <kbd>Double-click</kbd> it to edit its label.</li>
-      <li><kbd>Right-click</kbd> empty space to add a node (inside a subgraph, it goes in that subgraph).</li>
-      <li><kbd>N</kbd> adds a node: connected to the selected one, if any. <kbd>Enter</kbd> or <kbd>F2</kbd> edits the
-        selected node's or edge's label. <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes the selected
-        node or edge.</li>
-      <li><kbd>Double-click</kbd> a node or an edge to edit its label: <kbd>Enter</kbd> saves, <kbd>Shift</kbd>+<kbd>Enter</kbd> starts
-        a new line, <kbd>Esc</kbd> cancels.</li>
-      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Z</kbd> on a Mac) undoes this page's last edit;
-        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) or
-        <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes it.</li>
-      <li>Edits are written into the file as small text changes; nothing else in it is touched.</li>
-    </ul>
+    <table>
+      <tr><th colspan="2" class="section">Viewing</th></tr>
+      <tr><th>Wheel</th><td>Zoom at the cursor</td></tr>
+      <tr><th>Drag</th><td>Move the diagram</td></tr>
+      <tr><th>Double-click empty space</th><td>Fit it to the window (or <b>Reset view</b>)</td></tr>
+      <tr><th colspan="2" class="section">Editing <span class="note">flowcharts</span></th></tr>
+      <tr><th>Click</th><td>Select a node or an edge</td></tr>
+      <tr><th>Right-click, long-press</th><td>Its menu; on empty space, Add node</td></tr>
+      <tr><th>Double-click</th><td>Edit its label</td></tr>
+      <tr><th colspan="2" class="section">Keys</th></tr>
+      <tr><th><kbd>N</kbd></th><td>Add a node (from the selected one)</td></tr>
+      <tr><th><kbd>Enter</kbd> <kbd>F2</kbd></th><td>Edit the selected label</td></tr>
+      <tr><th><kbd>Delete</kbd> <kbd>Backspace</kbd></th><td>Delete the selected node or edge</td></tr>
+      <tr><th><kbd>Esc</kbd></th><td>Cancel, or let go of the selection</td></tr>
+      <tr><th><kbd>Ctrl</kbd>+<kbd>Z</kbd></th><td>Undo</td></tr>
+      <tr><th><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd><br><kbd>Ctrl</kbd>+<kbd>Y</kbd></th><td>Redo</td></tr>
+    </table>
+    <p class="note">On a Mac, <kbd>⌘</kbd> for <kbd>Ctrl</kbd>. Menus show their own keys, underlined. The page follows the
+      file: a save anywhere shows within a second. Everything else: <code>docs/guide.md</code>.</p>
   </div>
   <script type="module" src="/main.mjs"></script>
 </body>
