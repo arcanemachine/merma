@@ -320,7 +320,8 @@ const ID_AT = new RegExp(`^${ID}`, 'u');
  *   `step`: which connector of the statement this edge is from (a chain has several; an `&` group shares one).
  * Statements are read one line at a time, so one that spans lines (a multi-line quoted label) is missed, and a node id
  * with `-` or `.` in it (valid in Mermaid, not here) ends its statement early: compare the result with what Mermaid
- * drew before relying on it. Not a flowchart: [].
+ * drew before relying on it. Not a flowchart: []. Each call returns new objects: compare edges by `index`, never by
+ * identity.
  */
 export function edges(text) {
   if (!isFlowchart(text)) return [];
