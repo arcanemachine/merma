@@ -1,0 +1,9 @@
+flowchart LR
+  A[Start] --> B[Middle]
+  subgraph box [Inside]
+    C[First] --> D[Second]
+  end
+  B --> C
+  D --> E[Out]
+  linkStyle 0 stroke:red
+  linkStyle 2 stroke:blue

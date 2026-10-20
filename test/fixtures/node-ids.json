@@ -57,5 +57,12 @@
  "09-no-trailing-newline.mmd": [
   "A",
   "B"
+ ],
+ "10-linkstyle-subgraph.mmd": [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E"
  ]
 }
