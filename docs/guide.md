@@ -49,10 +49,23 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
 - **Remove label** removes it. Greyed when the edge has none.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little.
-- **Edit arrow type ▸** opens the arrow types: Arrow `-->`, Line `---`, Dotted arrow `-.->`, Dotted line `-.-`, Thick
-  arrow `==>`, Thick line `===`, Circle `--o`, Cross `--x`, Two-way arrow `<-->`, Invisible `~~~`. Click one or press
-  its digit. The arrow changes and keeps its label and its length (`---->` asks for a longer edge, and stays longer).
-  An arrow merma does not offer (`o--o`) shows as "Other".
+- **Edit arrow type ▸** opens the arrow types; click one or press its digit. The arrow changes and keeps its label and
+  its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
+  "Other".
+
+  | Digit | Arrow type | Syntax |
+  |---|---|---|
+  | 1 | Arrow | `-->` |
+  | 2 | Line | `---` |
+  | 3 | Dotted arrow | `-.->` |
+  | 4 | Dotted line | `-.-` |
+  | 5 | Thick arrow | `==>` |
+  | 6 | Thick line | `===` |
+  | 7 | Circle | `--o` |
+  | 8 | Cross | `--x` |
+  | 9 | Two-way arrow | `<-->` |
+  | 0 | Invisible | `~~~` |
+
 - **Delete edge** removes it. Its nodes stay.
 
 ### Empty space
@@ -87,8 +100,7 @@ same terms.
 - Each edit is checked with Mermaid's parser before it is saved, and saved only over the version the page last read:
   if the file changed in the meantime (an agent, your editor), the save is refused, nothing is written, and the page
   shows the new version.
-- No edit puts an edge before an existing one or changes the order of the edges: `linkStyle N` styles the Nth edge in
-  the file, so that would restyle the edges after it.
+- No edit puts an edge before an existing one or changes the order of the edges (why: `docs/ux.md`).
 - A connector shared with other edges (`A --> B & C`) is split just enough that only the chosen edge changes. A deleted
   edge's statement is rewritten in place: a chain is split there, and an `&` group is written one statement per start
   node, so every other edge keeps its place. `linkStyle` numbers follow: the deleted edge's goes, and the ones after it

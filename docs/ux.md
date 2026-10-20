@@ -37,7 +37,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   show on hover and also as text, since touch has no hover.
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
-  on click too, never on hover. No hover styling, except where hovering tells you something can be dragged.
+  on click too, never on hover.
+- No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
+  hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
+  does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
 
