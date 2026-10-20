@@ -27,8 +27,23 @@
     <button id="copy-svg" disabled title="Copy the diagram's SVG markup to the clipboard">Copy SVG</button>
     <button id="download-svg" disabled title="Save the diagram as an .svg file">Download SVG</button>
     <button id="reset-view" disabled title="Fit the diagram to the window (or double-click empty space)">Reset view</button>
-    <span class="hint" id="hint">Scroll to zoom, drag to move</span>
+    <button popovertarget="help" title="How to use this page">Help</button>
   </footer>
+  <div id="help" popover>
+    <h2>Viewing</h2>
+    <ul>
+      <li><kbd>Scroll</kbd> zooms at the cursor; <kbd>drag</kbd> moves the diagram.</li>
+      <li><kbd>Double-click</kbd> empty space, or <b>Reset view</b>, fits it to the window.</li>
+      <li>The page follows the file: save it anywhere and the diagram updates within a second.</li>
+    </ul>
+    <h2>Editing <span class="note">(flowcharts only)</span></h2>
+    <ul>
+      <li><kbd>Click</kbd> a node for its menu: add a connected node, connect it to another, or rename it.</li>
+      <li><kbd>Double-click</kbd> a node to rename it: <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels.</li>
+      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes this page's last edit.</li>
+      <li>Edits are written into the file as small text changes; nothing else in it is touched.</li>
+    </ul>
+  </div>
   <script type="module" src="/main.mjs"></script>
 </body>
 </html>
