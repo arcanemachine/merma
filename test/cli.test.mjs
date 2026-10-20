@@ -1,6 +1,6 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,8 +11,8 @@ const children = [];
 after(() => children.forEach((c) => c.kill()));
 
 /** Run merma with `args` until it prints a page address; resolves with the address and the process. */
-function run(args) {
-  const child = spawn(process.execPath, [BIN, ...args], { env: { ...process.env, BROWSER: '' } });
+function run(args, env = {}) {
+  const child = spawn(process.execPath, [BIN, ...args], { env: { ...process.env, BROWSER: '', ...env } });
   children.push(child);
   return new Promise((resolve, reject) => {
     let out = '';
@@ -58,4 +58,37 @@ test('merma <file> <port> points at the merma already serving that file there', 
 
 test('merma <file> refuses a file that does not exist', async () => {
   await assert.rejects(run([join(DIR, 'missing.mmd')]), /exited 1/);
+});
+
+test('merma <file> <port> serves on a free port when the merma there does not serve the file', async () => {
+  const first = await run([file('first.mmd')]);
+  const port = new URL(first.url).port;
+  const { url, out } = await run([file('second.mmd'), port]);
+  assert.match(out, new RegExp(`^merma: the merma on port ${port} does not serve this file \\(This server does not serve `));
+  assert.notEqual(new URL(url).port, port);
+  assert.equal((await fetch(url)).status, 200);
+});
+
+test('a $BROWSER that cannot be started is reported, and the server keeps serving', async () => {
+  const one = file('browser.mmd');
+  const { url, child } = await run([one], { BROWSER: 'no-such-browser-merma --new-tab' });
+  let err = '';
+  child.stderr.on('data', (d) => { err += d; });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  assert.match(err, /could not open the page with \$BROWSER/);
+  assert.equal(child.exitCode, null);
+  assert.equal((await fetch(url)).status, 200);
+});
+
+test('merma with a file that is not .mmd says why before the usage', () => {
+  const r = spawnSync(process.execPath, [BIN, 'diagram.mermaid'], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.match(r.stdout, /^merma: opens .mmd files; got diagram.mermaid\n/);
+});
+
+test('the refusal quotes a path a shell would split', async () => {
+  const { url } = await run([file('quoted.mmd')]);
+  const odd = join(DIR, "it's here.mmd");
+  const res = await fetch(`${new URL(url).origin}/source?f=${encodeURIComponent(odd)}`);
+  assert.match(await res.text(), new RegExp(`run: merma '${DIR}/it'\\\\''s here\\.mmd'$`));
 });

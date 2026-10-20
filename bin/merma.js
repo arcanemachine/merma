@@ -18,7 +18,7 @@ Settings, from the environment:
   MERMA_PATH_MAP  server=host path prefixes, comma-separated, to show a file's host path
   MERMA_IDLE      seconds with no requests before the server exits (default 300)
   MERMA_HOSTS     host names the page may be opened under besides localhost, 127.0.0.1 and [::1], comma-separated
-  BROWSER         a command to open the page with (merma <file> only prints its address otherwise)`;
+  BROWSER         for merma <file>: a command to open the page with, arguments allowed (unset: the address is printed)`;
 
 const SCRATCH = '/tmp/mermaid-diagrams/scratch.mmd';
 const SCRATCH_TEXT = 'flowchart TD\n  A["Edit /tmp/mermaid-diagrams/scratch.mmd"] --> B["This page updates on save"]\n';
@@ -27,8 +27,10 @@ const [command, ...args] = process.argv.slice(2);
 if (command === 'serve') serve(args[0] ?? '63762', args[1] ?? '127.0.0.1');
 else if (command?.endsWith('.mmd')) await open(resolve(command), args[0] ?? '0');
 else {
+  const help = command === undefined || command === '--help' || command === '-h';
+  if (!help) console.log(`merma: opens .mmd files; got ${command}\n`);
   console.log(USAGE);
-  process.exit(command === undefined || command === '--help' || command === '-h' ? 0 : 2);
+  process.exit(help ? 0 : 2);
 }
 
 function serve(port, host) {
@@ -47,29 +49,45 @@ async function open(file, port) {
     process.exit(1);
   }
   const page = (base) => `${base}/?f=${encodeURIComponent(realpathSync(file)).replaceAll('%2F', '/')}`;
-  if (port !== '0' && await servedAt(port, file)) {
-    show(page(`http://localhost:${port}`), 'already served');
-    return;
+  if (port !== '0') {
+    const there = await mermaAt(port, file);
+    if (there === true) {
+      show(page(`http://localhost:${port}`), 'already served');
+      return;
+    }
+    // The port was a wish, the page is the aim: a merma there that serves other files leaves us a free port.
+    if (there) {
+      console.log(`merma: the merma on port ${port} does not serve this file (${there})`);
+      port = '0';
+    }
   }
   start([file], port, '127.0.0.1', (base) => show(page(base), 'serving'));
 }
 
-/** Whether a merma on `port` serves `file`: it answers /health as merma, and /source does not refuse the file. */
-async function servedAt(port, file) {
+/**
+ * What answers on `port`: true for a merma that serves `file`, the first line of its refusal for a merma that does
+ * not, null for anything else (or nothing).
+ */
+async function mermaAt(port, file) {
   const base = `http://localhost:${port}`;
   try {
     const health = await fetch(`${base}/health`, { signal: AbortSignal.timeout(2000) });
-    if (!(await health.text()).startsWith('ok pid=')) return false;
+    if (!(await health.text()).startsWith('ok pid=')) return null;
     const source = await fetch(`${base}/source?f=${encodeURIComponent(file)}`, { signal: AbortSignal.timeout(2000) });
-    return source.ok;
+    return source.ok || (await source.text()).split('\n')[0];
   } catch {
-    return false;
+    return null;
   }
 }
 
+/** Print the page's address, and open it with $BROWSER (a command, with any arguments) when that is set. */
 function show(url, what) {
   console.log(`merma: ${what} at\n  ${url}`);
-  if (process.env.BROWSER) spawn(process.env.BROWSER, [url], { detached: true, stdio: 'ignore' }).unref();
+  const [browser, ...options] = (process.env.BROWSER || '').split(/\s+/).filter(Boolean);
+  if (!browser) return;
+  spawn(browser, [...options, url], { detached: true, stdio: 'ignore' })
+    .on('error', (e) => console.error(`merma: could not open the page with $BROWSER: ${e.message}`))
+    .unref();
 }
 
 function start(roots, port, host, onListening) {
@@ -88,7 +106,7 @@ function start(roots, port, host, onListening) {
   }, Math.min(5000, idleMs)).unref();
 
   server.on('error', (e) => {
-    console.error(`merma: ${e.code === 'EADDRINUSE' ? `port ${port} is in use` : e.message}`);
+    console.error(`merma: ${e.code === 'EADDRINUSE' ? `port ${port} is held by something else` : e.message}`);
     process.exit(1);
   });
   server.listen(Number(port), host, () => {
