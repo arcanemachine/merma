@@ -212,14 +212,18 @@ function subgraphBlock(text, id) {
 /**
  * Add a new node connected from `fromId`. No edit ever puts an edge in the middle of the file: `linkStyle` colours
  * edges by their position, so an edge inserted earlier would recolour every edge after it. So the edge is appended
- * at the end, outside any subgraph (an edge there moves nobody). When `fromId` was last mentioned inside a subgraph,
+ * at the end, outside any subgraph (an edge there moves nobody). When `fromId`'s last statement is inside a subgraph,
  * the new node is declared after that line, so it joins the same subgraph. Returns { text, id }.
  */
 export function addConnected(text, fromId, label = 'New node') {
   assertNode(text, fromId);
   const id = freeId(text);
   const node = `${id}[${quoteLabel(label)}]`;
-  const last = mentions(text, fromId).at(-1).line;
+  // Placed by the node's last statement, not its last mention: `class`, `style` and `click` lines usually sit at the
+  // bottom of the file, outside every subgraph.
+  const ls = lines(text);
+  const all = mentions(text, fromId);
+  const last = (all.filter(({ line }) => !NOT_A_STATEMENT.test(ls[line])).at(-1) ?? all.at(-1)).line;
   if (!subgraphsAt(text, last).length) return { text: appendLine(text, `${fromId} --> ${node}`), id };
   const declared = insertAfter(text, last, node);
   return { text: appendLine(declared, `${fromId} --> ${id}`), id };

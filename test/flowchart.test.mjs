@@ -57,6 +57,14 @@ test('no added edge comes before an existing one, so linkStyle keeps styling the
   }
 });
 
+test('a node in a subgraph keeps its new neighbour there, even when class or style lines name it last', () => {
+  const src = 'flowchart TD\n  subgraph s\n    A --> B\n  end\n  class A,B foo\n  style B fill:#eef\n';
+  assert.equal(addConnected(src, 'B').text,
+    'flowchart TD\n  subgraph s\n    A --> B\n    n1["New node"]\n  end\n  class A,B foo\n  style B fill:#eef\n  B --> n1\n');
+  const archive = addConnected(fixture('06-subgraphs-classes.mmd'), 'archive').text;
+  assert.ok(archive.includes('    done --> archive[(Archive)]\n    n1["New node"]\n  end\n'), archive);
+});
+
 test('addNode appends a standalone node, or puts one inside a subgraph before its end', () => {
   assert.equal(addNode(fixture('01-basic.mmd')).text, fixture('01-basic.mmd') + '  n1["New node"]\n');
   const inside = addNode(fixture('06-subgraphs-classes.mmd'), { subgraph: 'pay' }).text;
