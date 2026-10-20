@@ -324,20 +324,22 @@ const ID_AT = new RegExp(`^${ID}`, 'u');
  */
 export function edges(text) {
   if (!isFlowchart(text)) return [];
-  const ls = lines(text);
-  const header = headerIndex(ls);
   const found = [];
-  let offset = 0;
-  for (let n = 0; n < ls.length; offset += ls[n].length, n++) {
-    if (n <= header) continue;
-    const line = ls[n], m = mask(line);
-    for (const part of m.matchAll(/[^;\n]+/g)) {
-      // Trimmed on the line itself: in the mask, a shape at the end of the statement is blank.
-      const st = part.index + part[0].search(/\S|$/);
-      let end = part.index + part[0].length;
-      while (end > st && /\s/.test(line[end - 1])) end--;
-      if (st < end) statementEdges(line, m, st, end, offset, found);
-    }
+  for (const s of statements(text)) {
+    s.links.forEach((link, step) => {
+      const starts = s.groups[step], ends = s.groups[step + 1];
+      for (const a of starts) {
+        for (const b of ends) {
+          const named = a === starts.at(-1) && b === ends[0];
+          found.push({
+            from: a.id, to: b.id, userId: named ? link.userId : null,
+            link: { start: link.start, end: link.end }, arrow: link.arrow, label: link.label,
+            fromRef: { start: a.start, end: a.end }, toRef: { start: b.start, end: b.end },
+            statement: { start: s.start, end: s.end }, step,
+          });
+        }
+      }
+    });
   }
   const pairs = new Map(), taken = new Set();
   for (const e of found) {
@@ -355,9 +357,46 @@ export function edgeBySvgId(text, svgId) {
   return edges(text).find((e) => e.svgId === svgId) ?? null;
 }
 
-/** Read one statement (`m.slice(st, end)`): node groups joined by connectors. Pushes its edges onto `out`. */
-function statementEdges(line, m, st, end, offset, out) {
-  let i = st, step = 0;
+/**
+ * The diagram body's statements in text order, split at line ends and `;`: { start, end, line, alone, keyword,
+ * groups, links, complete }. `alone`: the only statement on its line. `keyword`: `style`, `class`, `linkStyle`… for a
+ * statement that is not about nodes, else null. A node statement is node groups (refs { id, start, end }, joined by
+ * `&`) joined by `links` (connectors); `complete` says all of it was read.
+ */
+function statements(text) {
+  const ls = lines(text);
+  const header = headerIndex(ls);
+  const out = [];
+  let offset = 0;
+  for (let n = 0; n < ls.length; offset += ls[n].length, n++) {
+    if (n < header) continue;
+    const line = ls[n];
+    let m = mask(line);
+    // The header line can carry statements too, after a `;`: `flowchart LR; A --> B`.
+    if (n === header) {
+      const semi = m.indexOf(';');
+      if (semi < 0) continue;
+      m = ' '.repeat(semi + 1) + m.slice(semi + 1);
+    }
+    const found = [];
+    for (const part of m.matchAll(/[^;\n]+/g)) {
+      // Trimmed on the line itself: in the mask, a shape at the end of the statement is blank.
+      const st = part.index + part[0].search(/\S|$/);
+      let end = part.index + part[0].length;
+      while (end > st && /\s/.test(line[end - 1])) end--;
+      if (st < end) found.push(readStatement(line, m, st, end, offset, n));
+    }
+    for (const s of found) out.push({ ...s, alone: found.length === 1 });
+  }
+  return out;
+}
+
+/** Read one statement, `m.slice(st, end)` of line `n`, which starts at `offset` in the text. */
+function readStatement(line, m, st, end, offset, n) {
+  const s = { start: offset + st, end: offset + end, line: n, keyword: null, groups: [], links: [], complete: false };
+  const keyword = m.slice(st, end).match(NOT_A_STATEMENT);
+  if (keyword) { s.keyword = keyword[1]; return s; }
+  let i = st;
   const skip = () => { while (i < end && /\s/.test(m[i])) i++; };
   const group = () => {
     const refs = [];
@@ -377,28 +416,224 @@ function statementEdges(line, m, st, end, offset, out) {
       i++;
     }
   };
-  let starts = group();
-  while (starts.length && i < end) {
+  const first = group();
+  if (!first.length) return s;
+  s.groups.push(first);
+  while (i < end) {
     const link = connector(line, m, i, end);
-    if (!link) return;
+    if (!link) return s;
     i = link.end;
-    const ends = group();
-    if (!ends.length) return;
-    for (const a of starts) {
-      for (const b of ends) {
-        const named = a === starts.at(-1) && b === ends[0];
-        out.push({
-          from: a.id, to: b.id, userId: named ? link.userId : null,
-          link: { start: offset + link.start, end: offset + link.end }, arrow: link.arrow,
-          label: link.label && { ...link.label, start: offset + link.label.start, end: offset + link.label.end },
-          fromRef: { start: a.start, end: a.end }, toRef: { start: b.start, end: b.end },
-          statement: { start: offset + st, end: offset + end }, step,
-        });
-      }
-    }
-    starts = ends;
-    step++;
+    const next = group();
+    if (!next.length) return s;
+    const at = (span) => span && { ...span, start: offset + span.start, end: offset + span.end };
+    s.links.push({ ...at(link), label: at(link.label) });
+    s.groups.push(next);
   }
+  s.complete = true;
+  return s;
+}
+
+// --- deleting -------------------------------------------------------------------------------------------------
+
+/**
+ * Delete the edge Mermaid drew as `svgId`. Its statement is rewritten without it (a chain is split there; in an `&`
+ * group, one statement per start node keeps every other edge in place), `linkStyle` numbers after it move down by
+ * one, and its `id@{ … }` line goes if it had an edge id. Its two nodes stay, with their shapes and subgraphs.
+ */
+export function deleteEdge(text, svgId) {
+  const all = edges(text);
+  const e = all.find((x) => x.svgId === svgId);
+  if (!e) throw new Error('That edge is not in the file.');
+  const s = statements(text).find((x) => x.start === e.statement.start);
+  const i = s.groups[e.step].findIndex((r) => r.start === e.fromRef.start);
+  const j = s.groups[e.step + 1].findIndex((r) => r.start === e.toRef.start);
+  return { text: remove(text, [e], { drop: new Set([`${e.step} ${i} ${j}`]), at: s.start }) };
+}
+
+/**
+ * Delete node `id`: from every statement (its edges with it, a chain split where it was, an `&` group without it),
+ * its `style` and `click` lines, and its name in `class` lines. `linkStyle` numbers follow the edges that are left.
+ * Its neighbours stay, with their shapes and subgraphs. Returns { text, edges }: how many edges went with it.
+ */
+export function deleteNode(text, id) {
+  assertNode(text, id);
+  const gone = edges(text).filter((e) => e.from === id || e.to === id);
+  return { text: remove(text, gone, { gone: id }), edges: gone.length };
+}
+
+/**
+ * The text without edges `removed`: either the pairs `drop` (`"step i j"`) of the statement starting at `at`, or
+ * every edge of node `gone`. Checks the result: the other edges in the same order, and every other node still there.
+ */
+function remove(text, removed, { drop = new Set(), at = -1, gone = null }) {
+  const all = statements(text);
+  const changes = [];
+  const touched = all.filter((s) => s.start === at || (gone && !s.keyword && s.groups.flat().some((r) => r.id === gone)));
+  for (const s of touched) {
+    if (!s.complete) throw new Error(`Line ${s.line + 1} is not one this editor can change; edit it in the file.`);
+  }
+
+  // A node left out of a rewritten statement is kept as a bare statement if dropping it would lose it, or lose its
+  // place: when no other statement in the same subgraph (at the top level: anywhere) still names it.
+  const scopeOf = (s) => subgraphsAt(text, s.line).at(-1)?.start ?? null;
+  const named = (s) => new Set(s.groups.flat().map((r) => r.id));
+  const elsewhere = all.filter((s) => !s.keyword && !touched.includes(s)).map((s) => ({ scope: scopeOf(s), ids: named(s) }));
+  for (const s of touched) {
+    const scope = scopeOf(s);
+    const stays = (nodeId) => elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
+    const parts = rewrite(text, s, { drop: s.start === at ? drop : new Set(), gone, stays });
+    changes.push({ s, parts });
+    elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids)) });
+  }
+
+  const indexes = new Set(removed.map((e) => e.index));
+  const userIds = new Set(removed.filter((e) => e.userId && e.svgId === e.userId).map((e) => e.userId));
+  for (const s of all) {
+    const body = text.slice(s.start, s.end);
+    if (s.keyword === 'linkStyle') {
+      const m = body.match(/^(linkStyle\s+)(\d+(?:\s*,\s*\d+)*)/);
+      if (!m) continue;
+      const nums = m[2].split(/\s*,\s*/).map(Number);
+      const left = nums.filter((n) => !indexes.has(n)).map((n) => n - [...indexes].filter((r) => r < n).length);
+      if (left.join() === nums.join()) continue;
+      changes.push({ s, parts: left.length ? [{ text: m[1] + left.join(',') + body.slice(m[0].length) }] : [] });
+    } else if (gone && (s.keyword === 'style' || s.keyword === 'click')) {
+      if (body.match(new RegExp(`^${s.keyword}\\s+(${ID})`, 'u'))?.[1] === gone) changes.push({ s, parts: [] });
+    } else if (gone && s.keyword === 'class') {
+      const m = body.match(/^(class\s+)(\S+)/);
+      const names = m ? m[2].split(',') : [];
+      if (!names.includes(gone)) continue;
+      const left = names.filter((x) => x !== gone);
+      changes.push({ s, parts: left.length ? [{ text: m[1] + left.join(',') + body.slice(m[0].length) }] : [] });
+    } else if (!s.keyword && !s.links.length && s.groups.length === 1 && s.groups[0].length === 1) {
+      const [ref] = s.groups[0];
+      if (userIds.has(ref.id) && text.startsWith(ref.id + '@{', ref.start)) changes.push({ s, parts: [] });
+    }
+  }
+
+  const out = apply(text, changes);
+  const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
+  const want = edges(text).filter((e) => !indexes.has(e.index)).map(sig);
+  const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
+  const after = nodes(out);
+  // No test reaches this: it catches a bug in rewrite(), not an input. An edge's `e1@{ … }` line reads as a node
+  // statement; it goes with its edge.
+  const lost = [...nodes(text)].some((n) => n !== gone && !userIds.has(n) && !after.has(n));
+  if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
+    throw new Error('This edit could not be made safely; nothing was changed.');
+  }
+  return out;
+}
+
+/**
+ * Statement `s` rewritten without the pairs in `drop` and without node `gone`, as a list of statements ({ text, ids })
+ * to write in its place. Edges keep their order: a step whose surviving pairs are still a whole product stays one
+ * connector (and chains on); any other step is written one statement per start node, in order, with that start's
+ * surviving ends. A node written more than once keeps its shape and label at its first appearance only.
+ */
+function rewrite(text, s, { drop, gone, stays }) {
+  const G = s.groups, L = s.links;
+  const alive = (g, i) => G[g][i].id !== gone;
+  const kept = (step, i, j) => alive(step, i) && alive(step + 1, j) && !drop.has(`${step} ${i} ${j}`);
+  const indexes = (g) => G[g].map((_, i) => i).filter((i) => alive(g, i));
+
+  const blocks = L.map((_, step) => {
+    const S = indexes(step), E = indexes(step + 1);
+    if (S.length && E.length && S.every((i) => E.every((j) => kept(step, i, j)))) {
+      return { whole: true, rows: [{ starts: S, ends: E }] };
+    }
+    const rows = [];
+    for (const i of S) {
+      const ends = E.filter((j) => kept(step, i, j));
+      if (!ends.length) continue;
+      const last = rows.at(-1);
+      if (last && last.ends.join() === ends.join()) last.starts.push(i);
+      else rows.push({ starts: [i], ends });
+    }
+    return { whole: false, rows };
+  });
+
+  const covered = new Set();
+  blocks.forEach((b, step) => b.rows.forEach((r) => {
+    for (const i of r.starts) covered.add(`${step} ${i}`);
+    for (const j of r.ends) covered.add(`${step + 1} ${j}`);
+  }));
+  const ref = (g, i) => text.slice(G[g][i].start, G[g][i].end);
+  const loose = G.map((_, g) => indexes(g).filter((i) => !covered.has(`${g} ${i}`))
+    .filter((i) => ref(g, i) !== G[g][i].id || !stays(G[g][i].id)));
+
+  const written = new Set();
+  const ids = [];
+  const group = (g, list) => list.map((i) => {
+    ids.push(G[g][i].id);
+    if (written.has(`${g} ${i}`)) return G[g][i].id;
+    written.add(`${g} ${i}`);
+    return ref(g, i);
+  }).join(' & ');
+  // The edge id (`e1@`) names the last start × first end of its step; it stays only where that pair still is.
+  const link = (step, row) => {
+    const l = L[step], t = text.slice(l.start, l.end);
+    const named = row.starts.at(-1) === G[step].length - 1 && row.ends[0] === 0;
+    return l.userId && !named ? t.slice(l.userId.length + 1) : t;
+  };
+
+  const parts = [];
+  let chain = null;
+  const flush = () => { if (chain) parts.push(chain.text); chain = null; };
+  for (let g = 0; g < G.length; g++) {
+    if (loose[g].length) { flush(); parts.push(group(g, loose[g])); }
+    if (g === L.length) break;
+    const b = blocks[g];
+    if (b.whole) {
+      const [row] = b.rows;
+      if (!chain) chain = { text: group(g, row.starts) };
+      chain.text += ` ${link(g, row)} ${group(g + 1, row.ends)}`;
+    } else {
+      flush();
+      for (const row of b.rows) parts.push(`${group(g, row.starts)} ${link(g, row)} ${group(g + 1, row.ends)}`);
+    }
+  }
+  flush();
+  return parts.map((t) => ({ text: t, ids }));
+}
+
+/**
+ * Apply statement replacements ({ s, parts }), last first. A statement alone on its line has its parts on lines of
+ * their own, at its indentation; one that shares its line is joined with `; `. No parts removes the statement, and
+ * its line when nothing else is left on it.
+ */
+function apply(text, changes) {
+  const lineAt = (t, at) => {
+    const start = t.lastIndexOf('\n', at - 1) + 1;
+    const nl = t.indexOf('\n', at);
+    return { start, end: nl < 0 ? t.length : nl + 1 };
+  };
+  const dropLine = (t, at) => {
+    const { start, end } = lineAt(t, at);
+    // The last line, with no newline of its own: take the one before it instead, so the file still ends as it did.
+    if (end === t.length && !t.endsWith('\n') && start > 0) return t.slice(0, start - 1);
+    return t.slice(0, start) + t.slice(end);
+  };
+  let out = text;
+  for (const { s, parts } of [...changes].sort((a, b) => b.s.start - a.s.start)) {
+    if (parts.length) {
+      const indent = out.slice(lineAt(out, s.start).start, s.start).match(/^[ \t]*/)[0];
+      out = out.slice(0, s.start) + parts.map((p) => p.text).join(s.alone ? '\n' + indent : '; ') + out.slice(s.end);
+    } else if (s.alone) {
+      out = dropLine(out, s.start);
+    } else {
+      let from = s.start, to = s.end;
+      while (/[ \t]/.test(out[to] ?? '')) to++;
+      if (out[to] === ';') { to++; while (/[ \t]/.test(out[to] ?? '')) to++; } else {
+        while (from > 0 && /[ \t]/.test(out[from - 1])) from--;
+        if (out[from - 1] === ';') from--;
+      }
+      out = out.slice(0, from) + out.slice(to);
+      const { start, end } = lineAt(out, Math.min(from, out.length));
+      if (!out.slice(start, end).trim()) out = dropLine(out, start);
+    }
+  }
+  return out;
 }
 
 /** The connector at `i`: { start, end, arrow, label, userId }, or null. */

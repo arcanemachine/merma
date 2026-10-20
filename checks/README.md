@@ -4,10 +4,12 @@ Checks that need Mermaid itself, which runs only in a browser. Run them after ch
 
 ## Every edit parses
 
-`gen-cases.mjs` applies the node edits (add connected, connect, rename) to every node of every fixture in
-`test/fixtures/`. It does not yet cover `addNode`; add it there when changing that function.
+`gen-cases.mjs` applies the node edits (add connected, connect, rename, delete) to every node, and deletes every edge,
+of every fixture in `test/fixtures/`. It does not yet cover `addNode`; add it there when changing that function.
 `parse-check.js` runs each result through Mermaid's parser in the page, and checks that no existing node changed
-subgraph (an edge line inside a subgraph pulls its nodes into that subgraph).
+subgraph (an edge line inside a subgraph pulls its nodes into that subgraph). For a delete, it also checks with
+Mermaid that every other node is still there, and that the edges left are the old ones in the old order, each with
+its old `linkStyle` style.
 
 1. Start merma with a root you can write to, and open any diagram in that root in a browser.
 2. Write the cases next to it, as a `.mmd` file so the server will hand it to the page:

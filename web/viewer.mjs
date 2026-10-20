@@ -1,6 +1,8 @@
 // The diagram view: renders Mermaid text into the stage, and lets the user zoom (wheel), move (drag) and fit
 // (double-click) it. It knows nothing about files or editing: it reports clicks, double-clicks and context menus
-// (right-click, long-press), and whoever wired it decides what they mean. Elements marked `data-overlay` (a menu or an input laid over the diagram) are left to themselves.
+// (right-click, long-press), and whoever wired it decides what they mean. Elements marked `data-overlay` (a menu or an
+// input laid over the diagram) are left to themselves. What the page adds to the drawing is marked `data-page-…`: the
+// SVG export leaves out elements marked `data-page-only` and every `data-page-…` attribute.
 
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
 
@@ -170,7 +172,13 @@ export function createViewer({ diagram, stage }, hooks = {}) {
      */
     svgMarkup() {
       const svg = stage.querySelector('svg');
-      return svg && new XMLSerializer().serializeToString(svg);
+      if (!svg) return null;
+      const copy = svg.cloneNode(true);
+      for (const e of copy.querySelectorAll('[data-page-only]')) e.remove();
+      for (const e of [copy, ...copy.querySelectorAll('*')]) {
+        for (const a of [...e.attributes]) if (a.name.startsWith('data-page-')) e.removeAttribute(a.name);
+      }
+      return new XMLSerializer().serializeToString(copy);
     },
   };
 }

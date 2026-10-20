@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
-  edgeBySvgId,
+  edgeBySvgId, deleteEdge, deleteNode,
 } from '../web/patch/flowchart.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
@@ -240,10 +240,28 @@ test('edges splits statements at semicolons, and finds none in comments, style l
   ]);
 });
 
+test('edges reads statements after a semicolon on the header line', () => {
+  const src = 'flowchart LR; A --> B\n  A --> C\n  linkStyle 1 stroke:red\n';
+  assert.deepEqual(edges(src).map((e) => e.svgId), ['L_A_B_0', 'L_A_C_0']);
+  assert.equal(deleteEdge(src, 'L_A_C_0').text, 'flowchart LR; A --> B\n  C\n');
+});
+
 test('edges of a diagram that is not a flowchart is empty', () => {
   assert.deepEqual(edges(fixture('90-sequence.mmd')), []);
   assert.deepEqual(edges('stateDiagram-v2\n  [*] --> A\n  A --> B\n'), []);
 });
+
+for (const [name, ids] of Object.entries(EDGE_IDS)) {
+  const src = fixture(name);
+  for (const svgId of ids) {
+    test(`${name} ${svgId}: deleteEdge removes that edge only, and keeps every node`, () => {
+      const { text } = deleteEdge(src, svgId);
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      assert.deepEqual(edges(text).map(sig), edges(src).filter((e) => e.svgId !== svgId).map(sig));
+      for (const node of NODE_IDS[name]) assert.match(text, new RegExp(`(?<![\\p{L}\\p{N}_])${node}(?![\\p{L}\\p{N}_])`, 'u'), node);
+    });
+  }
+}
 
 for (const [name, ids] of Object.entries(EDGE_IDS)) {
   test(`${name}: edges gives every edge Mermaid draws, in its order, with its id`, () => {
@@ -258,6 +276,98 @@ for (const [name, ids] of Object.entries(EDGE_IDS)) {
     }
   });
 }
+
+// --- deleting ------------------------------------------------------------------------------------------------
+
+test('deleteEdge removes a one-edge statement, keeping each node where it is defined or only named there', () => {
+  assert.equal(deleteEdge(fixture('01-basic.mmd'), 'L_A_B_0').text,
+    'flowchart TD\n  A[Start]\n  B{OK?}\n  B -->|yes| C[Done]\n  B -->|no| D[Retry]\n  D --> A\n');
+  assert.equal(deleteEdge(fixture('01-basic.mmd'), 'L_D_A_0').text,
+    'flowchart TD\n  A[Start] --> B{OK?}\n  B -->|yes| C[Done]\n  B -->|no| D[Retry]\n');
+});
+
+test('deleteEdge drops that edge\'s linkStyle and moves the later numbers down', () => {
+  assert.equal(deleteEdge(fixture('10-linkstyle-subgraph.mmd'), 'L_A_B_0').text,
+    'flowchart LR\n  A[Start]\n  B[Middle]\n  subgraph box [Inside]\n    C[First] --> D[Second]\n  end\n  B --> C\n'
+    + '  D --> E[Out]\n  linkStyle 1 stroke:blue\n');
+  assert.equal(deleteEdge('flowchart LR\n  A --> B\n  B --> C\n  C --> D\n  linkStyle 0,1,2 stroke:red\n', 'L_B_C_0').text,
+    'flowchart LR\n  A --> B\n  C --> D\n  linkStyle 0,1 stroke:red\n');
+});
+
+test('deleteEdge splits a chain or an & group without moving any other edge', () => {
+  assert.equal(deleteEdge('flowchart LR\n  X --> A & B --> C & D --> E\n', 'L_B_D_0').text,
+    'flowchart LR\n  X --> A & B\n  A --> C & D\n  B --> C\n  C & D --> E\n');
+  assert.equal(deleteEdge('flowchart LR\n  A & B --> C & D\n', 'L_A_C_0').text, 'flowchart LR\n  A --> D\n  B --> C & D\n');
+  assert.equal(deleteEdge('flowchart LR\n  A[One] --> B & C((Two)) --> D\n', 'L_A_C_0').text,
+    'flowchart LR\n  A[One] --> B\n  B & C((Two)) --> D\n');
+});
+
+test('deleteEdge keeps a node in its subgraph when its other mentions are outside it', () => {
+  assert.equal(deleteEdge('flowchart LR\n  subgraph s\n    A --> B\n  end\n  B --> C\n', 'L_A_B_0').text,
+    'flowchart LR\n  subgraph s\n    A\n    B\n  end\n  B --> C\n');
+});
+
+test('deleteEdge takes out only its statement on a shared line, and its edge id line', () => {
+  assert.equal(deleteEdge('flowchart LR\n  C --> D; D --> C\n  A --> C & D\n', 'L_C_D_0').text,
+    'flowchart LR\n  D --> C\n  A --> C & D\n');
+  assert.equal(deleteEdge('flowchart LR\n  A e1@--> B\n  e1@{ animate: true }\n  A --> B\n', 'e1').text,
+    'flowchart LR\n  A --> B\n');
+  assert.throws(() => deleteEdge(fixture('01-basic.mmd'), 'L_A_Z_0'), /not in the file/);
+});
+
+test('deleteNode removes the node from every statement, with its style, click and class lines', () => {
+  assert.equal(deleteNode(fixture('06-subgraphs-classes.mmd'), 'archive').text,
+    'flowchart TD\n  classDef warn fill:#fdd,stroke:#c00\n  start[Begin] --> pay\n  subgraph pay [Payment]\n    direction LR\n'
+    + '    charge[Charge card] --> record[Record]\n  end\n  record --> done[Finished]:::warn\n  subgraph tail\n    done\n  end\n'
+    + '  style start fill:#eef\n  click start "https://example.com" "Open"\n');
+  assert.equal(deleteNode('flowchart LR\n  A --> B\n  class A,B hot\n', 'B').text, 'flowchart LR\n  A\n  class A hot\n');
+  assert.equal(deleteNode('flowchart LR\n  X --> A & B --> C & D --> E\n', 'C').text, 'flowchart LR\n  X --> A & B --> D --> E\n');
+  assert.equal(deleteNode(fixture('10-linkstyle-subgraph.mmd'), 'C').text,
+    'flowchart LR\n  A[Start] --> B[Middle]\n  subgraph box [Inside]\n    D[Second]\n  end\n  D --> E[Out]\n'
+    + '  linkStyle 0 stroke:red\n');
+});
+
+test('deleteNode keeps a neighbour named twice only by the deleted node\'s statements', () => {
+  assert.equal(deleteNode('flowchart LR\n  X --> B\n  B --> X\n', 'X').text, 'flowchart LR\n  B\n');
+});
+
+test('deleteNode on the last line keeps a file with no trailing newline without one', () => {
+  assert.equal(deleteNode(fixture('09-no-trailing-newline.mmd'), 'B').text, 'flowchart TD\n  A[First]');
+});
+
+test('deleteNode removes the node\'s own style and click lines and reports how many edges went', () => {
+  const { text, edges: count } = deleteNode(fixture('06-subgraphs-classes.mmd'), 'start');
+  assert.equal(count, 1);
+  assert.ok(!/style start|click start/.test(text), text);
+  assert.ok(text.includes('  class archive warn\n'), text);
+});
+
+test('deleteEdge in an & group writes one statement per start, merging starts with the same ends', () => {
+  assert.equal(deleteEdge('flowchart LR\n  A & B & C --> D & E\n', 'L_C_E_0').text,
+    'flowchart LR\n  A & B --> D & E\n  C --> D\n');
+  assert.equal(deleteEdge('flowchart LR\n  A & B --> C[See] & D\n', 'L_A_D_0').text,
+    'flowchart LR\n  A --> C[See]\n  B --> C & D\n');
+});
+
+test('an edge id stays on its own edge, or goes with it', () => {
+  assert.equal(deleteEdge('flowchart LR\n  A & B e1@--> C\n  e1@{ animate: true }\n', 'L_A_C_0').text,
+    'flowchart LR\n  A\n  B e1@--> C\n  e1@{ animate: true }\n');
+  assert.equal(deleteEdge('flowchart LR\n  A & B e1@--> C\n  e1@{ animate: true }\n', 'e1').text,
+    'flowchart LR\n  B\n  A --> C\n');
+});
+
+test('a rewritten statement that shares its line stays on it, joined with semicolons', () => {
+  assert.equal(deleteEdge('flowchart LR\n  A --> B --> C; X --> Y\n', 'L_A_B_0').text,
+    'flowchart LR\n  A; B --> C; X --> Y\n');
+});
+
+test('deleting the last line of a file with no trailing newline keeps it without one', () => {
+  assert.equal(deleteNode('flowchart TD\n  A\n  A --> B', 'B').text, 'flowchart TD\n  A');
+});
+
+test('deletes refuse a statement they cannot read whole', () => {
+  assert.throws(() => deleteNode('flowchart LR\n  A --> B --> -C\n', 'B'), /not one this editor can change/);
+});
 
 // --- properties over every node of every fixture -------------------------------------------------------------
 
@@ -275,6 +385,16 @@ for (const [name, ids] of Object.entries(NODE_IDS)) {
         assert.equal(edge, `${id} --> ${newId}`);
         assert.ok(d.added.some((l) => l.trim() === `${newId}["New node"]`), d.added.join('|'));
       }
+    });
+
+    test(`${name} ${id}: deleteNode leaves every other edge in order and every other node`, () => {
+      const { text } = deleteNode(src, id);
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      assert.deepEqual(edges(text).map(sig), edges(src).filter((e) => e.from !== id && e.to !== id).map(sig));
+      for (const other of ids.filter((x) => x !== id)) {
+        assert.match(text, new RegExp(`(?<![\\p{L}\\p{N}_])${other}(?![\\p{L}\\p{N}_])`, 'u'), `${other} lost`);
+      }
+      assert.ok(!edges(text).some((e) => e.from === id || e.to === id));
     });
 
     test(`${name} ${id}: connect inserts exactly one line`, () => {
