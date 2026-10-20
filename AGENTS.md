@@ -18,9 +18,13 @@ and where the two differ, the local file wins.
 - **No bullshit tests.** A test exists to fail when the behaviour it names breaks:
   - it checks what its name and comments say, no less (an assertion that cannot fail is worse than none);
   - it exercises real code, not a mock standing in for the thing under test, and not constants or the language;
-  - for a new test, break the code on purpose once and watch the test fail, then put the code back;
+  - for a new test, break the code on purpose once and watch the test fail: `checks/mutate.sh <file> <text>
+    <replacement>` does it and always puts the file back;
   - logic with no DOM goes in a module Node can test (`web/patch/`, `web/history.mjs`), rather than untested in the
     page.
+- **Fixtures and examples are generic.** Test files, sample diagrams and examples in docs are written for merma:
+  plain names (`A[Start] --> B{OK?}`, `charge --> record`) that show the syntax under test, never copied from, or
+  specific to, any other codebase, project or organisation.
 - **Check the page in a browser** after changing anything under `web/`; the unit tests do not cover it. After a
   change to `web/patch/`, run the browser parse check too (`checks/README.md`).
 - Say why in a comment when a reader new to the code could not work it out; nothing more.
