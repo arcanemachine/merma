@@ -5,9 +5,6 @@
 import { createHistory } from './history.mjs';
 import { addConnected, connect, isFlowchart, nodeIdFromSvgId, relabel } from './patch/flowchart.mjs';
 
-const HINT = 'Click a node to edit, double-click to rename · Ctrl+Z undoes · scroll to zoom, drag to move';
-const VIEW_HINT = 'Scroll to zoom, drag to move';
-
 /**
  * @param {object} deps
  * @param {ReturnType<import('./source.mjs').createSource>} deps.source
@@ -15,7 +12,7 @@ const VIEW_HINT = 'Scroll to zoom, drag to move';
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
- * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'rename'|'hint', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'rename', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
@@ -32,7 +29,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function setEditable(on) {
     editable = on;
     els.stage.classList.toggle('editable', on);
-    els.hint.textContent = on ? HINT : VIEW_HINT;
     if (!on) { deselect(); closeRename(); }
   }
 
