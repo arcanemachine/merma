@@ -72,6 +72,7 @@ let shownOnce = false;   // a diagram has been rendered; until then the view is 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onClick: (target) => editor?.clicked(target),
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
+  onContextMenu: (target, x, y) => editor?.contextMenu(target, x, y) ?? false,
   onViewChange: () => { editor?.viewChanged(); if (shownOnce) keepView(); },
 });
 
@@ -96,7 +97,7 @@ editor = createEditor({
   source, viewer, parse, display, ui,
   els: {
     stage: el('stage'), diagram: el('diagram'), menu: el('menu'), menuAdd: el('menu-add'),
-    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), rename: el('rename'),
+    menuConnect: el('menu-connect'), menuRename: el('menu-rename'), spaceMenu: el('space-menu'), spaceAdd: el('space-add'), rename: el('rename'),
   },
 });
 

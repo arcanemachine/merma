@@ -43,14 +43,22 @@ working copy reloads its pages on every save.
 
 ## Editing
 
-In a flowchart, click a node for its menu:
+In a flowchart, click a node to select it, and right-click it (or long-press on a touch screen) for its menu:
 
-- **Add connected node** adds `<node> --> n1["New node"]` after the node's last line (so a node in a subgraph gets its
-  new neighbour in the same subgraph), then opens Rename on it.
+- **Add connected node** adds a new node with an edge from this one, then opens Rename on it. The edge is appended at
+  the end of the file; if the node was last mentioned inside a subgraph, the new node is declared there, so it joins
+  the same subgraph.
 - **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
   neither node moves.
-- **Rename** (or double-click the node) edits the label in place: Enter saves, Escape cancels. Only the label changes, where the node is first
+- **Rename** (or double-click the node, or Enter or F2 on a selected one) edits the label in place: Enter saves,
+  Shift+Enter starts a new line (written as `<br>`), Escape cancels. Only the label changes, where the node is first
   given a shape; a node that only appears bare gets brackets at its first appearance.
+
+Right-click empty space to add a node; over a subgraph, it goes inside that subgraph. **N** adds a node too: connected
+to the selected one, if any. Mermaid lays the diagram out, so a new node lands where the layout puts it.
+
+No edit ever puts an edge before an existing one: `linkStyle N` styles the Nth edge in the file, so that would
+restyle the edges after it.
 
 **Ctrl+Z** undoes the page's last edit (adding a node and naming it count as one), as long as the file has not changed
 since; it is refused otherwise, so it never throws away someone else's change.

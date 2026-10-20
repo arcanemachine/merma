@@ -15,6 +15,9 @@ mermaid.initialize({
 const PAD = 24;
 // A press that moves less than this many pixels before release is a click; more is a move.
 const CLICK_SLOP = 4;
+// A touch held this long without moving is a long-press, reported as a context menu. Android raises the browser's own
+// contextmenu event for it; iOS Safari does not, hence the timer.
+const LONG_PRESS_MS = 500;
 
 /** Check that `text` is valid Mermaid; throws with Mermaid's message if not. */
 export const parse = (text) => mermaid.parse(text);
@@ -27,9 +30,12 @@ export const parse = (text) => mermaid.parse(text);
  * @param {(target: Element) => void} [hooks.onClick] a click, with the element pressed
  * @param {(target: Element) => boolean} [hooks.onDoubleClick] a double-click, with the element pressed; return true to
  *   say it was handled, or the view is fitted
+ * @param {(target: Element, x: number, y: number) => boolean} [hooks.onContextMenu] a right-click or long-press, at
+ *   client coordinates; return true to say it was handled (the browser's own menu is then not shown)
  * @param {() => void} [hooks.onViewChange] the diagram moved or was zoomed on screen
  */
-export function createViewer({ diagram, stage }, { onClick = () => {}, onDoubleClick = () => false, onViewChange = () => {} } = {}) {
+export function createViewer({ diagram, stage }, hooks = {}) {
+  const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {} } = hooks;
   // A scale and offset applied to the stage. Until the user zooms or drags, the view fits the diagram to the window
   // (never enlarging it); after that, it is kept across re-renders so edits do not reset it.
   const view = { x: 0, y: 0, k: 1 };
@@ -76,12 +82,27 @@ export function createViewer({ diagram, stage }, { onClick = () => {}, onDoubleC
     if (e.button !== 0 || e.target.closest('[data-overlay]')) return;
     drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moving: false, target: e.target };
     diagram.setPointerCapture(e.pointerId);
+    if (e.pointerType === 'touch') {
+      const press = drag;
+      press.timer = setTimeout(() => {
+        if (drag !== press || press.moving) return;
+        press.handled = true;   // the release that follows is not a click
+        onContextMenu(press.target, press.startX, press.startY);
+      }, LONG_PRESS_MS);
+    }
+  });
+  diagram.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('[data-overlay]')) return;
+    // On Android this is the long-press itself: the timer above must not report it a second time.
+    if (drag) { clearTimeout(drag.timer); drag.handled = true; }
+    if (onContextMenu(drag?.target ?? e.target, e.clientX, e.clientY)) e.preventDefault();
   });
   diagram.addEventListener('pointermove', (e) => {
     if (!drag) return;
     if (!drag.moving) {
       if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < CLICK_SLOP) return;
       drag.moving = true;
+      clearTimeout(drag.timer);
       diagram.classList.add('dragging');
     }
     view.x += e.clientX - drag.x;
@@ -91,11 +112,11 @@ export function createViewer({ diagram, stage }, { onClick = () => {}, onDoubleC
     touched = true;
     apply();
   });
-  const endDrag = () => { drag = null; diagram.classList.remove('dragging'); };
+  const endDrag = () => { if (drag) clearTimeout(drag.timer); drag = null; diagram.classList.remove('dragging'); };
   diagram.addEventListener('pointerup', () => {
     const press = drag;
     endDrag();
-    clicked = press && !press.moving ? press.target : null;
+    clicked = press && !press.moving && !press.handled ? press.target : null;
     if (clicked) onClick(clicked);
   });
   diagram.addEventListener('pointercancel', endDrag);
