@@ -106,6 +106,7 @@ diagram types are view-only.
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
 | `checks/` | Checks that need a browser (`checks/README.md`) |
+| `GLOSSARY.md` | The words merma uses, in the page, the docs and the code |
 
 ## License
 

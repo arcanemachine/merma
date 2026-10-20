@@ -1,0 +1,73 @@
+# Glossary
+
+The words merma uses, in the page, the docs and the code. Use them as written here, and add a word here when a new
+one comes in. Where Mermaid has a term, it is used; otherwise a plain word. A word in `code` is Mermaid syntax.
+
+## The diagram
+
+| Word | Meaning |
+|---|---|
+| **diagram** | What a `.mmd` file describes and the page shows. |
+| **file** | The `.mmd` file. The only source of truth: merma reads it, and writes edits into it. |
+| **flowchart** | A diagram whose header is `flowchart` or `graph`: the only type merma edits. Others are view-only. |
+| **header** | The `flowchart TD` line (after any frontmatter, directives and comments). |
+| **direction** | `TD` / `TB`, `BT`, `LR`, `RL` on the header: which way the diagram runs. A subgraph can set its own. |
+| **frontmatter** | The `---` block at the top of the file (title, config). |
+| **directive** | An `%%{init: …}%%` line. |
+| **comment** | A `%% …` line. |
+| **statement** | One instruction in the file: a line, or part of a line between `;`. |
+| **node** | A box in the diagram (Mermaid's term). |
+| **node id** | The name a node has in the file (`charge` in `charge[Charge card]`). Never shown on the page. |
+| **label** | The text shown on a node or an edge. |
+| **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. |
+| **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
+| **arrow** | An edge's connector syntax without its label: `-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~`… |
+| **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`). |
+| **length** | How much longer than its shortest form an arrow is; it asks Mermaid for a longer edge. |
+| **edge label** | An edge's text, as `-->|label|` (pipe form) or `-- label -->` (text form). merma writes the pipe form. |
+| **edge id** | A name given to an edge in the file: `A e1@--> B`. Its settings go in an `e1@{ … }` statement. |
+| **connector** | Everything between an edge's two nodes in the file: edge id, arrow and label. |
+| **chain** | Several edges in one statement: `A --> B --> C`. |
+| **`&` group** | Several nodes on one side of a connector: `A & B --> C`, which is two edges. |
+| **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
+| **subgraph title** | The text shown on a subgraph. |
+| **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
+| **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
+
+## The page
+
+| Word | Meaning |
+|---|---|
+| **page** | merma in the browser, showing one file. |
+| **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
+| **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
+| **select**, **selection** | Clicking a node or an edge marks it: it **glows**. One item at a time, for now. |
+| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, or the **empty-space menu**. |
+| **rename box** | The text box laid over a node or edge label to edit it in place. |
+| **toast** | A short message at the top right that fades on its own: "Saved", "Undone". Never an error. |
+| **notice** | The bar above the diagram: what to do next, or (in red) what was not saved and why. |
+| **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
+| **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
+| **hit path** | The wide invisible line over each edge that makes it easy to click. |
+| **edge match** | Whether merma's reading of the edges agrees, edge for edge, with what Mermaid drew. Without it, edges can't be selected and nodes can't be deleted. |
+| **page marker** | A `data-page-…` attribute merma adds to the drawing; the SVG export leaves them out. |
+
+## Working on merma
+
+| Word | Meaning |
+|---|---|
+| **scanner** | `edges()` and `statements()` in `web/patch/flowchart.mjs`: merma's reading of a flowchart's text. |
+| **rewrite** | How an edit changes a statement in place without moving any other edge. |
+| **build id** | Which version of merma's code a page is running; a page reloads itself when the server has another. |
+| **shared server** | The merma server on port 63762, run from the live worktree. |
+| **land** | Put committed, checked, reviewed work on the shared server (`./live.sh land`). |
+| **fixture** | A hand-written test diagram in `test/fixtures/`. |
+| **browser check** | A check that needs Mermaid itself, run in a browser (`checks/README.md`). |
+| **mutation check** | Breaking the code on purpose to see a test fail (`checks/mutate.sh`). |
+| **UAT** | Acceptance testing: by Haiku agents for behaviour, by the user for look and feel. |
+
+## Words to settle
+
+- **Rename** (node menu) and **Edit label** (edge menu) do the same thing to different items. One word for both?
+- **Connect to…** makes an edge; the user's planned Shift+click "links" and "unlinks". Mermaid's older docs say
+  "link"; this glossary says edge. Keep "link" only for the gesture, or use "connect" / "disconnect"?
