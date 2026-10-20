@@ -2,11 +2,15 @@
 //
 //   GET /                  the page
 //   GET /<file>.mjs|.css   the page's modules and styles
-//   GET /source?f=<path>   a diagram file's text, with its version as the ETag
+//   GET /source?f=<path>   a diagram file's text, with its version as the ETag; 304 and no body when If-None-Match
+//                          names that version, so a page polling an unchanged file gets headers only
 //   POST /edit?f=<path>    replace the file with the request body, only if If-Match names its current version;
 //                          409 otherwise, so an edit made in the page never overwrites a change saved meanwhile
 //   GET /hostpath?f=<path> where that file is on the host, for a server in a container ('' when unknown)
 //   GET /health            "ok pid=<pid> script=<path>", so a caller can tell which server holds the port
+//
+// Every response carries X-Merma-Build, the build id (build.js), and the page is served with the same id embedded, so
+// an open page can tell when the code it is running has been replaced.
 //
 // Every route answers only requests addressed to a known host name (`hosts`), whatever the port. That stops DNS
 // rebinding: a page on another site can point its own domain at this machine, and its requests would then be
@@ -16,9 +20,11 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createBuild } from './build.js';
 import { version } from './files.js';
 
 const WEB = fileURLToPath(new URL('../web/', import.meta.url));
+const FIXED = [fileURLToPath(new URL('../server/', import.meta.url)), fileURLToPath(new URL('../bin/', import.meta.url))];
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.mjs': 'text/javascript' };
 export const MAX_EDIT_BYTES = 1_000_000;
 
@@ -34,9 +40,11 @@ function hostName(header = '') {
  * @param {ReturnType<import('./files.js').createFiles>} options.files
  * @param {string} options.script the path /health reports
  * @param {string[]} [options.hosts] host names requests may be addressed to (default: loopback only)
+ * @param {string} [options.web] the page's files (default: web/ beside server/)
  */
-export function createServer({ files, script, hosts = LOOPBACK_HOSTS }) {
+export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB }) {
   const allowedHosts = new Set(hosts.map((h) => h.toLowerCase()));
+  const build = createBuild({ web, fixed: FIXED });
   const server = http.createServer((req, res) => {
     server.lastRequest = Date.now();
     handle(req, res).catch((e) => send(res, 500, String(e.message || e)));
@@ -44,6 +52,7 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS }) {
   server.lastRequest = Date.now();
 
   async function handle(req, res) {
+    res.setHeader('X-Merma-Build', build.id());
     if (!allowedHosts.has(hostName(req.headers.host).toLowerCase())) {
       return send(res, 403, 'Unknown host: ' + (req.headers.host || '(none)'));
     }
@@ -59,10 +68,15 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS }) {
       if (!files.allowed(f)) return send(res, 403, 'Only .mmd files under ' + files.roots.join(', ') + ' are served.');
       const text = files.read(f);
       if (text === null) return send(res, 404, 'File not found: ' + f);
-      return send(res, 200, text, 'text/plain', { ETag: version(text) });
+      const etag = version(text);
+      if (req.headers['if-none-match'] === etag) {
+        res.writeHead(304, { ETag: etag, 'Cache-Control': 'no-store' });
+        return res.end();
+      }
+      return send(res, 200, text, 'text/plain', { ETag: etag });
     }
 
-    return serveWeb(url.pathname, res);
+    return serveWeb(web, url.pathname, res, build.id());
   }
 
   async function edit(req, res, f) {
@@ -102,13 +116,19 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS }) {
   return server;
 }
 
-/** A file from web/, by its path; nothing outside web/ and nothing but the page's own file types. */
-async function serveWeb(pathname, res) {
-  const path = normalize(join(WEB, pathname === '/' ? 'index.html' : decodeURIComponent(pathname)));
+/**
+ * A file from the page's folder, by its path; nothing outside it and nothing but the page's own file types. The page
+ * itself gets the build id filled in.
+ */
+async function serveWeb(web, pathname, res, buildId) {
+  const root = web.endsWith(sep) ? web : web + sep;
+  const page = pathname === '/';
+  const path = normalize(join(root, page ? 'index.html' : decodeURIComponent(pathname)));
   const type = TYPES[extname(path)];
-  if (!path.startsWith(WEB.endsWith(sep) ? WEB : WEB + sep) || !type) return send(res, 404, 'Not found');
+  if (!path.startsWith(root) || !type) return send(res, 404, 'Not found');
   try {
-    return send(res, 200, await readFile(path, 'utf8'), type);
+    const body = await readFile(path, 'utf8');
+    return send(res, 200, page ? body.replace('{{MERMA_BUILD}}', buildId) : body, type);
   } catch {
     return send(res, 404, 'Not found');
   }

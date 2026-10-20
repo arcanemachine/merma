@@ -10,6 +10,35 @@ const el = (id) => document.getElementById(id);
 // With no ?f=, show the scratch diagram (the server creates it if missing).
 const file = new URLSearchParams(location.search).get('f') || '/tmp/mermaid-diagrams/scratch.mmd';
 
+// The build of merma this page was served from. When the server reports another, the page reloads to run it, once
+// nothing is in progress that a reload would lose. Zoom and pan survive the reload: they are kept for this tab in
+// sessionStorage, which is the browser's, never the file's.
+const loadedBuild = document.querySelector('meta[name="merma-build"]').content;
+const viewKey = 'merma:view:' + file;
+function reloadWhenIdle() {
+  if (editor && !editor.idle()) { setTimeout(reloadWhenIdle, 500); return; }
+  location.reload();
+}
+let reloading = false;
+function noteBuild(id) {
+  if (id === loadedBuild || reloading) return;
+  reloading = true;
+  reloadWhenIdle();
+}
+function keepView() {
+  const v = viewer.getView();
+  try {
+    if (v.touched) sessionStorage.setItem(viewKey, JSON.stringify({ x: v.x, y: v.y, k: v.k }));
+    else sessionStorage.removeItem(viewKey);
+  } catch { /* storage unavailable: the view just is not kept */ }
+}
+function restoreView() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(viewKey));
+    if (saved) viewer.setView(saved);
+  } catch { /* nothing kept, or unreadable */ }
+}
+
 // A short status message that fades out. Short messages ("Copied!") start fading after 1 s; longer ones stay up
 // ~70 ms a character, capped at 8 s. Then a 0.6 s fade.
 let toastTimer;
@@ -38,11 +67,12 @@ const ui = {
 
 /** @type {ReturnType<typeof createEditor> | null} set once the source and viewer it needs exist */
 let editor = null;
+let shownOnce = false;   // a diagram has been rendered; until then the view is the initial fit, not worth keeping
 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onClick: (target) => editor?.clicked(target),
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
-  onViewChange: () => editor?.viewChanged(),
+  onViewChange: () => { editor?.viewChanged(); if (shownOnce) keepView(); },
 });
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved.
@@ -55,11 +85,12 @@ async function display(text) {
   }
   for (const b of ['copy-svg', 'download-svg', 'reset-view']) el(b).disabled = false;
   showError('');
+  if (!shownOnce) { shownOnce = true; restoreView(); }
   el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
   editor?.rendered(text);
 }
 
-const source = createSource(file, { onText: display, onError: showError });
+const source = createSource(file, { onText: display, onError: showError, onBuild: noteBuild });
 
 editor = createEditor({
   source, viewer, parse, display, ui,

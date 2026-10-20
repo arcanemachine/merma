@@ -110,6 +110,16 @@ export function createViewer({ diagram, stage }, { onClick = () => {}, onDoubleC
   return {
     fit,
 
+    /** The current zoom and offset, and whether the user has moved it (if not, the view follows the window). */
+    getView: () => ({ ...view, touched }),
+
+    /** Put back a view from getView(). It counts as the user's, so a refit (window resize) leaves it alone. */
+    setView({ x, y, k }) {
+      Object.assign(view, { x, y, k });
+      touched = true;
+      apply();
+    },
+
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 

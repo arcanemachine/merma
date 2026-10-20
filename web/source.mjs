@@ -1,13 +1,15 @@
 // The diagram file, as the server has it: polled every second, with a callback whenever its text changes, and saved
-// with the version it was based on, so a save never overwrites a change made in the meantime.
+// with the version it was based on, so a save never overwrites a change made in the meantime. Each poll names the
+// version the page has (If-None-Match), so an unchanged file comes back as a bodiless 304.
 
 /**
  * @param {string} file the file's absolute path
  * @param {object} hooks
  * @param {(text: string) => void | Promise<void>} hooks.onText the file's text changed (or was read for the first time)
  * @param {(message: string) => void} hooks.onError the file could not be read
+ * @param {(id: string) => void} [hooks.onBuild] the build id the server reports, from every response
  */
-export function createSource(file, { onText, onError }) {
+export function createSource(file, { onText, onError, onBuild = () => {} }) {
   const q = encodeURIComponent(file);
   let text = null;
   let version = null;
@@ -17,9 +19,12 @@ export function createSource(file, { onText, onError }) {
   async function poll() {
     const started = saves;
     try {
-      const res = await fetch('/source?f=' + q, { cache: 'no-store' });
+      const res = await fetch('/source?f=' + q, { cache: 'no-store', headers: version ? { 'If-None-Match': version } : {} });
       const body = await res.text();
+      const build = res.headers.get('X-Merma-Build');
+      if (build) onBuild(build);
       if (started !== saves) return;
+      if (res.status === 304) return;
       if (!res.ok) { onError(body); return; }
       version = res.headers.get('ETag');
       if (body === text) return;
@@ -51,7 +56,9 @@ export function createSource(file, { onText, onError }) {
         return { ok: false, message: 'server unreachable.' };
       }
       if (res.status === 409) {
+        // Forget the text and its version, so the re-read asks for the whole file rather than a 304.
         text = null;
+        version = null;
         queueMicrotask(poll);
         return { ok: false, conflict: true, message: 'the file changed since this page last read it.' };
       }

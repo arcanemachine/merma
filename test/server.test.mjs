@@ -188,7 +188,7 @@ function withHost(host, path, method = 'GET', headers = {}) {
     const req = http.request(base + path, { method, agent: false, headers: { ...headers, Host: host } }, (res) => {
       let body = '';
       res.on('data', (c) => { body += c; });
-      res.on('end', () => resolve({ status: res.statusCode, text: body }));
+      res.on('end', () => resolve({ status: res.statusCode, text: body, build: res.headers['x-merma-build'] }));
     });
     req.on('error', reject);
     req.end(method === 'POST' ? 'flowchart TD\n  X\n' : undefined);
@@ -223,6 +223,57 @@ test('a server can be told to answer to more host names', async () => {
   try {
     assert.equal(await status('box.lan:80'), 200);
     assert.equal(await status('127.0.0.1'), 403);
+  } finally {
+    other.close();
+  }
+});
+
+// --- polling and the build id --------------------------------------------------------------------------------
+
+test('a poll naming the current version gets a bodiless 304 with the ETag; any other gets the text', async () => {
+  const path = file('p1.mmd');
+  const v = await versionOf(path);
+  const same = await get('/source?f=' + q(path), { headers: { 'If-None-Match': v } });
+  assert.equal(same.status, 304);
+  assert.equal(same.text, '');
+  assert.equal(same.headers.get('etag'), v);
+  writeFileSync(path, 'flowchart TD\n  A --> C\n');
+  const changed = await get('/source?f=' + q(path), { headers: { 'If-None-Match': v } });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.text, 'flowchart TD\n  A --> C\n');
+});
+
+test('every response carries the build id, and the page is served with the same id', async () => {
+  const path = file('b1.mmd');
+  const page = await get('/');
+  const id = page.headers.get('x-merma-build');
+  assert.match(id, /^[0-9a-f]{12}$/);
+  assert.ok(page.text.includes(`<meta name="merma-build" content="${id}">`));
+  const v = await versionOf(path);
+  for (const res of [
+    await get('/source?f=' + q(path)),
+    await get('/source?f=' + q(path), { headers: { 'If-None-Match': v } }),
+    await get('/source?f=' + q('/elsewhere/x.mmd')),
+    await get('/missing.mjs'),
+    await withHost('evil.example', '/health'),
+  ]) {
+    assert.equal(res.headers?.get?.('x-merma-build') ?? res.build, id);
+  }
+});
+
+test('the build id changes when a page file changes under a running server', async () => {
+  const web = mkdtempSync(join(tmpdir(), 'merma-web-'));
+  writeFileSync(join(web, 'index.html'), '<meta name="merma-build" content="{{MERMA_BUILD}}">');
+  writeFileSync(join(web, 'main.mjs'), 'export {};\n');
+  const other = createServer({ files: createFiles({ roots: [ROOT] }), script: 'x', web });
+  await new Promise((resolve) => other.listen(0, '127.0.0.1', resolve));
+  try {
+    const at = `http://127.0.0.1:${other.address().port}`;
+    const id = async () => (await fetch(at + '/health')).headers.get('x-merma-build');
+    const before = await id();
+    assert.equal(await id(), before, 'stable while nothing changes');
+    writeFileSync(join(web, 'main.mjs'), 'export const changed = 1;\n');
+    assert.notEqual(await id(), before);
   } finally {
     other.close();
   }

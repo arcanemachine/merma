@@ -10,7 +10,7 @@ No dependencies beyond Node (22 or later). The page loads Mermaid 12.2.0 from a 
 ## Run
 
 ```bash
-merma serve [port] [host]       # defaults 6376, 127.0.0.1
+merma serve [port] [host]       # defaults 63762, 127.0.0.1
 ```
 
 Then open `http://localhost:<port>/?f=<absolute path to a .mmd file>`. With no `?f=`, the page shows a scratch
@@ -30,8 +30,16 @@ there is no login.
 
 The wheel zooms at the cursor, a drag moves the diagram, and a double-click on empty space (or Reset view) fits it
 to the window.
-Once you have zoomed or moved it, edits keep your view. A save with a syntax error keeps the last good render on
+Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab. A save with a syntax error keeps the last good render on
 screen, with the error above it. Copy SVG and Download SVG export the diagram as the browser drew it.
+
+## Updates
+
+The page polls its file once a second with `If-None-Match`, so an unchanged file comes back as a bodiless 304 (in
+the browser's network panel, `-status-code:304` hides those). Every response also carries the build id of the code
+the server has; when it differs from the one the page was loaded with, the page reloads itself, as soon as no edit
+is in progress. So open pages pick up a new version of merma without anyone reloading them, and a server run from a
+working copy reloads its pages on every save.
 
 ## Editing
 
@@ -58,7 +66,8 @@ diagram types are view-only.
 |---|---|
 | `bin/merma.js` | The command line: settings, the scratch file, idle exit |
 | `server/server.js` | The routes (listed at the top of the file) |
-| `server/files.js` | Which files may be served, and reading them |
+| `server/files.js` | Which files may be served, reading them, and writing over a known version |
+| `server/build.js` | The build id: which version of the code a page is running |
 | `web/index.html`, `web/style.css` | The page's markup and styles |
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createFiles, parsePathMap, parseRoots } from '../server/files.js';
 import { createServer, LOOPBACK_HOSTS } from '../server/server.js';
 
-const USAGE = `Usage: merma serve [port] [host]   (defaults 6376, 127.0.0.1)
+const USAGE = `Usage: merma serve [port] [host]   (defaults 63762, 127.0.0.1)
 
 Settings, from the environment:
   MERMA_ROOTS     folders whose .mmd files may be served, comma-separated (default /tmp/mermaid-diagrams/)
@@ -18,7 +18,7 @@ Settings, from the environment:
 const SCRATCH = '/tmp/mermaid-diagrams/scratch.mmd';
 const SCRATCH_TEXT = 'flowchart TD\n  A["Edit /tmp/mermaid-diagrams/scratch.mmd"] --> B["This page updates on save"]\n';
 
-const [command, port = '6376', host = '127.0.0.1'] = process.argv.slice(2);
+const [command, port = '63762', host = '127.0.0.1'] = process.argv.slice(2);
 if (command !== 'serve') {
   console.log(USAGE);
   process.exit(command === undefined || command === '--help' || command === '-h' ? 0 : 2);

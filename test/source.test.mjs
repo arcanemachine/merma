@@ -8,19 +8,26 @@ import { version } from '../server/files.js';
 let file;           // the "server's" copy of the file
 let requests;       // every request made, in order
 let hold;           // when set, the next /source response waits for this promise
+let build;          // the build id the fake server reports
 const realFetch = globalThis.fetch;
 
 beforeEach(() => {
   file = 'v1';
   requests = [];
   hold = null;
+  build = 'b1';
   globalThis.fetch = async (url, init = {}) => {
-    const req = { url, method: init.method || 'GET', ifMatch: init.headers?.['If-Match'], body: init.body };
+    const req = {
+      url, method: init.method || 'GET', body: init.body,
+      ifMatch: init.headers?.['If-Match'], ifNoneMatch: init.headers?.['If-None-Match'],
+    };
     requests.push(req);
     if (req.url.startsWith('/source')) {
       const snapshot = file;
       if (hold) { const h = hold; hold = null; await h; }
-      return new Response(snapshot, { headers: { ETag: version(snapshot) } });
+      const headers = { ETag: version(snapshot), 'X-Merma-Build': build };
+      if (req.ifNoneMatch === version(snapshot)) return new Response(null, { status: 304, headers });
+      return new Response(snapshot, { headers });
     }
     if (req.url.startsWith('/edit')) {
       if (req.ifMatch !== version(file)) return new Response('conflict', { status: 409 });
@@ -34,8 +41,11 @@ afterEach(() => { globalThis.fetch = realFetch; });
 
 function source() {
   const seen = [];
-  const s = createSource('/d/x.mmd', { onText: (t) => { seen.push(t); }, onError: (m) => seen.push('error: ' + m) });
-  return { s, seen };
+  const builds = [];
+  const s = createSource('/d/x.mmd', {
+    onText: (t) => { seen.push(t); }, onError: (m) => seen.push('error: ' + m), onBuild: (id) => builds.push(id),
+  });
+  return { s, seen, builds };
 }
 
 test('a save goes over the version the edit began from, so a change polled in meanwhile is not overwritten', async () => {
@@ -82,4 +92,31 @@ test('after a conflict the new version is fetched and reported', async () => {
   await s.save('v1 edited', base.version);
   await new Promise((r) => setTimeout(r, 0));    // the re-read is queued, not awaited by save
   assert.deepEqual(seen, ['v1', 'v2']);
+});
+
+test('an unchanged file comes back as a 304, which changes nothing', async () => {
+  const { s, seen } = source();
+  await s.poll();
+  await s.poll();
+  assert.equal(requests.at(-1).ifNoneMatch, version('v1'));
+  assert.deepEqual(seen, ['v1']);
+  assert.deepEqual(s.snapshot(), { text: 'v1', version: version('v1') });
+});
+
+test('the build id is reported from every response, 304s included', async () => {
+  const { s, builds } = source();
+  await s.poll();
+  build = 'b2';
+  await s.poll();                                // a 304
+  assert.deepEqual(builds, ['b1', 'b2']);
+});
+
+test('after a conflict the re-read asks for the whole file, not a 304', async () => {
+  const { s } = source();
+  await s.poll();
+  const base = s.snapshot();
+  file = 'v2';
+  await s.save('v1 edited', base.version);
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(requests.at(-1).ifNoneMatch, undefined);
 });
