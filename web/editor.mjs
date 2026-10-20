@@ -282,7 +282,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
     state: () => ({ selected, connecting, editable }),
 
-    /** Nothing in progress that a reload would lose: no edit being saved, no rename open. */
-    idle: () => !busy && !input.dataset.nodeId,
+    /** Nothing in progress that a reload would lose: no edit being saved, no rename open, no connection half made. */
+    idle: () => !busy && !input.dataset.nodeId && !connecting,
   };
 }
