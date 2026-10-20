@@ -43,6 +43,9 @@ In a flowchart, click a node for its menu:
 - **Rename** (or double-click the node) edits the label in place: Enter saves, Escape cancels. Only the label changes, where the node is first
   given a shape; a node that only appears bare gets brackets at its first appearance.
 
+**Ctrl+Z** undoes the page's last edit (adding a node and naming it count as one), as long as the file has not changed
+since; it is refused otherwise, so it never throws away someone else's change.
+
 Every other byte of the file stays as it was: comments, directives, frontmatter, spacing. Each edit is checked with
 Mermaid's parser before it is saved, and saved only over the version the page last read: if the file changed in the
 meantime (an agent, your editor), the save is refused, nothing is written, and the page shows the new version. Other
@@ -59,7 +62,8 @@ diagram types are view-only.
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
-| `web/editor.mjs` | Selection, the node menu, renaming in place, saving |
+| `web/editor.mjs` | Selection, the node menu, renaming in place, saving, undo |
+| `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
 | `checks/` | Checks that need a browser (`checks/README.md`) |

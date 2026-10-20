@@ -2,9 +2,10 @@
 // (patch/flowchart.mjs). Each edit is checked with Mermaid's parser before it is saved, and saved over the version it
 // was based on (source.mjs), so a change saved meanwhile by an agent or an editor is never overwritten.
 
+import { createHistory } from './history.mjs';
 import { addConnected, connect, isFlowchart, nodeIdFromSvgId, relabel } from './patch/flowchart.mjs';
 
-const HINT = 'Click a node to edit, double-click to rename · scroll to zoom, drag to move';
+const HINT = 'Click a node to edit, double-click to rename · Ctrl+Z undoes · scroll to zoom, drag to move';
 const VIEW_HINT = 'Scroll to zoom, drag to move';
 
 /**
@@ -21,6 +22,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let selected = null;        // the selected node's Mermaid id
   let connecting = false;     // after "Connect to…": the next node clicked is the edge's target
   let pendingRename = null;   // a node just added: open Rename on it once it is drawn
+  const history = createHistory();
+  let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-node-id]')].find((g) => g.dataset.nodeId === id);
   const input = /** @type {HTMLInputElement} */ (els.rename);
@@ -82,7 +85,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   els.menuAdd.addEventListener('click', () => {
-    edit((text) => addConnected(text, selected), (result) => { pendingRename = result.id; });
+    edit((text) => addConnected(text, selected), (result, entry) => {
+      pendingRename = result.id;
+      naming = { id: result.id, entry };
+    });
   });
   els.menuConnect.addEventListener('click', () => {
     connecting = true;
@@ -92,7 +98,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   els.menuRename.addEventListener('click', () => openRename(selected));
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || document.activeElement === input) return;
+    if (document.activeElement === input) return;
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
+      e.preventDefault();
+      undo();
+      return;
+    }
+    if (e.key !== 'Escape') return;
     if (connecting) { connecting = false; ui.hideNotice(); select(selected); return; }
     deselect();
     ui.hideNotice();
@@ -140,36 +152,58 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   input.addEventListener('blur', () => { if (input.dataset.nodeId) closeRename(); });
   input.addEventListener('keydown', (e) => {
     const id = input.dataset.nodeId;
-    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); if (id) select(id); return; }
+    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (id) select(id); return; }
     if (e.key !== 'Enter') return;
     const label = input.value;
     if (!label.trim()) { ui.notice('A label cannot be empty.', true); return; }
     const unchanged = label === input.dataset.initial;
     closeRename();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label.
-    if (unchanged) { deselect(); return; }
-    edit((text) => relabel(text, id, label));
+    if (unchanged) { deselect(); naming = null; return; }
+    const into = naming?.id === id ? naming.entry : null;
+    naming = null;
+    edit((text) => relabel(text, id, label), null, into);
   });
 
   // --- saving --------------------------------------------------------------------------------------------------
 
   // Make an edit to the file's latest text and save it. The edit runs on the text as the page has it now, so a change
-  // it has already picked up is kept; one it has not yet seen makes the save fail.
-  async function edit(change, afterSave) {
+  // it has already picked up is kept; one it has not yet seen makes the save fail. `into` is the history entry this
+  // edit completes, if any.
+  async function edit(change, afterSave, into = null) {
     ui.hideNotice();
     if (source.text === null || !source.version) return;
+    const before = source.text;
     let result;
     try {
-      result = change(source.text);
+      result = change(before);
     } catch (e) {
       ui.notice('Not saved: ' + (e.message || e), true);
       return;
     }
     if (!(await save(result.text))) return;
+    const entry = history.record(before, result.text, into);
     // The action is done: drop the selection, so its menu does not linger over the diagram.
     deselect();
-    afterSave?.(result);
+    afterSave?.(result, entry);
     await display(result.text);
+  }
+
+  async function undo() {
+    if (source.text === null) return;
+    ui.hideNotice();
+    const undoing = history.peek(source.text);
+    if (!undoing.ok) {
+      if (undoing.reason === 'empty') ui.notice('Nothing to undo.');
+      else ui.notice('Cannot undo: the file has changed since that edit.', true);
+      return;
+    }
+    if (!(await save(undoing.text))) return;
+    history.pop();
+    deselect();
+    closeRename();
+    await display(undoing.text);
+    ui.toast('Undone');
   }
 
   /** Save text for the file, after checking it parses. Returns true when saved. */
