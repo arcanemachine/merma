@@ -41,7 +41,7 @@ test('addConnected appends an edge to a new node after the node\'s last line', (
 
 test('addConnected keeps a node inside its subgraph, with that indentation', () => {
   const { text } = addConnected(fixture('06-subgraphs-classes.mmd'), 'charge');
-  assert.match(text, /    charge\[Charge card\] --> record\[Record\]\n    charge --> n1\["New node"\]\n  end\n/);
+  assert.ok(text.includes('    charge[Charge card] --> record[Record]\n    charge --> n1["New node"]\n  end\n'), text);
 });
 
 test('addConnected skips ids that appear anywhere, labels included', () => {

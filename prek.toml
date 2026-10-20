@@ -1,0 +1,22 @@
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  # Fixtures are hand-written to exact bytes; one has no final newline on purpose.
+  { id = "end-of-file-fixer", exclude = "^test/fixtures/.*\\.mmd$" },
+  { id = "trailing-whitespace" },
+  { id = "check-json" },
+  { id = "check-merge-conflict" },
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "eslint",
+    name = "ESLint",
+    language = "system",
+    entry = "npx --no-install eslint",
+    files = "\\.(?:js|mjs)$",
+  },
+]
