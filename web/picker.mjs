@@ -33,6 +33,7 @@ export function createPicker({ title, entries, onPick }) {
     b.setAttribute('aria-label', entry.name);
     b.innerHTML = entry.icon() + `<span class="digit">${entry.digit}</span>`;
     b.addEventListener('click', () => onPick(entry.key));
+    b.addEventListener('pointerenter', () => b.focus());
     grid.append(b);
     return b;
   });
@@ -49,7 +50,8 @@ export function createPicker({ title, entries, onPick }) {
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const at = buttons.indexOf(document.activeElement);
-    const digit = entries.findIndex((entry) => entry.digit === e.key);
+    // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
+    const digit = entries.findIndex((entry) => e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`);
     let to = null;
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); onPick(entries[digit].key); return; }
     if (e.key === 'ArrowRight') to = at + 1;

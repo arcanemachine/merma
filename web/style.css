@@ -34,7 +34,7 @@ footer button { font: inherit; padding: 6px 12px; border: 1px solid #bbb; border
 footer button:hover { background: #eee; }
 footer button:disabled { cursor: default; opacity: 0.5; }
 /* The Help panel: the browser's own popover, opened by the footer button, closed by Escape or a click elsewhere. */
-#help { inset: auto 16px 64px auto; margin: 0; max-width: min(440px, calc(100vw - 32px)); padding: 12px 16px;
+#help { inset: auto 16px 64px auto; margin: 0; max-width: min(480px, calc(100vw - 32px)); padding: 12px 16px;
         border: 1px solid #bbb; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); font-size: 13px;
         line-height: 1.5; color: #222; }
 #help th.section { padding: 10px 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;
@@ -66,7 +66,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu:popover-open { display: flex; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
                background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
-.menu button:hover, .menu button:focus-visible { background: #eef3fb; outline: none; }
+.menu button:focus { background: #eef3fb; outline: none; }
 .menu button u { text-underline-offset: 2px; }
 .menu button .more { margin-left: auto; color: #888; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
@@ -81,6 +81,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
 .picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
 .menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
+.menu .picker-grid button:focus { outline: 2px solid #0969da; outline-offset: -2px; }
 .picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; }
 /* The label box: laid exactly over the label being edited, so it is edited in place. */
 #label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
