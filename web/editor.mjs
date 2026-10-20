@@ -6,8 +6,8 @@
 
 import { createHistory } from './history.mjs';
 import {
-  addConnected, addNode, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId, relabel,
-  subgraphIdFromSvgId,
+  ARROWS, addConnected, addNode, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
+  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, subgraphIdFromSvgId,
 } from './patch/flowchart.mjs';
 
 /**
@@ -17,7 +17,7 @@ import {
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
- * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'menuDelete'|'edgeMenu'|'edgeDelete'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'menu'|'menuAdd'|'menuConnect'|'menuRename'|'menuDelete'|'edgeMenu'|'edgeLabel'|'edgeReverse'|'edgeArrows'|'edgeDelete'|'spaceMenu'|'spaceAdd'|'rename', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
@@ -31,6 +31,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const history = createHistory();
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   let naming = null;          // { id, entry } while a node just added is being named: its name belongs to its add
+  let renaming = null;        // { kind: 'node' | 'edge', id } while the rename box is open over it
 
   const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-page-node]')].find((g) => g.dataset.pageNode === id);
   const edgeEls = (id) => [...els.stage.querySelectorAll('[data-page-edge]')].filter((e) => e.dataset.pageEdge === id);
@@ -60,6 +61,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     menuOpen = menu && !connecting;
     els.menu.classList.toggle('show', menuOpen && sel.kind === 'node');
     els.edgeMenu.classList.toggle('show', menuOpen && sel.kind === 'edge');
+    if (sel.kind === 'edge') markArrow(sel.id);
     positionMenu();
   }
 
@@ -143,16 +145,21 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return true;
   }
 
-  /** Delete the selected node or edge. Edge ids are only good for the text they were drawn from. */
+  /** Make an edit that names an edge (or deletes a node) by what is drawn: only good for the text it was drawn from. */
+  function editDrawn(change, afterSave) {
+    const drawnFrom = shownText;
+    return edit((text) => {
+      if (text !== drawnFrom) throw new Error('the diagram changed; select it again.');
+      return change(text);
+    }, afterSave);
+  }
+
+  /** Delete the selected node or edge. */
   function deleteSelected() {
     const sel = selected;
     if (!sel) return;
     if (!edgesOk) { ui.notice('Deleting is off for this diagram: merma cannot match its edges to the text.', true); return; }
-    const drawnFrom = shownText;
-    edit((text) => {
-      if (text !== drawnFrom) throw new Error('the diagram changed; select it again.');
-      return sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id);
-    }, (result) => {
+    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
       if (sel.kind === 'edge') ui.toast('Deleted the edge');
       else ui.toast(`Deleted ${sel.id}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
     });
@@ -169,18 +176,46 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     els.menu.classList.remove('show');
     ui.notice(`Click the node to connect ${selected.id} to. Escape cancels.`);
   });
-  els.menuRename.addEventListener('click', () => openRename(selected.id));
+  els.menuRename.addEventListener('click', () => openRename(selected));
   els.menuDelete.addEventListener('click', deleteSelected);
   els.edgeDelete.addEventListener('click', deleteSelected);
+  els.edgeLabel.addEventListener('click', () => openRename(selected));
+  els.edgeReverse.addEventListener('click', () => {
+    const id = selected.id;
+    editDrawn((text) => reverseEdge(text, id));
+  });
+  // One button per arrow type, showing its Mermaid syntax; the edge's own type is marked.
+  for (const arrow of Object.keys(ARROWS)) {
+    const b = document.createElement('button');
+    b.textContent = arrow;
+    b.title = `Make this edge ${arrow}`;
+    b.dataset.arrow = arrow;
+    b.addEventListener('click', () => {
+      const id = selected.id;
+      editDrawn((text) => setEdgeArrow(text, id, arrow));
+    });
+    els.edgeArrows.append(b);
+  }
+  function markArrow(id) {
+    const type = arrowType(edges(shownText).find((e) => e.svgId === id)?.arrow ?? '');
+    for (const b of els.edgeArrows.children) b.setAttribute('aria-pressed', String(b.dataset.arrow === type));
+  }
 
-  // Keys: Ctrl+Z undoes; N adds a node (connected to the selected node, if any); Enter or F2 renames the selected node;
-  // Delete or Backspace deletes the selection; Escape backs out of whatever is open. None of them while the rename box
-  // (or another field) has the keyboard.
+  // Keys: Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS opens its
+  // History with it); N adds a node (connected to the selected node, if any); Enter or F2 renames the selected node or
+  // edits the selected edge's label; Delete or Backspace deletes the selection; Escape backs out of whatever is open.
+  // None of them while the rename box (or another field) has the keyboard.
   document.addEventListener('keydown', (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'z') {
+    const key = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
-      undo();
+      if (e.shiftKey) redo(); else undo();
+      return;
+    }
+    if (e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && key === 'y') {
+      e.preventDefault();
+      redo();
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -190,9 +225,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       addAndName((text) => (from ? addConnected(text, from) : addNode(text)));
       return;
     }
-    if (editable && selectedNode() && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
+    if (editable && selected && !connecting && (e.key === 'Enter' || e.key === 'F2')) {
       e.preventDefault();
-      openRename(selected.id);
+      openRename(selected);
       return;
     }
     if (editable && selected && !connecting && (e.key === 'Delete' || e.key === 'Backspace')) {
@@ -208,22 +243,41 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- renaming in place ---------------------------------------------------------------------------------------
 
-  // The box is laid exactly over the node: its size, or larger when the text needs it, kept centred as it grows.
-  // Enter saves; Shift+Enter starts a new line, which the label keeps as a line break.
+  // The box is laid exactly over the node, or over the edge's label (the middle of its line if it has none): that size,
+  // or larger when the text needs it, kept centred as it grows. Enter saves; Shift+Enter starts a new line, which the
+  // label keeps as a line break.
   const measure = document.createElement('canvas').getContext('2d');
   const LINE_HEIGHT = 18;
 
-  function openRename(id) {
-    const g = nodeEl(id);
-    if (!g) return;
+  /** What the rename box covers: the node, the edge's label, or a point at the middle of the edge's line. */
+  function renameRect(target) {
+    if (target.kind === 'node') return nodeEl(target.id)?.getBoundingClientRect();
+    const parts = edgeEls(target.id);
+    const label = parts.find((e) => e.matches('g.edgeLabel'));
+    const r = label?.getBoundingClientRect();
+    if (r && r.width && r.height) return r;
+    const path = parts.find((e) => e.matches('path[data-page-only]'));
+    if (!path) return null;
+    const p = path.getPointAtLength(path.getTotalLength() / 2), m = path.getScreenCTM();
+    const x = p.x * m.a + p.y * m.c + m.e, y = p.x * m.b + p.y * m.d + m.f;
+    return { left: x, top: y, width: 0, height: 0 };
+  }
+
+  function openRename(target) {
+    const r = renameRect(target);
+    if (!r) return;
     els.menu.classList.remove('show');
+    els.edgeMenu.classList.remove('show');
     menuOpen = false;
-    input.dataset.nodeId = id;
+    renaming = target;
     // innerText, not textContent: a label's line breaks (<br>) come through as newlines.
     // An SVG element (a label Mermaid drew as SVG text) has no innerText.
-    const label = g.querySelector('.nodeLabel') || g;
-    input.value = (label.innerText ?? label.textContent).trim();
+    const shown = target.kind === 'node'
+      ? nodeEl(target.id).querySelector('.nodeLabel') || nodeEl(target.id)
+      : edgeEls(target.id).find((e) => e.matches('g.edgeLabel'));
+    input.value = shown ? (shown.innerText ?? shown.textContent).trim() : '';
     input.dataset.initial = input.value;
+    input.setAttribute('aria-label', target.kind === 'node' ? 'Node label' : 'Edge label');
     input.style.display = 'block';
     sizeRename();
     input.focus();
@@ -231,13 +285,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function sizeRename() {
-    const g = nodeEl(input.dataset.nodeId);
-    if (!g) return;
+    const r = renaming && renameRect(renaming);
+    if (!r) return;
     const box = els.diagram.getBoundingClientRect();
-    const r = g.getBoundingClientRect();
     measure.font = getComputedStyle(input).font;
     const textLines = input.value.split('\n');
-    const w = Math.max(r.width, ...textLines.map((l) => measure.measureText(l).width + 24));
+    const w = Math.max(r.width, 80, ...textLines.map((l) => measure.measureText(l).width + 24));
     const h = Math.max(r.height, 28, textLines.length * LINE_HEIGHT + 12);
     input.style.width = w + 'px';
     input.style.height = h + 'px';
@@ -247,25 +300,27 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   function closeRename() {
     input.style.display = 'none';
-    delete input.dataset.nodeId;
+    renaming = null;
   }
 
   input.addEventListener('input', sizeRename);
-  input.addEventListener('blur', () => { if (input.dataset.nodeId) closeRename(); });
+  input.addEventListener('blur', () => { if (renaming) closeRename(); });
   input.addEventListener('keydown', (e) => {
-    const id = input.dataset.nodeId;
-    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (id) select({ kind: 'node', id }); return; }
-    if (e.key !== 'Enter' || e.shiftKey) return;
+    const target = renaming;
+    if (e.key === 'Escape') { e.stopPropagation(); closeRename(); naming = null; if (target) select(target); return; }
+    if (e.key !== 'Enter' || e.shiftKey || !target) return;
     e.preventDefault();
     const label = input.value;
-    if (!label.trim()) { ui.notice('A label cannot be empty.', true); return; }
+    // A node needs a label; an edge's can be emptied, which removes it.
+    if (target.kind === 'node' && !label.trim()) { ui.notice('A label cannot be empty.', true); return; }
     const unchanged = label === input.dataset.initial;
     closeRename();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label.
     if (unchanged) { deselect(); naming = null; return; }
-    const into = naming?.id === id ? naming.entry : null;
+    if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label)); return; }
+    const into = naming?.id === target.id ? naming.entry : null;
     naming = null;
-    edit((text) => relabel(text, id, label), null, into);
+    edit((text) => relabel(text, target.id, label), null, into);
   });
 
   // --- edges ---------------------------------------------------------------------------------------------------
@@ -337,6 +392,26 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     });
   }
 
+  function redo() {
+    return exclusively(async () => {
+      const base = source.snapshot();
+      if (base.text === null) return;
+      ui.hideNotice();
+      const redoing = history.peekRedo(base.text);
+      if (!redoing.ok) {
+        if (redoing.reason === 'empty') ui.notice('Nothing to redo.');
+        else ui.notice('Cannot redo: the file has changed since.', true);
+        return;
+      }
+      if (!(await save(redoing.text, base.version))) return;
+      history.redone();
+      deselect();
+      closeRename();
+      await display(redoing.text);
+      ui.toast('Redone');
+    });
+  }
+
   function undo() {
     return exclusively(async () => {
       const base = source.snapshot();
@@ -383,13 +458,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clicked,
     contextMenu,
 
-    /** Double-click on a node renames it; on an edge it does nothing. Returns whether it was either. */
+    /** Double-click on a node renames it; on an edge it edits the edge's label. Returns whether it was either. */
     doubleClicked(target) {
       if (!editable) return false;
       const id = nodeOf(target);
-      if (!id) return Boolean(edgeOf(target));
-      select({ kind: 'node', id });
-      openRename(id);
+      const edge = !id && edgeOf(target);
+      if (!id && !edge) return false;
+      const sel = id ? { kind: 'node', id } : { kind: 'edge', id: edge };
+      select(sel);
+      openRename(sel);
       return true;
     },
 
@@ -414,7 +491,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         const id = pendingRename;
         pendingRename = null;
         select({ kind: 'node', id });
-        openRename(id);
+        openRename({ kind: 'node', id });
       }
     },
 
@@ -426,6 +503,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no rename open, no connection half made. */
-    idle: () => !busy && !input.dataset.nodeId && !connecting,
+    idle: () => !busy && !renaming && !connecting,
   };
 }

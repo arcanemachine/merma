@@ -1,10 +1,12 @@
-// Undo for the page's own edits, as a stack of { before, after } file texts. Undoing puts `before` back, but only
-// while the file is still exactly `after`: if anyone has changed it since, putting the old text back would throw their
-// change away.
+// Undo and redo for the page's own edits, as stacks of { before, after } file texts. Undoing puts `before` back, but
+// only while the file is still exactly `after`; redoing puts `after` back, only while the file is exactly `before`. If
+// anyone has changed the file since, either would throw their change away.
 
 export function createHistory() {
   /** @type {{ before: string, after: string }[]} */
   const entries = [];
+  /** @type {{ before: string, after: string }[]} undone entries, the latest last */
+  const undone = [];
 
   return {
     get size() { return entries.length; },
@@ -14,6 +16,7 @@ export function createHistory() {
      * back both: naming a node is part of adding it.
      */
     record(before, after, into = null) {
+      undone.length = 0;
       if (into && entries.at(-1) === into) {
         into.after = after;
         return into;
@@ -38,7 +41,27 @@ export function createHistory() {
       return { ok: true, text: entry.before };
     },
 
-    /** Drop the newest entry, once its undo is saved. */
-    pop() { entries.pop(); },
+    /** Move the newest entry to the redo stack, once its undo is saved. */
+    pop() { undone.push(entries.pop()); },
+
+    get redoSize() { return undone.length; },
+
+    /**
+     * What redoing the last undone edit would put back, given the file's text now. When the file has changed since
+     * that undo, nothing can be redone safely, so the redo stack is cleared.
+     * @returns {{ ok: true, text: string } | { ok: false, reason: 'empty' | 'changed' }}
+     */
+    peekRedo(current) {
+      const entry = undone.at(-1);
+      if (!entry) return { ok: false, reason: 'empty' };
+      if (entry.before !== current) {
+        undone.length = 0;
+        return { ok: false, reason: 'changed' };
+      }
+      return { ok: true, text: entry.after };
+    },
+
+    /** Move the last undone entry back onto the undo stack, once its redo is saved. */
+    redone() { entries.push(undone.pop()); },
   };
 }

@@ -38,3 +38,31 @@ test('after an outside change nothing is undone, and the history is cleared', ()
   assert.equal(h.size, 0);
   assert.deepEqual(h.peek('v1'), { ok: false, reason: 'empty' });
 });
+
+test('redo puts back what undo took, and undo can take it again', () => {
+  const h = createHistory();
+  h.record('v0', 'v1');
+  h.pop();
+  assert.deepEqual(h.peekRedo('v0'), { ok: true, text: 'v1' });
+  h.redone();
+  assert.equal(h.redoSize, 0);
+  assert.deepEqual(h.peek('v1'), { ok: true, text: 'v0' });
+});
+
+test('a new edit after an undo leaves nothing to redo', () => {
+  const h = createHistory();
+  h.record('v0', 'v1');
+  h.pop();
+  h.record('v0', 'v2');
+  assert.deepEqual(h.peekRedo('v2'), { ok: false, reason: 'empty' });
+});
+
+test('after an outside change nothing is redone, and the redo stack is cleared', () => {
+  const h = createHistory();
+  h.record('v0', 'v1');
+  h.record('v1', 'v2');
+  h.pop();
+  h.pop();
+  assert.deepEqual(h.peekRedo('v0 plus an agent edit'), { ok: false, reason: 'changed' });
+  assert.equal(h.redoSize, 0);
+});

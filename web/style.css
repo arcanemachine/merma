@@ -59,6 +59,11 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
                background: none; cursor: pointer; white-space: nowrap; }
 .menu button:hover, .menu button:focus-visible { background: #eef3fb; outline: none; }
+/* The arrow types, as a grid of their Mermaid syntax; the edge's own is marked. */
+.menu .arrows { display: grid; grid-template-columns: repeat(5, auto); gap: 2px; padding: 2px 0;
+                border-top: 1px solid #eee; border-bottom: 1px solid #eee; margin: 2px 0; }
+.menu .arrows button { font-family: ui-monospace, monospace; font-size: 12px; padding: 4px 6px; text-align: center; }
+.menu .arrows button[aria-pressed="true"] { background: #dbe8fb; }
 /* Laid exactly over the node being renamed, so the text is edited in place. */
 #rename { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid #0969da; border-radius: 4px;

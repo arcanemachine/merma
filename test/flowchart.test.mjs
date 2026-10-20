@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
-  edgeBySvgId, deleteEdge, deleteNode,
+  edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS,
 } from '../web/patch/flowchart.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
@@ -204,6 +204,7 @@ test('edges finds each label, in text form or between pipes, and its arrow witho
   assert.equal(quoted.label.text, '"label with | pipe"');
   assert.equal(slice(tricky, quoted.label), '"label with | pipe"');
   assert.equal(edges('flowchart LR\n  A <-- both --> B\n')[0].arrow, '<-->');
+  assert.equal(edges('flowchart LR\n  A -- "a --> b" --> B\n')[0].label.text, '"a --> b"');
 });
 
 test('edges keeps each node reference whole: shape, label and class', () => {
@@ -254,6 +255,17 @@ test('edges of a diagram that is not a flowchart is empty', () => {
 for (const [name, ids] of Object.entries(EDGE_IDS)) {
   const src = fixture(name);
   for (const svgId of ids) {
+    test(`${name} ${svgId}: label, arrow and reverse change that edge only`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const before = edges(src), at = before.findIndex((e) => e.svgId === svgId);
+      const expect = (change) => before.map((e, k) => (k === at ? change(e) : e)).map(sig);
+      assert.deepEqual(edges(setEdgeLabel(src, svgId, 'New').text).map(sig), expect((e) => ({ ...e, label: { text: '"New"' } })));
+      assert.deepEqual(edges(reverseEdge(src, svgId).text).map(sig), expect((e) => ({ ...e, from: e.to, to: e.from })));
+      const { text } = setEdgeArrow(src, svgId, '-.->');
+      assert.equal(arrowType(edges(text)[at].arrow), '-.->');
+      assert.deepEqual(edges(text).map(sig).filter((_, k) => k !== at), before.map(sig).filter((_, k) => k !== at));
+    });
+
     test(`${name} ${svgId}: deleteEdge removes that edge only, and keeps every node`, () => {
       const { text } = deleteEdge(src, svgId);
       const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
@@ -367,6 +379,60 @@ test('deleting the last line of a file with no trailing newline keeps it without
 
 test('deletes refuse a statement they cannot read whole', () => {
   assert.throws(() => deleteNode('flowchart LR\n  A --> B --> -C\n', 'B'), /not one this editor can change/);
+});
+
+// --- changing edges ------------------------------------------------------------------------------------------
+
+test('setEdgeLabel replaces only the connector of a one-to-one edge, keeping the chain and its spacing', () => {
+  assert.equal(setEdgeLabel('flowchart LR\n  A  -->  B --> C\n', 'L_A_B_0', 'x').text, 'flowchart LR\n  A  -->|"x"|  B --> C\n');
+  assert.equal(setEdgeLabel('flowchart LR\n  A -- yes --> B\n', 'L_A_B_0', 'Say "hi"').text,
+    'flowchart LR\n  A -->|"Say #quot;hi#quot;"| B\n');
+  assert.equal(setEdgeLabel('flowchart LR\n  A -->|yes| B\n', 'L_A_B_0', '  ').text, 'flowchart LR\n  A --> B\n');
+});
+
+test('setEdgeLabel on a shared connector gives only that edge its own statement', () => {
+  assert.equal(setEdgeLabel('flowchart LR\n  A --> B & C --> D\n', 'L_A_C_0', 'x').text,
+    'flowchart LR\n  A --> B\n  A -->|"x"| C\n  B & C --> D\n');
+});
+
+test('setEdgeArrow keeps the label and the length', () => {
+  assert.equal(setEdgeArrow('flowchart LR\n  A ---->|"a | b"| B\n', 'L_A_B_0', '-.->').text, 'flowchart LR\n  A -...->|"a | b"| B\n');
+  assert.equal(setEdgeArrow('flowchart LR\n  A -- yes --> B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|"yes"| B\n');
+  assert.equal(setEdgeArrow('flowchart LR\n  A -- say "hi" (x) --> B\n', 'L_A_B_0', '==>').text,
+    'flowchart LR\n  A ==>|"say #quot;hi#quot; (x)"| B\n');
+  assert.equal(setEdgeArrow('flowchart LR\n  A -- "quoted" --> B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|"quoted"| B\n');
+  assert.equal(setEdgeArrow('flowchart LR\n  A -->|yes| B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|yes| B\n');
+  assert.equal(setEdgeArrow('flowchart LR\n  A e1@--> B\n', 'e1', '--x').text, 'flowchart LR\n  A e1@--x B\n');
+  assert.throws(() => setEdgeArrow('flowchart LR\n  A --> B\n', 'L_A_B_0', '-->>'), /Not an arrow type/);
+});
+
+test('arrowType names an arrow at any length, and ARROWS gives each back', () => {
+  for (const [type, make] of Object.entries(ARROWS)) {
+    assert.equal(arrowType(make(0)), type);
+    assert.equal(arrowType(make(2)), type);
+  }
+  assert.equal(arrowType('---->'), '-->');
+  assert.equal(arrowType('o--o'), null);
+});
+
+test('reverseEdge turns a lone edge around, keeping each node\'s shape', () => {
+  assert.equal(reverseEdge('flowchart LR\n  A[Start] --> B\n', 'L_A_B_0').text, 'flowchart LR\n  B --> A[Start]\n');
+});
+
+test('reverseEdge splits a chain only around the reversed edge, so linkStyle still styles it', () => {
+  assert.equal(reverseEdge('flowchart LR\n  A --> B --> C --> D\n', 'L_B_C_0').text,
+    'flowchart LR\n  A --> B\n  C --> B\n  C --> D\n');
+  assert.equal(reverseEdge('flowchart LR\n  A --> B --> C\n  linkStyle 1 stroke:red\n', 'L_B_C_0').text,
+    'flowchart LR\n  A --> B\n  C --> B\n  linkStyle 1 stroke:red\n');
+});
+
+test('reversing pairs of an & product keeps every edge in its place', () => {
+  const once = reverseEdge('flowchart LR\n  A & B --> C & D\n', 'L_A_C_0').text;
+  assert.equal(reverseEdge(once, 'L_B_C_0').text, 'flowchart LR\n  C --> A\n  A --> D\n  C --> B\n  B --> D\n');
+});
+
+test('an edge id stays on its pair when the pair is reversed', () => {
+  assert.equal(reverseEdge('flowchart LR\n  A & B e1@--> C\n', 'e1').text, 'flowchart LR\n  A --> C\n  C e1@--> B\n');
 });
 
 // --- properties over every node of every fixture -------------------------------------------------------------

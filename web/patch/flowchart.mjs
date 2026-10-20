@@ -433,7 +433,46 @@ function readStatement(line, m, st, end, offset, n) {
   return s;
 }
 
-// --- deleting -------------------------------------------------------------------------------------------------
+// --- changing and deleting edges and nodes ---------------------------------------------------------------------
+
+/** The arrow types an edge can be given. Each takes the extra body length to keep (`---->` is `-->` plus 2). */
+export const ARROWS = {
+  '-->': (n) => '--' + '-'.repeat(n) + '>',
+  '---': (n) => '---' + '-'.repeat(n),
+  '-.->': (n) => '-.' + '.'.repeat(n) + '->',
+  '-.-': (n) => '-.' + '.'.repeat(n) + '-',
+  '==>': (n) => '==' + '='.repeat(n) + '>',
+  '===': (n) => '===' + '='.repeat(n),
+  '--o': (n) => '--' + '-'.repeat(n) + 'o',
+  '--x': (n) => '--' + '-'.repeat(n) + 'x',
+  '<-->': (n) => '<--' + '-'.repeat(n) + '>',
+  '~~~': (n) => '~~~' + '~'.repeat(n),
+};
+
+/** The ARROWS key an arrow is, at any length (`---->` is `-->`), or null for one not offered there (`o--o`). */
+export function arrowType(arrow) {
+  const n = extraLength(arrow);
+  return Object.keys(ARROWS).find((k) => ARROWS[k](n) === arrow) ?? null;
+}
+
+/** How much longer than its shortest form an arrow is. A longer arrow asks Mermaid for a longer edge. */
+function extraLength(arrow) {
+  const count = (c) => arrow.split(c).length - 1;
+  if (arrow.includes('.')) return count('.') - 1;
+  if (arrow.includes('~')) return count('~') - 3;
+  if (arrow.includes('=')) return count('=') - (/^=+$/.test(arrow) ? 3 : 2);
+  return count('-') - (/^-+$/.test(arrow) ? 3 : 2);
+}
+
+/** The edge Mermaid drew as `svgId`, its statement, and its pair's key there (`"step i j"`). */
+function locate(text, svgId) {
+  const e = edges(text).find((x) => x.svgId === svgId);
+  if (!e) throw new Error('That edge is not in the file.');
+  const s = statements(text).find((x) => x.start === e.statement.start);
+  const i = s.groups[e.step].findIndex((r) => r.start === e.fromRef.start);
+  const j = s.groups[e.step + 1].findIndex((r) => r.start === e.toRef.start);
+  return { e, s, key: `${e.step} ${i} ${j}` };
+}
 
 /**
  * Delete the edge Mermaid drew as `svgId`. Its statement is rewritten without it (a chain is split there; in an `&`
@@ -441,13 +480,8 @@ function readStatement(line, m, st, end, offset, n) {
  * one, and its `id@{ … }` line goes if it had an edge id. Its two nodes stay, with their shapes and subgraphs.
  */
 export function deleteEdge(text, svgId) {
-  const all = edges(text);
-  const e = all.find((x) => x.svgId === svgId);
-  if (!e) throw new Error('That edge is not in the file.');
-  const s = statements(text).find((x) => x.start === e.statement.start);
-  const i = s.groups[e.step].findIndex((r) => r.start === e.fromRef.start);
-  const j = s.groups[e.step + 1].findIndex((r) => r.start === e.toRef.start);
-  return { text: remove(text, [e], { drop: new Set([`${e.step} ${i} ${j}`]), at: s.start }) };
+  const { e, s, key } = locate(text, svgId);
+  return { text: transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), removed: [e] }) };
 }
 
 /**
@@ -458,14 +492,67 @@ export function deleteEdge(text, svgId) {
 export function deleteNode(text, id) {
   assertNode(text, id);
   const gone = edges(text).filter((e) => e.from === id || e.to === id);
-  return { text: remove(text, gone, { gone: id }), edges: gone.length };
+  return { text: transform(text, { gone: id, removed: gone }), edges: gone.length };
+}
+
+/** Give an edge the label `label` (`-->|"label"|`), or none when it is blank. Its arrow stays. */
+export function setEdgeLabel(text, svgId, label) {
+  const quoted = label.trim() ? quoteLabel(label) : null;
+  return { text: reconnect(text, svgId, (e) => ({ arrow: e.arrow, label: quoted })) };
+}
+
+/** Give an edge another arrow type (a key of ARROWS), keeping its label and its length. */
+export function setEdgeArrow(text, svgId, arrow) {
+  if (!ARROWS[arrow]) throw new Error(`Not an arrow type: ${arrow}`);
+  return {
+    text: reconnect(text, svgId, (e) => ({
+      arrow: ARROWS[arrow](Math.max(0, extraLength(e.arrow))),
+      label: e.label && pipeLabel(e.label),
+    })),
+  };
 }
 
 /**
- * The text without edges `removed`: either the pairs `drop` (`"step i j"`) of the statement starting at `at`, or
- * every edge of node `gone`. Checks the result: the other edges in the same order, and every other node still there.
+ * A label as it goes between pipes. A pipe label is kept as written. A text-form label (`-- yes (maybe) -->`) is
+ * quoted, since between pipes `(`, `[`, `{` and the like need quotes; only its `"` is escaped, leaving any entity code
+ * (`#quot;`) in it as it was.
  */
-function remove(text, removed, { drop = new Set(), at = -1, gone = null }) {
+function pipeLabel(label) {
+  if (label.form !== 'text' || /^".*"$/.test(label.text)) return label.text;
+  return `"${label.text.replace(/"/g, '#quot;')}"`;
+}
+
+/**
+ * Give the edge `svgId` the connector `next(edge)` returns ({ arrow, label }). A connector that joins one node to one
+ * node is replaced where it is; one shared with other edges (`A --> B & C`) gives this edge its own statement.
+ */
+function reconnect(text, svgId, next) {
+  const { e, s, key } = locate(text, svgId);
+  const { arrow, label } = next(e);
+  const body = arrow + (label ? `|${label}|` : '');
+  const expect = (x) => (x.index === e.index ? { ...x, arrow, label: label && { text: label } } : x);
+  if (s.groups[e.step].length === 1 && s.groups[e.step + 1].length === 1) {
+    const id = s.links[e.step].userId;
+    const out = text.slice(0, e.link.start) + (id ? id + '@' : '') + body + text.slice(e.link.end);
+    check(text, out, expect);
+    return out;
+  }
+  return transform(text, { at: s.start, pairs: new Map([[key, { body }]]), expect });
+}
+
+/** Turn an edge around: `A --> B` becomes `B --> A`, with the same connector. In a chain, it gets its own statement. */
+export function reverseEdge(text, svgId) {
+  const { e, s, key } = locate(text, svgId);
+  const expect = (x) => (x.index === e.index ? { ...x, from: x.to, to: x.from } : x);
+  return { text: transform(text, { at: s.start, pairs: new Map([[key, { reverse: true }]]), expect }) };
+}
+
+/**
+ * The text with the statement at `at` rewritten by `pairs` (per `"step i j"`: { drop }, { body } a new connector, or
+ * { reverse }), or with node `gone` taken out of every statement. `removed`: the edges this deletes, whose `linkStyle`
+ * numbers go and whose `e1@{ … }` lines go. `expect(edge)`: each old edge as it should read after, or null.
+ */
+function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], expect = null }) {
   const all = statements(text);
   const changes = [];
   const touched = all.filter((s) => s.start === at || (gone && !s.keyword && s.groups.flat().some((r) => r.id === gone)));
@@ -481,7 +568,7 @@ function remove(text, removed, { drop = new Set(), at = -1, gone = null }) {
   for (const s of touched) {
     const scope = scopeOf(s);
     const stays = (nodeId) => elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
-    const parts = rewrite(text, s, { drop: s.start === at ? drop : new Set(), gone, stays });
+    const parts = rewrite(text, s, { pairs: s.start === at ? pairs : new Map(), gone, stays });
     changes.push({ s, parts });
     elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids)) });
   }
@@ -512,43 +599,70 @@ function remove(text, removed, { drop = new Set(), at = -1, gone = null }) {
   }
 
   const out = apply(text, changes);
-  const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
-  const want = edges(text).filter((e) => !indexes.has(e.index)).map(sig);
-  const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
-  const after = nodes(out);
-  // No test reaches this: it catches a bug in rewrite(), not an input. An edge's `e1@{ … }` line reads as a node
-  // statement; it goes with its edge.
-  const lost = [...nodes(text)].some((n) => n !== gone && !userIds.has(n) && !after.has(n));
-  if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
-    throw new Error('This edit could not be made safely; nothing was changed.');
-  }
+  check(text, out, expect ?? ((e) => (indexes.has(e.index) ? null : e)), gone, userIds);
   return out;
 }
 
 /**
- * Statement `s` rewritten without the pairs in `drop` and without node `gone`, as a list of statements ({ text, ids })
- * to write in its place. Edges keep their order: a step whose surviving pairs are still a whole product stays one
- * connector (and chains on); any other step is written one statement per start node, in order, with that start's
- * surviving ends. A node written more than once keeps its shape and label at its first appearance only.
+ * Throw unless `out`'s edges are `expect` applied to `text`'s, in order, and every node of `text` (but `gone`, and
+ * edge ids in `userIds`, whose `e1@{ … }` lines read as node statements) is still named. No test reaches the throw: it
+ * catches a bug in the rewriting, not an input.
  */
-function rewrite(text, s, { drop, gone, stays }) {
+function check(text, out, expect, gone = null, userIds = new Set()) {
+  const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
+  const want = edges(text).map(expect).filter(Boolean).map(sig);
+  const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
+  const after = nodes(out);
+  const lost = [...nodes(text)].some((n) => n !== gone && !userIds.has(n) && !after.has(n));
+  if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
+    throw new Error('This edit could not be made safely; nothing was changed.');
+  }
+}
+
+/**
+ * Statement `s` rewritten by `pairs` and without node `gone`, as a list of statements ({ text, ids }) to write in its
+ * place. Edges keep their order. A step whose pairs are all kept, unreversed and with one connector stays one
+ * connector (and chains on); any other step is written one statement per start node, in order, split further where
+ * its ends' connectors differ, with a reversed pair as a statement of its own. Consecutive starts are merged only when
+ * each is a single plain statement with the same ends, since anything more would reorder their edges. A node written
+ * more than once keeps its shape and label at its first appearance only.
+ */
+function rewrite(text, s, { pairs, gone, stays }) {
   const G = s.groups, L = s.links;
   const alive = (g, i) => G[g][i].id !== gone;
-  const kept = (step, i, j) => alive(step, i) && alive(step + 1, j) && !drop.has(`${step} ${i} ${j}`);
   const indexes = (g) => G[g].map((_, i) => i).filter((i) => alive(g, i));
+  const bodyOf = (step) => {
+    const l = L[step], t = text.slice(l.start, l.end);
+    return l.userId ? t.slice(l.userId.length + 1) : t;
+  };
+  const pair = (step, i, j) => {
+    const c = pairs.get(`${step} ${i} ${j}`) ?? {};
+    if (!alive(step, i) || !alive(step + 1, j) || c.drop) return null;
+    return { body: c.body ?? bodyOf(step), reverse: Boolean(c.reverse) };
+  };
 
   const blocks = L.map((_, step) => {
     const S = indexes(step), E = indexes(step + 1);
-    if (S.length && E.length && S.every((i) => E.every((j) => kept(step, i, j)))) {
-      return { whole: true, rows: [{ starts: S, ends: E }] };
+    const every = S.flatMap((i) => E.map((j) => pair(step, i, j)));
+    if (every.length && every.every((p) => p && !p.reverse && p.body === every[0].body)) {
+      return { whole: true, rows: [{ starts: S, segs: [{ ends: E, body: every[0].body, reverse: false }] }] };
     }
     const rows = [];
+    const plain = (segs) => segs.length === 1 && !segs[0].reverse;
     for (const i of S) {
-      const ends = E.filter((j) => kept(step, i, j));
-      if (!ends.length) continue;
-      const last = rows.at(-1);
-      if (last && last.ends.join() === ends.join()) last.starts.push(i);
-      else rows.push({ starts: [i], ends });
+      const segs = [];
+      for (const j of E) {
+        const p = pair(step, i, j);
+        if (!p) continue;
+        const last = segs.at(-1);
+        if (last && !last.reverse && !p.reverse && last.body === p.body) last.ends.push(j);
+        else segs.push({ ends: [j], body: p.body, reverse: p.reverse });
+      }
+      if (!segs.length) continue;
+      const prev = rows.at(-1);
+      if (prev && plain(prev.segs) && plain(segs) && prev.segs[0].body === segs[0].body
+        && prev.segs[0].ends.join() === segs[0].ends.join()) prev.starts.push(i);
+      else rows.push({ starts: [i], segs });
     }
     return { whole: false, rows };
   });
@@ -556,7 +670,7 @@ function rewrite(text, s, { drop, gone, stays }) {
   const covered = new Set();
   blocks.forEach((b, step) => b.rows.forEach((r) => {
     for (const i of r.starts) covered.add(`${step} ${i}`);
-    for (const j of r.ends) covered.add(`${step + 1} ${j}`);
+    for (const seg of r.segs) for (const j of seg.ends) covered.add(`${step + 1} ${j}`);
   }));
   const ref = (g, i) => text.slice(G[g][i].start, G[g][i].end);
   const loose = G.map((_, g) => indexes(g).filter((i) => !covered.has(`${g} ${i}`))
@@ -570,11 +684,10 @@ function rewrite(text, s, { drop, gone, stays }) {
     written.add(`${g} ${i}`);
     return ref(g, i);
   }).join(' & ');
-  // The edge id (`e1@`) names the last start × first end of its step; it stays only where that pair still is.
-  const link = (step, row) => {
-    const l = L[step], t = text.slice(l.start, l.end);
-    const named = row.starts.at(-1) === G[step].length - 1 && row.ends[0] === 0;
-    return l.userId && !named ? t.slice(l.userId.length + 1) : t;
+  // The edge id (`e1@`) names the last start × first end of its step; it stays on that pair only.
+  const link = (step, starts, seg) => {
+    const named = L[step].userId && starts.at(-1) === G[step].length - 1 && seg.ends[0] === 0;
+    return (named ? L[step].userId + '@' : '') + seg.body;
   };
 
   const parts = [];
@@ -585,12 +698,18 @@ function rewrite(text, s, { drop, gone, stays }) {
     if (g === L.length) break;
     const b = blocks[g];
     if (b.whole) {
-      const [row] = b.rows;
-      if (!chain) chain = { text: group(g, row.starts) };
-      chain.text += ` ${link(g, row)} ${group(g + 1, row.ends)}`;
+      const { starts, segs: [seg] } = b.rows[0];
+      if (!chain) chain = { text: group(g, starts) };
+      chain.text += ` ${link(g, starts, seg)} ${group(g + 1, seg.ends)}`;
     } else {
       flush();
-      for (const row of b.rows) parts.push(`${group(g, row.starts)} ${link(g, row)} ${group(g + 1, row.ends)}`);
+      for (const { starts, segs } of b.rows) {
+        for (const seg of segs) {
+          parts.push(seg.reverse
+            ? `${group(g + 1, seg.ends)} ${link(g, starts, seg)} ${group(g, starts)}`
+            : `${group(g, starts)} ${link(g, starts, seg)} ${group(g + 1, seg.ends)}`);
+        }
+      }
     }
   }
   flush();
@@ -663,9 +782,11 @@ function connector(line, m, i, end) {
     closer.lastIndex = k;
     const c = closer.exec(m);
     if (!c || c.index + c[0].length > end) continue;
+    // The space before a closer must be real: a quoted label is blank in the mask too.
+    if (line.slice(k, k + c[0].length - c[0].trimStart().length).trim()) continue;
     const textStart = i + open[0].length, raw = line.slice(textStart, k);
     const lead = raw.length - raw.trimStart().length;
-    const label = { text: raw.trim(), start: textStart + lead, end: textStart + lead + raw.trim().length };
+    const label = { text: raw.trim(), start: textStart + lead, end: textStart + lead + raw.trim().length, form: 'text' };
     const tail = c[0].trimStart();
     const arrow = open[0].slice(0, -2) + (tail[0] === '.' ? '-' : '') + tail;
     return { start, end: k + c[0].length, arrow, label, userId };

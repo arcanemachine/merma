@@ -23,6 +23,9 @@
       <button id="menu-delete" role="menuitem" title="Delete this node and its edges (Delete)">Delete node</button>
     </div>
     <div id="edge-menu" class="menu" role="menu" data-overlay>
+      <button id="edge-label" role="menuitem" title="Change this edge's label (Enter or double-click); empty removes it">Edit label</button>
+      <button id="edge-reverse" role="menuitem" title="Turn this edge around">Reverse</button>
+      <div id="edge-arrows" class="arrows" role="group" aria-label="Arrow type"></div>
       <button id="edge-delete" role="menuitem" title="Delete this edge; its nodes stay (Delete)">Delete edge</button>
     </div>
     <div id="space-menu" class="menu" role="menu" data-overlay>
@@ -47,13 +50,17 @@
     <ul>
       <li><kbd>Click</kbd> a node to select it. <kbd>Right-click</kbd> it (or long-press) for its menu: add a connected
         node, connect it to another, rename it, or delete it.</li>
-      <li><kbd>Click</kbd> an edge (its line or its label) to select it; <kbd>right-click</kbd> it to delete it.</li>
+      <li><kbd>Click</kbd> an edge (its line or its label) to select it; <kbd>right-click</kbd> it to edit its label,
+        reverse it, change its arrow or delete it. <kbd>Double-click</kbd> it to edit its label.</li>
       <li><kbd>Right-click</kbd> empty space to add a node (inside a subgraph, it goes in that subgraph).</li>
       <li><kbd>N</kbd> adds a node: connected to the selected one, if any. <kbd>Enter</kbd> or <kbd>F2</kbd> renames the
-        selected node. <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes the selected node or edge.</li>
+        selected node (or the selected edge's label). <kbd>Delete</kbd> or <kbd>Backspace</kbd> deletes the selected
+        node or edge.</li>
       <li><kbd>Double-click</kbd> a node to rename it: <kbd>Enter</kbd> saves, <kbd>Shift</kbd>+<kbd>Enter</kbd> starts
         a new line, <kbd>Esc</kbd> cancels.</li>
-      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes this page's last edit.</li>
+      <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Z</kbd> on a Mac) undoes this page's last edit;
+        <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) or
+        <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes it.</li>
       <li>Edits are written into the file as small text changes; nothing else in it is touched.</li>
     </ul>
   </div>

@@ -56,8 +56,17 @@ In a flowchart, click a node to select it, and right-click it (or long-press on 
 - **Delete node** (or Delete or Backspace on a selected one) removes the node from every statement, with its edges,
   its `style` and `click` lines and its name in `class` lines.
 
-Click an edge's line or its label to select it, and right-click it for **Delete edge** (or press Delete or
-Backspace). Its nodes stay. A deleted edge's statement is rewritten in place: a chain is split there, and an `&` group
+Click an edge's line or its label to select it, and right-click it for its menu:
+
+- **Edit label** (or double-click the edge, or Enter or F2 on a selected one) edits the label in place; the label is
+  written as `-->|"label"|`, and an empty one removes it.
+- **Reverse** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes partly by
+  the order it first meets them, so the layout may shift a little.
+- The **arrow types** (`-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~` and more) change the arrow, keeping
+  its label and its length (`---->` asks for a longer edge, and stays longer).
+- **Delete edge** (or Delete or Backspace) removes it. Its nodes stay.
+
+A connector shared with other edges (`A --> B & C`) is split just enough that only the chosen edge changes. A deleted edge's statement is rewritten in place: a chain is split there, and an `&` group
 is written one statement per start node, so every other edge keeps its place. `linkStyle` numbers follow: the deleted
 edge's goes, and the ones after it move down. A node left out of a rewritten statement is kept as a bare statement when
 it has a shape or label there, or when nothing else in its subgraph names it, so no node disappears or moves.
@@ -71,8 +80,9 @@ to the selected one, if any. Mermaid lays the diagram out, so a new node lands w
 No edit ever puts an edge before an existing one or changes the order of the edges: `linkStyle N` styles the Nth edge
 in the file, so that would restyle the edges after it.
 
-**Ctrl+Z** undoes the page's last edit (adding a node and naming it count as one), as long as the file has not changed
-since; it is refused otherwise, so it never throws away someone else's change.
+**Ctrl+Z** (Cmd+Z) undoes the page's last edit (adding a node and naming it count as one), as long as the file has not
+changed since; it is refused otherwise, so it never throws away someone else's change. **Ctrl+Shift+Z** (Cmd+Shift+Z)
+or **Ctrl+Y** redoes an undone edit, on the same terms.
 
 Every other byte of the file stays as it was: comments, directives, frontmatter, spacing. Each edit is checked with
 Mermaid's parser before it is saved, and saved only over the version the page last read: if the file changed in the
