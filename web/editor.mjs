@@ -178,7 +178,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     menuOpen = false;
     input.dataset.nodeId = id;
     // innerText, not textContent: a label's line breaks (<br>) come through as newlines.
-    input.value = (g.querySelector('.nodeLabel') || g).innerText.trim();
+    // An SVG element (a label Mermaid drew as SVG text) has no innerText.
+    const label = g.querySelector('.nodeLabel') || g;
+    input.value = (label.innerText ?? label.textContent).trim();
     input.dataset.initial = input.value;
     input.style.display = 'block';
     sizeRename();

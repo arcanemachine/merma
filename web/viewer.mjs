@@ -93,7 +93,8 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   });
   diagram.addEventListener('contextmenu', (e) => {
     if (e.target.closest('[data-overlay]')) return;
-    // On Android this is the long-press itself: the timer above must not report it a second time.
+    // On Android this is the long-press itself: whichever of it and the timer above comes first reports it, once.
+    if (drag?.handled) { e.preventDefault(); return; }
     if (drag) { clearTimeout(drag.timer); drag.handled = true; }
     if (onContextMenu(drag?.target ?? e.target, e.clientX, e.clientY)) e.preventDefault();
   });
