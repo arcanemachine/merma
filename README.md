@@ -15,7 +15,8 @@ No runtime dependencies beyond Node (22 or later). The page loads Mermaid 12.2.0
 
 It prints the page's address; open it. Only that file is served, on a free port. Give a port as well
 (`merma diagram.mmd 6378`) to get the same address each time: if a merma already serves the file there, it prints
-that address instead of starting another. Set `BROWSER` to a command, and the page is opened with it.
+that address instead of starting another (and if the merma there serves other files, it says so and takes a free
+port).
 
 To serve every diagram in some folders, from one long-running server:
 
@@ -33,6 +34,7 @@ Either way the server stops on its own a while after the last page is closed (`M
 | `MERMA_ROOTS` | For `serve`: folders whose `.mmd` files may be served, comma-separated. Default `/tmp/mermaid-diagrams/` |
 | `MERMA_PATH_MAP` | `server=host` path prefixes, comma-separated. The page shows a file's host path, for a server in a container |
 | `MERMA_IDLE` | Seconds with no requests before the server exits. Default 300. An open page polls every second, so the server runs while any tab is open |
+| `BROWSER` | For `merma <file>`: a command to open the page with, arguments allowed (`firefox --new-tab`). Unset: the address is only printed |
 | `MERMA_HOSTS` | Host names the page may be opened under, besides `localhost`, `127.0.0.1` and `[::1]` (and the bound address, when it is a single one), comma-separated. Requests addressed to any other name are refused, which stops DNS rebinding |
 
 Binding to anything other than `127.0.0.1` lets anyone who can reach the machine read and edit the served diagrams:

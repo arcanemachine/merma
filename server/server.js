@@ -120,7 +120,12 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB 
 function notServed(files, f) {
   if (!f) return 'No file given: open the page as /?f=<absolute path to a .mmd file>.';
   return `This server does not serve ${f}. It serves only .mmd files in or at: ${files.roots.join(', ')}.\n` +
-    `To open this file, run: merma ${f}`;
+    `To open this file, run: merma ${shellQuote(f)}`;
+}
+
+/** `s` as one shell word: as it is when it has nothing a shell would split or expand, else in single quotes. */
+function shellQuote(s) {
+  return /^[\w/.,:@%+=-]+$/.test(s) ? s : `'${s.replaceAll("'", "'\\''")}'`;
 }
 
 /**
