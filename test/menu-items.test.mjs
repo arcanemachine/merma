@@ -2,21 +2,17 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { GLOBAL_KEYS, keyIndex, labelOf, MENUS, VERBS } from '../web/menu-items.mjs';
+import { GLOBAL_KEYS, keyIndex, MENUS, VERBS } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType } from '../web/patch/flowchart.mjs';
 
-const STATES = [{ edgesOk: true, hasLabel: true, title: '' }, { edgesOk: false, hasLabel: false, title: 'Payment' }];
+const STATES = [{ edgesOk: true, hasLabel: true }, { edgesOk: false, hasLabel: false }];
 const items = Object.entries(MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));
 
 test('every menu label starts with one of the verbs, in sentence case', () => {
-  for (const { item } of items) {
-    for (const state of STATES) {
-      const label = labelOf(item, state);
-      assert.ok(VERBS.includes(label.split(' ')[0]), `${label}: not a listed verb`);
-      const words = label.split(' ').slice(1).filter((w) => w !== state.title);
-      assert.ok(words.every((w) => w === w.toLowerCase()), `${label}: not sentence case`);
-    }
+  for (const { item: { label } } of items) {
+    assert.ok(VERBS.includes(label.split(' ')[0]), `${label}: not a listed verb`);
+    assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase()), `${label}: not sentence case`);
   }
 });
 
@@ -26,7 +22,7 @@ test('keys are unique within a menu and are a letter of their label', () => {
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const item of list) {
       assert.match(item.key, /^[a-z]$/);
-      for (const state of STATES) assert.ok(keyIndex(labelOf(item, state), item.key) >= 0, `${item.action}: ${item.key}`);
+      assert.ok(keyIndex(item.label, item.key) >= 0, `${item.action}: ${item.key}`);
     }
   }
 });
@@ -56,7 +52,7 @@ test('one action has one key and one label in every menu', () => {
 
 test('only an item that waits for a further click ends in an ellipsis', () => {
   for (const { item } of items) {
-    for (const state of STATES) assert.equal(labelOf(item, state).endsWith('…'), Boolean(item.mode), item.action);
+    assert.equal(item.label.endsWith('…'), Boolean(item.mode), item.action);
   }
 });
 
@@ -73,12 +69,6 @@ test('the key is shown at the start of a word when it starts one', () => {
   assert.equal(keyIndex('Add connected node', 'n'), 14);
   assert.equal(keyIndex('Reverse edge', 'v'), 2);
   assert.equal(keyIndex('Edit label', 'z'), -1);
-});
-
-test('the empty-space menu names the subgraph it adds into', () => {
-  const add = MENUS.space.find((i) => i.action === 'add-node');
-  assert.equal(labelOf(add, { title: '' }), 'Add node');
-  assert.equal(labelOf(add, { title: 'Payment' }), 'Add node in Payment');
 });
 
 test('arrow types: digits unique, every one is an arrow type merma can write, and every one of those is listed', () => {

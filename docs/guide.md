@@ -8,7 +8,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 ## Viewing
 
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
-- A double-click on empty space, or **Reset view**, fits the diagram to the window. Once you have zoomed or moved it,
+- A double-click on empty space (not on a subgraph), or **Reset view**, fits the diagram to the window. Once you have zoomed or moved it,
   edits keep your view, and so does a reload of the tab.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
@@ -17,8 +17,15 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Selecting
 
-In a flowchart, click a node, or an edge's line or label, to select it: it glows. Click empty space to deselect.
-Right-click it (or long-press on a touch screen) for its menu. Other diagram types are view-only.
+In a flowchart, click a node, an edge's line or label, or a subgraph (anywhere on its box that is not a node or an
+edge), to select it: it glows. Click empty space to deselect. Right-click it (or long-press on a touch screen) for its
+menu. Other diagram types are view-only.
+
+A subgraph written with no id (`subgraph "Order log"`, or a title with spaces) is known only by the name Mermaid gives
+it, which changes as subgraphs come and go: such a subgraph stays selected only while the file is unchanged. An edit
+that has to name it in the file (Edit title, Connect to…) first gives it an id of its own, `s1`, in the same edit:
+`subgraph s1 ["Order log"]`. When the file already names it by Mermaid's name (`style subGraph1 …`), that would
+break those lines, so the page says to give it an id in the file instead.
 
 Edges can be selected only when merma can match the drawn edges to the text, edge for edge (an edge match). When it
 cannot (a node id with `-` or `.`, a label spread over several lines), the page says so, and edges and deleting nodes
@@ -27,7 +34,7 @@ are left to the file.
 ## Menus
 
 A menu stays open until you click anywhere else on the page or press Escape. M opens the selected node's or edge's
-menu, or with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
+menu, the selected subgraph's, or with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or Escape closes it.
 
@@ -36,8 +43,9 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
 - **Add connected node** adds a new node with an edge from this one, then opens the label box on it. The edge is
   appended at the end of the file; if the node's last statement is inside a subgraph, the new node is declared there,
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
-- **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
-  neither node moves. A click anywhere else, or Escape, cancels.
+- **Connect to…**, then a click on another node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
+  subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click anywhere else, or Escape,
+  cancels.
 - **Edit label** edits the label in place (the label box): Enter saves, Shift+Enter starts a new line (written as
   `<br>`), Escape cancels. Only the label changes, where the node is first given a shape; a node that only appears
   bare gets brackets at its first appearance.
@@ -69,11 +77,22 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
   partly by the order it first meets them, so the layout may shift a little.
 - **Delete edge** removes it. Its nodes stay.
 
+### Subgraph menu
+
+- **Add node** adds a new node inside the subgraph, before its `end`, then opens the label box on it.
+- **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
+  the label box on its title. Mermaid draws an empty subgraph as its title alone, until it has nodes.
+- **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
+- **Edit title** edits the title in place, as Edit label does a label: `subgraph pay [Payment]` becomes
+  `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
+  `subgraph Payment ["New title"]`.
+
+Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
+
 ### Empty space
 
-Right-click empty space (or press M with nothing selected) for **Add node**; over a subgraph it reads **Add node in**
-and the subgraph's title, and the node goes inside that subgraph. Mermaid lays the diagram out, so a new node lands
-where the layout puts it.
+Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
+top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 
 ## Keys
 
@@ -81,10 +100,10 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 
 | Key | Does |
 |---|---|
-| N | Add a node, connected to the selected node if there is one |
-| Enter or F2 | Edit the selected node's or edge's label |
+| N | Add a node: connected to the selected node, or inside the selected subgraph |
+| Enter or F2 | Edit the selected node's or edge's label, or the selected subgraph's title |
 | Delete or Backspace | Delete the selected node or edge |
-| M | Open the selected node's or edge's menu; with nothing selected, Add node |
+| M | Open the selection's menu; with nothing selected, the empty-space menu |
 | Escape | Cancel Connect to…, or deselect |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
@@ -92,11 +111,11 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS. Help shows the keys for your system; a toggle at its bottom
 switches between Windows and Linux, and macOS.
 
-A double-click on a node or an edge edits its label too.
+A double-click on a node or an edge edits its label too, and one on a subgraph its title.
 
 ## Undo and redo
 
-Undo takes back the page's last edit (adding a node and naming it count as one), as long as the file has not changed
+Undo takes back the page's last edit (adding a node or a subgraph and naming it count as one), as long as the file has not changed
 since; it is refused otherwise, so it never throws away someone else's change. Redo puts an undone edit back, on the
 same terms.
 

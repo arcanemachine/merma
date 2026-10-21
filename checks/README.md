@@ -5,10 +5,13 @@ anything under `web/`).
 
 ## Every edit parses
 
-`gen-cases.mjs` applies the node edits (add connected, connect, edit label, delete) to every node, and the edge edits
-(delete, label, unlabel, reverse, every arrow type) to every edge, of every fixture in `test/fixtures/`. It does not yet cover `addNode`; add it there when changing that function.
+`gen-cases.mjs` applies the node edits (add connected, connect, edit label, delete) to every node, the edge edits
+(delete, label, unlabel, reverse, every arrow type) to every edge, and the subgraph edits (edit title, add a node or a
+subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
+and a subgraph at the top level.
 `parse-check.js` runs each result through Mermaid's parser in the page, and checks that no existing node changed
-subgraph (an edge line inside a subgraph pulls its nodes into that subgraph). For a delete, it also checks with
+subgraph (an edge line inside a subgraph pulls its nodes into that subgraph), that what was added inside a subgraph is
+in it, and that a new subgraph title is drawn as asked. For a delete, it also checks with
 Mermaid that every other node is still there, and that the edges left are the old ones in the old order, each with
 its old `linkStyle` style; for an edge edit, that every edge is in its place with its style, and that the changed one
 has the arrow type and drawn label asked for.
@@ -23,22 +26,23 @@ has the arrow type and drawn label asked for.
 
 ## Mermaid's own ids for the fixtures
 
-`test/fixtures/node-ids.json` and `edge-ids.json` hold the node ids and edge ids (in Mermaid's order) that Mermaid
-itself gives each flowchart fixture; the unit tests check the edits against them. Regenerate both after adding or
-changing a fixture:
+`test/fixtures/node-ids.json`, `edge-ids.json` and `subgraph-ids.json` hold the node ids, edge ids (in Mermaid's order)
+and subgraph ids that Mermaid itself gives each flowchart fixture; the unit tests check the edits against them.
+Regenerate them after adding or changing a fixture:
 
 1. As above, open any diagram in a root you can write to, and write the fixtures next to it:
    `node checks/fixtures-json.mjs > <that root>/_fixtures.json.mmd`
 2. Run `checks/fixture-ids.js` in the page: `pw-repl send eval --all --file=checks/fixture-ids.js`. It returns
-   `{ nodes, edges, fails }`; `fails` lists any fixture whose edges Mermaid drew in another order than it numbered
-   them, and must be empty.
-3. Write `nodes` to `node-ids.json` and `edges` to `edge-ids.json`, and delete `_fixtures.json.mmd`.
+   `{ nodes, edges, subgraphs, fails }`; `fails` lists any fixture whose edges Mermaid drew in another order than it
+   numbered them, and must be empty.
+3. Write `nodes` to `node-ids.json`, `edges` to `edge-ids.json` and `subgraphs` to `subgraph-ids.json`, and delete
+   `_fixtures.json.mmd`.
 
 ## Clicking an edge
 
 `checks/edge-point.js` gives a point on an edge's line that no node covers, for a click in a check or a UAT brief:
 `pw-repl send eval --file=checks/edge-point.js 'path[data-page-only][data-page-edge="<id>"]'` prints `X Y`, then
-`pw-repl send mouseclick X Y` (add `right` for a right-click).
+`pw-repl send mouse click X Y` (add `right` for a right-click).
 
 ## Accessibility
 
@@ -56,7 +60,7 @@ markup, so its findings are recorded as Mermaid's and never fixed here.
 
 **The virtual screen reader**, after a change to messages, live regions, names or roles: `checks/a11y-heard.js` runs
 Guidepup's virtual screen reader, a model of a screen reader built from the page's roles, names and live regions (not
-VoiceOver or NVDA). Run it once to start listening, do the action (`press`, `mouseclick`), wait about 100 ms (longer
+VoiceOver or NVDA). Run it once to start listening, do the action (`press`, `mouse click`), wait about 100 ms (longer
 when the action saves and redraws), and run it again: it returns what was announced, as `"polite: …"` or
 `"assertive: …"`. With a selector after the file (`'#help'`) it reads that element from the top instead, item by
 item. It reads the text of the diagram's `<style>` element aloud, which real screen readers skip.

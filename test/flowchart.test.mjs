@@ -8,13 +8,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
-  edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS,
+  edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
+  setSubgraphTitle, addSubgraph, subgraphRefusal,
 } from '../web/patch/flowchart.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
 const fixture = (name) => readFileSync(join(FIXTURES, name), 'utf8');
 const NODE_IDS = JSON.parse(fixture('node-ids.json'));
 const EDGE_IDS = JSON.parse(fixture('edge-ids.json'));
+const SUBGRAPH_IDS = JSON.parse(fixture('subgraph-ids.json'));
 
 /** Lines removed from `a` and added in `b`, by a plain longest-common-subsequence diff. */
 function lineDiff(a, b) {
@@ -162,6 +164,86 @@ test('isFlowchart sees through frontmatter, directives and comments', () => {
 
 test('freeId', () => {
   assert.equal(freeId('flowchart TD\n  n1 --> n2\n  n10\n'), 'n3');
+  assert.equal(freeId('flowchart TD\n  subgraph s1\n  end\n', 's'), 's2');
+});
+
+// --- subgraphs -----------------------------------------------------------------------------------------------
+
+test('subgraphs gives the ids Mermaid gives, for every fixture', () => {
+  for (const [name, ids] of Object.entries(SUBGRAPH_IDS)) {
+    assert.deepEqual(subgraphs(fixture(name)).map((s) => s.id).sort(), ids, name);
+  }
+});
+
+test('subgraphs: an id-less subgraph is subGraph<k>, k counting every subgraph by the order of its end', () => {
+  const list = subgraphs(fixture('12-subgraph-ids.mmd'));
+  const by = (id) => list.find((s) => s.id === id);
+  assert.deepEqual(list.map((s) => [s.id, s.written]), [
+    ['pay', true], ['subGraph1', false], ['Shipping', true], ['outer', true], ['subGraph3', false], ['tight', true],
+    ['subGraph6', false], ['Single', true],
+  ]);
+  assert.equal(list[by('tight').parent].id, 'outer');
+  assert.equal(by('pay').parent, null);
+});
+
+test('setSubgraphTitle rewrites only the title, keeping the id, in every form', () => {
+  const src = fixture('12-subgraph-ids.mmd');
+  const line = (text, n) => text.split('\n')[n];
+  const title = (id, n) => line(setSubgraphTitle(src, id, 'New #1').text, n);
+  assert.equal(title('pay', 2), '  subgraph pay ["New #35;1"]');
+  assert.equal(title('tight', 15), '    subgraph tight["New #35;1"]');
+  assert.equal(title('Shipping', 8), '  subgraph Shipping ["New #35;1"]');
+  assert.equal(title('Single', 22), '  subgraph "Single" ["New #35;1"]');
+  // A subgraph with no id gets one, or a title with no whitespace would become its id.
+  assert.equal(title('subGraph1', 5), '  subgraph s1 ["New #35;1"]');
+  assert.equal(title('subGraph6', 19), '  subgraph s1 ["New #35;1"]');
+  for (const id of ['pay', 'subGraph1']) assert.equal(lineDiff(src, setSubgraphTitle(src, id, 'X').text).added.length, 1);
+  assert.throws(() => setSubgraphTitle(src, 'nope', 'X'), /not in the file/);
+});
+
+test('a subgraph with no id is not given one when the file already names it by Mermaid\'s id', () => {
+  const src = 'flowchart TD\n  subgraph "A b"\n    x\n  end\n  style subGraph0 fill:#eee\n';
+  assert.match(subgraphRefusal(src, 'subGraph0'), /name it subGraph0/);
+  assert.throws(() => setSubgraphTitle(src, 'subGraph0', 'X'), /name it subGraph0/);
+  assert.throws(() => connect(src, 'x', 'subGraph0'), /name it subGraph0/);
+  assert.equal(subgraphRefusal(fixture('12-subgraph-ids.mmd'), 'subGraph1'), null);
+  assert.equal(subgraphRefusal(fixture('12-subgraph-ids.mmd'), 'pay'), null);
+});
+
+test('connect to and from a subgraph appends the edge; one with no id gets one in the same edit', () => {
+  const src = fixture('12-subgraph-ids.mmd');
+  assert.ok(connect(src, 'start', 'Shipping').text.endsWith('  Shipping --> log\n  start --> Shipping\n'));
+  assert.ok(connect(src, 'Single', 'pay').text.endsWith('  Single --> pay\n'));
+  const text = connect(src, 'subGraph1', 'subGraph6').text;
+  assert.deepEqual(lineDiff(src, text).added, ['  subgraph s1 ["Order log"]', '  subgraph s2 ["Two words"]', '  s1 --> s2']);
+});
+
+test('addSubgraph appends an empty one at the top level, or puts one inside a subgraph before its end', () => {
+  const src = fixture('12-subgraph-ids.mmd');
+  const top = addSubgraph(src);
+  assert.equal(top.id, 's1');
+  assert.ok(top.text.endsWith('  Shipping --> log\n  subgraph s1 ["New subgraph"]\n  end\n'));
+  assert.equal(addSubgraph(src, { parent: 'subGraph3' }).text,
+    src.replace('      step[Step]\n', '      step[Step]\n      subgraph s1 ["New subgraph"]\n      end\n'));
+  assert.equal(addSubgraph(src, { parent: 'Single' }).text,
+    src.replace('  subgraph "Single"\n', '  subgraph "Single"\n    subgraph s1 ["New subgraph"]\n    end\n'));
+  // A file with no trailing newline is kept without one.
+  assert.equal(addSubgraph('flowchart TD\n  A').text, 'flowchart TD\n  A\n  subgraph s1 ["New subgraph"]\n  end');
+});
+
+test('addNode into a subgraph with no id, or with whitespace in its title', () => {
+  const src = fixture('12-subgraph-ids.mmd');
+  assert.equal(addNode(src, { subgraph: 'subGraph6' }).text, src.replace('    w1\n', '    w1\n    n1["New node"]\n'));
+  assert.equal(addNode(src, { subgraph: 'subGraph1' }).text,
+    src.replace('    log[(Log)]\n', '    log[(Log)]\n    n1["New node"]\n'));
+  assert.throws(() => addNode(src, { subgraph: 'Two' }), /not in the file/);
+});
+
+test('deleting an edge to or from a subgraph leaves no line naming the subgraph', () => {
+  const src = fixture('12-subgraph-ids.mmd');
+  assert.equal(deleteEdge(src, 'L_start_pay_0').text, src.replace('  start[Begin] --> pay\n', '  start[Begin]\n'));
+  assert.equal(deleteEdge(src, 'L_Shipping_log_0').text, src.replace('  Shipping --> log\n', ''));
+  assert.equal(deleteNode(src, 'start').text, src.replace('  start[Begin] --> pay\n', ''));
 });
 
 test('subgraphIdFromSvgId', () => {

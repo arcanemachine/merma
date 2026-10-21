@@ -142,10 +142,10 @@ export function quoteLabel(label) {
   return '"' + label.split(/\r?\n/).map((part) => part.replace(/[#"<>&]/g, (c) => codes[c])).join('<br>') + '"';
 }
 
-/** The first of `n1`, `n2`, … that appears nowhere in the text, labels and comments included. */
-export function freeId(text) {
+/** The first of `n1`, `n2`, … (or another prefix's) that appears nowhere in the text, labels and comments included. */
+export function freeId(text, prefix = 'n') {
   for (let k = 1; ; k++) {
-    const id = 'n' + k;
+    const id = prefix + k;
     if (!new RegExp(String.raw`(?<![\p{L}\p{N}_])${id}(?![\p{L}\p{N}_])`, 'u').test(text)) return id;
   }
 }
@@ -180,37 +180,62 @@ function lastContentLine(text) {
 }
 
 /**
- * The subgraphs open at line `n`, innermost last: [{ id, start, end }] with the lines of `subgraph` and its `end`.
- * A subgraph is named by its first word (`subgraph pay [Payment]` is `pay`); a quoted title has no usable id.
+ * Every subgraph in the file, in text order: { id, written, start, end, parent, title }. `start` and `end` are the
+ * lines of `subgraph` and its `end` (null while unclosed); `parent` is the index of the subgraph it is in, or null.
+ * `id` is Mermaid's: the word before a bracketed title (`subgraph pay [Payment]`), or a bare title with no whitespace
+ * in it (`subgraph Payment`, `subgraph "Payment"`). A bare title with whitespace has no id in the file (`written`
+ * false), and Mermaid calls it `subGraph<k>`, k counting every subgraph in the order their `end`s come: an id only
+ * good for the text it was drawn from. `title`: { start, end } offsets into the text of the bracket's contents, or of
+ * the bare title, and `form`: 'bracket' or 'bare'.
  */
-function subgraphsAt(text, n) {
+export function subgraphs(text) {
   const ls = lines(text);
-  const open = [];
-  let found = null;
-  for (let k = headerIndex(ls) + 1; k < ls.length; k++) {
-    const m = mask(ls[k]);
-    const start = m.match(/^\s*subgraph\s+([\p{L}\p{N}_]+)?/u);
-    if (start) open.push({ id: start[1] ?? null, start: k, end: null });
-    else if (/^\s*end\s*;?\s*$/.test(m) && open.length) {
-      const closed = open.pop();
-      closed.end = k;
+  const out = [], open = [];
+  let closed = 0;
+  let offset = 0;
+  const header = headerIndex(ls);
+  for (let k = 0; k < ls.length; offset += ls[k].length, k++) {
+    if (k <= header) continue;
+    const line = ls[k], m = mask(line);
+    const kw = m.match(/^\s*subgraph(?=[\s;]|$)/);
+    if (kw) {
+      const semi = m.indexOf(';', kw[0].length);
+      let to = semi < 0 ? line.length : semi;
+      while (to > kw[0].length && /\s/.test(line[to - 1])) to--;
+      let from = kw[0].length;
+      while (from < to && /\s/.test(line[from])) from++;
+      const raw = line.slice(from, to);
+      const s = { id: null, written: false, start: k, end: null, parent: open.at(-1) ?? null, title: null };
+      const bracket = raw.match(new RegExp(`^("[^"]*"|${ID})\\s*\\[`, 'u'));
+      if (bracket && raw.endsWith(']')) {
+        s.id = bracket[1].replace(/^"(.*)"$/, '$1');
+        s.written = true;
+        s.title = { start: offset + from + bracket[0].length, end: offset + to - 1, form: 'bracket' };
+      } else {
+        const bare = raw.replace(/^"(.*)"$/, '$1');
+        if (bare && !/\s/.test(bare)) { s.id = bare; s.written = true; }
+        s.title = { start: offset + from, end: offset + to, form: 'bare' };
+      }
+      open.push(out.length);
+      out.push(s);
+    } else if (/^\s*end\s*;?\s*$/.test(m) && open.length) {
+      const s = out[open.pop()];
+      s.end = k;
+      if (!s.written) s.id = `subGraph${closed}`;
+      closed++;
     }
-    if (k === n) found = [...open];
   }
-  return found ?? [];
+  return out;
 }
 
-/** The `subgraph` block whose id is `id`: { start, end } lines, or null. */
+/** The subgraphs open at line `n` (its `subgraph` line included, its `end` not), innermost last. */
+function subgraphsAt(text, n, all = subgraphs(text)) {
+  return all.filter((s) => s.start <= n && (s.end === null || s.end > n));
+}
+
+/** The closed subgraph Mermaid calls `id`, or null. */
 function subgraphBlock(text, id) {
-  const ls = lines(text);
-  for (let k = headerIndex(ls) + 1; k < ls.length; k++) {
-    const m = mask(ls[k]).match(/^\s*subgraph\s+([\p{L}\p{N}_]+)/u);
-    if (m && m[1] === id) {
-      const inner = subgraphsAt(text, k).at(-1);
-      return inner && inner.id === id ? inner : null;
-    }
-  }
-  return null;
+  return subgraphs(text).find((s) => s.id === id && s.end !== null) ?? null;
 }
 
 /**
@@ -241,14 +266,19 @@ export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
   const id = freeId(text);
   const node = `${id}[${quoteLabel(label)}]`;
   if (!subgraph) return { text: appendLine(text, node), id };
-  const block = subgraphBlock(text, subgraph);
-  if (!block) throw new Error(`Subgraph ${subgraph} is not in the file.`);
+  return { text: insideSubgraph(text, subgraph, [node]), id };
+}
+
+/** Insert `body` lines as the last lines of subgraph `id`, before its `end`. */
+function insideSubgraph(text, id, body) {
+  const block = subgraphBlock(text, id);
+  if (!block) throw new Error('That subgraph is not in the file.');
   const ls = lines(text);
   // Indented like the subgraph's own lines: the line above `end`, or one step deeper than `end` for an empty one.
   const above = block.end - 1 > block.start ? ls[block.end - 1] : null;
   const indent = above ? above.match(/^[ \t]*/)[0] : ls[block.end].match(/^[ \t]*/)[0] + '  ';
-  ls.splice(block.end, 0, indent + node + '\n');
-  return { text: ls.join(''), id };
+  ls.splice(block.end, 0, ...body.map((l) => indent + l + '\n'));
+  return ls.join('');
 }
 
 /**
@@ -256,9 +286,69 @@ export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
  * any subgraph, so neither node changes subgraph.
  */
 export function connect(text, a, b) {
-  assertNode(text, a);
-  assertNode(text, b);
-  return { text: appendLine(text, `${a} --> ${b}`) };
+  const from = endpoint(text, a);
+  const to = endpoint(from.text, b);
+  return { text: appendLine(to.text, `${from.id} --> ${to.id}`) };
+}
+
+/**
+ * A node or a subgraph an edge can name: { text, id }. A subgraph with no id in the file is given one first, since an
+ * edge can only name it by an id.
+ */
+function endpoint(text, id) {
+  const sg = subgraphBlock(text, id);
+  if (!sg) { assertNode(text, id); return { text, id }; }
+  if (sg.written) { assertId(id); return { text, id }; }
+  return nameSubgraph(text, sg);
+}
+
+/**
+ * Why subgraph `id` cannot be given an id, or null when it can (or has one). The file can name an id-less subgraph
+ * only by Mermaid's `subGraph<k>`, in a `style` or `class` line or an edge; giving it an id of its own would break them.
+ */
+export function subgraphRefusal(text, id) {
+  const sg = subgraphBlock(text, id);
+  if (!sg || sg.written || !mentions(text, id).length) return null;
+  return `This subgraph has no id in the file, and lines there name it ${id}. Give it an id in the file first.`;
+}
+
+/** Give id-less subgraph `sg` an id of its own (`subgraph "A b"` → `subgraph s1 ["A b"]`), with `title` if given. */
+function nameSubgraph(text, sg, title = null) {
+  const why = subgraphRefusal(text, sg.id);
+  if (why) throw new Error(why);
+  const id = freeId(text, 's');
+  const raw = text.slice(sg.title.start, sg.title.end);
+  const shown = title ?? (/^".*"$/.test(raw) ? raw : `"${raw}"`);
+  return { text: text.slice(0, sg.title.start) + `${id} [${shown}]` + text.slice(sg.title.end), id };
+}
+
+/**
+ * Give subgraph `id` the title `title`, quoted: the bracket's contents are replaced (`subgraph pay ["New"]`); a bare
+ * title that is also the id gets a bracket after it, keeping the id (`subgraph Payment ["New"]`); a subgraph with no
+ * id is given one, since a new title with no whitespace in it would otherwise become its id.
+ */
+export function setSubgraphTitle(text, id, title) {
+  const sg = subgraphBlock(text, id);
+  if (!sg) throw new Error('That subgraph is not in the file.');
+  const quoted = quoteLabel(title);
+  const { start, end, form } = sg.title;
+  if (form === 'bracket') return { text: text.slice(0, start) + quoted + text.slice(end) };
+  if (sg.written) return { text: text.slice(0, end) + ` [${quoted}]` + text.slice(end) };
+  return { text: nameSubgraph(text, sg, quoted).text };
+}
+
+/**
+ * Add an empty subgraph, `subgraph s1 ["New subgraph"]` and its `end`: inside subgraph `parent` (before its `end`) when
+ * given, else at the end of the file. Returns { text, id }.
+ */
+export function addSubgraph(text, { parent = null, title = 'New subgraph' } = {}) {
+  const id = freeId(text, 's');
+  const head = `subgraph ${id} [${quoteLabel(title)}]`;
+  if (!parent) {
+    const indent = statementIndent(text);
+    return { text: insertAfter(text, lastContentLine(text), `${head}\n${indent}end`, indent), id };
+  }
+  return { text: insideSubgraph(text, parent, [head, 'end']), id };
 }
 
 /**
@@ -563,12 +653,15 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
 
   // A node left out of a rewritten statement is kept as a bare statement if dropping it would lose it, or lose its
   // place: when no other statement in the same subgraph (at the top level: anywhere) still names it.
-  const scopeOf = (s) => subgraphsAt(text, s.line).at(-1)?.start ?? null;
+  // A subgraph named in an edge is defined by its block: dropping the edge never leaves its id behind.
+  const sgs = subgraphs(text);
+  const blocks = new Set(sgs.filter((sg) => sg.written).map((sg) => sg.id));
+  const scopeOf = (s) => subgraphsAt(text, s.line, sgs).at(-1)?.start ?? null;
   const named = (s) => new Set(s.groups.flat().map((r) => r.id));
   const elsewhere = all.filter((s) => !s.keyword && !touched.includes(s)).map((s) => ({ scope: scopeOf(s), ids: named(s) }));
   for (const s of touched) {
     const scope = scopeOf(s);
-    const stays = (nodeId) => elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
+    const stays = (nodeId) => blocks.has(nodeId) || elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
     const parts = rewrite(text, s, { pairs: s.start === at ? pairs : new Map(), gone, stays });
     changes.push({ s, parts });
     elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids)) });
@@ -600,21 +693,21 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
   }
 
   const out = apply(text, changes);
-  check(text, out, expect ?? ((e) => (indexes.has(e.index) ? null : e)), gone, userIds);
+  check(text, out, expect ?? ((e) => (indexes.has(e.index) ? null : e)), gone, new Set([...userIds, ...blocks]));
   return out;
 }
 
 /**
  * Throw unless `out`'s edges are `expect` applied to `text`'s, in order, and every node of `text` (but `gone`, and
- * edge ids in `userIds`, whose `e1@{ … }` lines read as node statements) is still named. No test reaches the throw: it
+ * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No test reaches the throw: it
  * catches a bug in the rewriting, not an input.
  */
-function check(text, out, expect, gone = null, userIds = new Set()) {
+function check(text, out, expect, gone = null, skip = new Set()) {
   const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
   const want = edges(text).map(expect).filter(Boolean).map(sig);
   const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
   const after = nodes(out);
-  const lost = [...nodes(text)].some((n) => n !== gone && !userIds.has(n) && !after.has(n));
+  const lost = [...nodes(text)].some((n) => n !== gone && !skip.has(n) && !after.has(n));
   if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
     throw new Error('This edit could not be made safely; nothing was changed.');
   }

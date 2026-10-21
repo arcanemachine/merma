@@ -77,8 +77,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice.warning { background: #fff4d6; color: #5c4400; }
 #notice.error { background: #fde2e2; color: #7b1d1d; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* Flowchart nodes and edges can be clicked to edit; the selected one glows, whatever its shape. */
+/* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one glows, whatever its shape. */
 #stage.editable g.node[data-page-node], #stage.editable g.node[data-page-node] *,
+#stage.editable g.cluster[data-page-subgraph], #stage.editable g.cluster[data-page-subgraph] *,
 #stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
 #stage [data-page-selected]:not([data-page-only]) { filter: drop-shadow(0 0 2px #0969da) drop-shadow(0 0 4px #0969da); }
 /* An edge's line is hard to hit, so a wide invisible path lies over it. An invisible edge (~~~) shows through it when

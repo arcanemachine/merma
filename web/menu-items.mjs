@@ -10,8 +10,8 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
 /** Keys the page answers outside menus (KeyboardEvent.key, lower-cased), and the actions each one runs. */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
-  enter: ['edit-label'],
-  f2: ['edit-label'],
+  enter: ['edit-label', 'edit-title'],
+  f2: ['edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
   backspace: ['delete-node', 'delete-edge'],
   m: [],
@@ -22,10 +22,10 @@ const noEdgeMatch = "The drawn edges don't match the file's text (no edge match)
   + 'edge. Delete it in the file.';
 
 /**
- * Each item: `action` (what the editor runs), `label` (a string, or a function of the menu's state), `key` (its
+ * Each item: `action` (what the editor runs), `label`, `key` (its
  * shortcut letter), and optionally `applies(state)` with `why(state)` (when it does not apply, the item is greyed and
  * says why), `submenu` (the name of what opens beside it), `mode` (it waits for a further click), `separated`.
- * The state: { edgesOk, hasLabel, title }.
+ * The state: { edgesOk, hasLabel }.
  */
 export const MENUS = {
   node: [
@@ -41,13 +41,17 @@ export const MENUS = {
     { action: 'reverse-edge', label: 'Reverse edge', key: 'v' },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
   ],
+  subgraph: [
+    { action: 'add-node', label: 'Add node', key: 'n' },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
+    { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
+    { action: 'edit-title', label: 'Edit title', key: 't' },
+  ],
   space: [
-    { action: 'add-node', label: (s) => (s.title ? `Add node in ${s.title}` : 'Add node'), key: 'n' },
+    { action: 'add-node', label: 'Add node', key: 'n' },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
   ],
 };
-
-/** An item's label for a state. */
-export const labelOf = (item, state) => (typeof item.label === 'function' ? item.label(state) : item.label);
 
 /** Where an item's key is shown in its label: its first letter that starts a word, else its first letter at all. */
 export function keyIndex(label, key) {

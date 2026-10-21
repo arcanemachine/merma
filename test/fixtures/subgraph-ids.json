@@ -1,0 +1,30 @@
+{
+ "01-basic.mmd": [],
+ "02-graph-header-bare.mmd": [],
+ "03-directive-comments.mmd": [],
+ "04-frontmatter.mmd": [],
+ "05-chains-shapes.mmd": [],
+ "06-subgraphs-classes.mmd": [
+  "pay",
+  "tail"
+ ],
+ "07-tricky-labels.mmd": [],
+ "08-new-shape-syntax.mmd": [],
+ "09-no-trailing-newline.mmd": [],
+ "10-linkstyle-subgraph.mmd": [
+  "box"
+ ],
+ "11-edge-kinds.mmd": [
+  "box"
+ ],
+ "12-subgraph-ids.mmd": [
+  "Shipping",
+  "Single",
+  "outer",
+  "pay",
+  "subGraph1",
+  "subGraph3",
+  "subGraph6",
+  "tight"
+ ]
+}

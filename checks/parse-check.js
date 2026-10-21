@@ -7,10 +7,23 @@
     const dir = new URLSearchParams(location.search).get('f').replace(/[^/]+$/, '');
     const cases = await (await fetch('/source?f=' + encodeURIComponent(dir + '_cases.json.mmd'))).json();
     const db = async (text) => (await mermaid.mermaidAPI.getDiagramFromText(text)).db;
-    const membership = (d) => {
+    /*
+     * Which subgraph each node and subgraph is in. An id-less subgraph's `subGraph<k>` is renumbered when subgraphs
+     * are added, so it goes by its title; `rename` maps a subgraph given an id to that id.
+     */
+    const membership = (d, rename = {}) => {
+      const sgs = d.getSubGraphs?.() || [];
+      const titles = new Map(sgs.map((sg) => [sg.id, sg.title]));
+      const name = (id) => rename[id] ?? (/^subGraph\d+$/.test(id) && titles.has(id) ? `"${titles.get(id)}"` : id);
       const out = {};
-      for (const sg of d.getSubGraphs?.() || []) for (const n of sg.nodes) out[n] = sg.id;
-      return out;
+      for (const sg of sgs) for (const n of sg.nodes) out[name(n)] = name(sg.id);
+      return { out, name };
+    };
+    /* A subgraph's title as drawn. */
+    const drawnTitle = async (text, id) => {
+      const { svg } = await mermaid.render('parse-check-' + k++, text);
+      const doc = new DOMParser().parseFromString(svg, 'text/html');
+      return doc.querySelector(`g.cluster[id$="-${id}"] .cluster-label`)?.textContent.trim() ?? null;
     };
     /* The label text each edge is drawn with, in edge order. */
     let k = 0;
@@ -25,11 +38,19 @@
         await mermaid.parse(c.out);
         if (c.kind === 'relabel') continue;
         const before = await db(c.src), after = await db(c.out);
-        const was = membership(before), now = membership(after);
+        const { out: was, name } = membership(before, c.renamed ? { [c.renamed.from]: c.renamed.to } : {});
+        const { out: now } = membership(after);
         for (const [node, sg] of Object.entries(was)) if (node !== c.gone && now[node] !== sg) fails.push(`${c.name}: ${node} moved ${sg} -> ${now[node]}`);
+        if (c.into && now[c.into.id] !== name(c.into.subgraph)) fails.push(`${c.name}: ${c.into.id} is in ${now[c.into.id]}, expected ${name(c.into.subgraph)}`);
+        if (c.title) {
+          const got = await drawnTitle(c.out, c.title.id);
+          const expected = await drawnTitle(`flowchart LR\n  subgraph x [${c.title.text}]\n    a\n  end\n`, 'x');
+          if (got !== expected) fails.push(`${c.name}: title drawn as ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
+        }
         if (c.kind !== 'delete' && c.kind !== 'change') continue;
-        const vertices = after.getVertices();
-        for (const node of before.getVertices().keys()) if (node !== c.gone && !vertices.has(node)) fails.push(`${c.name}: ${node} lost`);
+        /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
+        const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));
+        for (const node of before.getVertices().keys()) if (node !== c.gone && !blocks.has(node) && !vertices.has(node)) fails.push(`${c.name}: ${node} lost`);
         const old = before.getEdges(), left = after.getEdges();
         if (c.kind === 'change') {
           /* Every edge in its place with its linkStyle style; the changed one turned around if asked, the others as they were. */

@@ -1,12 +1,14 @@
-// Every action on every node and edge of every fixture, as { name, kind, src, out, gone?, keep?, at?, swap? } for the
-// browser parse check. `gone`: the node deleted; `keep`: for each edge left, its index before; `at`: the edge changed
-// in place (`swap`: turned around), and `want` what it should be: { type, stroke } as Mermaid names an arrow,
-// { label } a label as written, or { sameLabel } the label it had.
+// Every action on every node, edge and subgraph of every fixture, as { name, kind, src, out, gone?, keep?, at?, swap?,
+// renamed?, into?, title? } for the browser parse check. `gone`: the node deleted; `keep`: for each edge left, its
+// index before; `at`: the edge changed in place (`swap`: turned around), and `want` what it should be: { type, stroke }
+// as Mermaid names an arrow, { label } a label as written, or { sameLabel } the label it had. `renamed`: a subgraph
+// given an id, { from, to }; `into`: { id, subgraph } a node or subgraph added inside another; `title`: { id, text }
+// the subgraph retitled, and its new title as written.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, addConnected, connect, deleteEdge, deleteNode, edges, quoteLabel, relabel, reverseEdge, setEdgeArrow,
-  setEdgeLabel,
+  ARROWS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel, relabel,
+  reverseEdge, setEdgeArrow, setEdgeLabel, setSubgraphTitle, subgraphs,
 } from '../web/patch/flowchart.mjs';
 // Mermaid's db names for each arrow type: [type, stroke].
 const DRAWN = {
@@ -22,6 +24,22 @@ const sources = Object.entries(ids).map(([name, list]) => [name, list, readFileS
 // Text-form labels with characters a pipe label takes only quoted, moved into pipes by an arrow change.
 sources.push(['text-form labels', [], 'flowchart LR\n  A -- yes (maybe): [b] {c} --> B\n  B -- it says: hi --> C\n  C -- "a --> b" --> A\n']);
 for (const [name, list, src] of sources) {
+  cases.push({ name: `${name} add node`, kind: 'add', src, out: addNode(src).text });
+  cases.push({ name: `${name} add subgraph`, kind: 'add', src, out: addSubgraph(src).text });
+  for (const sg of subgraphs(src).filter((s) => s.end !== null)) {
+    const renamed = sg.written ? null : { from: sg.id, to: freeId(src, 's') };
+    const now = renamed?.to ?? sg.id;
+    const title = 'Say "hi" #1 <b> & [x]';
+    cases.push({ name: `${name} title ${sg.id}`, kind: 'title', src, out: setSubgraphTitle(src, sg.id, title).text, renamed, title: { id: now, text: quoteLabel(title) } });
+    const node = addNode(src, { subgraph: sg.id });
+    cases.push({ name: `${name} add node in ${sg.id}`, kind: 'add', src, out: node.text, into: { id: node.id, subgraph: sg.id } });
+    const inner = addSubgraph(src, { parent: sg.id });
+    cases.push({ name: `${name} add subgraph in ${sg.id}`, kind: 'add', src, out: inner.text, into: { id: inner.id, subgraph: sg.id } });
+    for (const other of list.slice(0, 1)) {
+      cases.push({ name: `${name} connect ${other}->${sg.id}`, kind: 'connect', src, out: connect(src, other, sg.id).text, renamed });
+      cases.push({ name: `${name} connect ${sg.id}->${other}`, kind: 'connect', src, out: connect(src, sg.id, other).text, renamed });
+    }
+  }
   for (const id of list) {
     const other = list.find((x) => x !== id);
     cases.push({ name: `${name} add ${id}`, kind: 'add', src, out: addConnected(src, id).text });

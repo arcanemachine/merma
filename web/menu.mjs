@@ -6,7 +6,7 @@
 // opens the focused item's submenu and Left or Escape closes it, Escape closes the menu. Other keys stop here, so the
 // page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt combinations go on (undo still works).
 
-import { keyIndex, labelOf } from './menu-items.mjs';
+import { keyIndex } from './menu-items.mjs';
 import { place } from './place.mjs';
 
 /**
@@ -46,11 +46,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   const applies = (item) => !item.applies || item.applies(state);
 
-  /** Draw the items for the current state: labels (some name a subgraph), keys, and which are greyed. */
+  /** Draw the items for the current state: labels, keys, and which are greyed. */
   function render() {
     items.forEach((item, i) => {
       const b = buttons[i];
-      const label = labelOf(item, state);
+      const label = item.label;
       const at = keyIndex(label, item.key);
       const text = document.createElement('span');
       text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }),

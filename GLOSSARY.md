@@ -33,6 +33,7 @@ Mermaid syntax.
 | **chain** | Several edges in one statement: `A --> B --> C`. |
 | **`&` group** | Several nodes on one side of a connector: `A & B --> C`, which is two edges. |
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
+| **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |
 | **connect** | Make an edge between two nodes by pointing (Connect to…). |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
@@ -48,12 +49,12 @@ note where merma had to make one up.
 | **page** | merma in the browser, showing one file. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
-| **select**, **selection**, **deselect** | Clicking a node or an edge marks it: it **glows**. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
-| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
+| **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it **glows**. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
+| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types (later the shapes). Shows the current one. |
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
-| **label box** | The text box laid over a node's or an edge's label to edit it in place (Edit label). merma's own. |
+| **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit label, Edit title). merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
