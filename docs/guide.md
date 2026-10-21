@@ -17,7 +17,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Selecting
 
-In a flowchart, click a node, or an edge's line or label, to select it: it glows. Click empty space to let go.
+In a flowchart, click a node, or an edge's line or label, to select it: it glows. Click empty space to deselect.
 Right-click it (or long-press on a touch screen) for its menu. Other diagram types are view-only.
 
 Edges can be selected only when merma can match the drawn edges to the text, edge for edge (an edge match). When it
@@ -85,7 +85,7 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter or F2 | Edit the selected node's or edge's label |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selected node's or edge's menu; with nothing selected, Add node |
-| Escape | Cancel Connect to…, or let go of the selection |
+| Escape | Cancel Connect to…, or deselect |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 
