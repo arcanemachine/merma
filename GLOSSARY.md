@@ -20,7 +20,7 @@ Mermaid syntax.
 | **comment** | A `%% …` line. |
 | **statement** | One instruction in the file: a line, or part of a line between `;`. |
 | **node** | A box in the diagram (Mermaid's term). |
-| **node id** | The name a node has in the file (`charge` in `charge[Charge card]`). Never shown on the page. |
+| **node id** | The name a node has in the file (`charge` in `charge[Charge card]`). Never shown on the page, except as the text of a node drawn with no label. |
 | **label** | The text shown on a node or an edge. |
 | **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. |
 | **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
@@ -54,7 +54,7 @@ note where merma had to make one up.
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types (later the shapes). Shows the current one. |
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label to edit it in place (Edit label). merma's own. |
-| **toast** | A short message at the top right that fades on its own: "Saved", "Undone". Never an error. |
+| **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |

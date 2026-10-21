@@ -45,9 +45,11 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #help table { border-collapse: collapse; width: 100%; }
 #help th { text-align: left; font-weight: normal; white-space: nowrap; padding: 0.25rem 16px 0.25rem 0; vertical-align: top; color: #444; }
 #help td { padding: 0.25rem 0; vertical-align: top; }
-/* Each form of a key on its own line: Ctrl+Z, then ⌘+Z. */
-#help th > span { display: block; }
-#help th > span + span { margin-top: 3px; }
+/* A row too long for one line breaks at its "or", never inside a key combination. */
+/* The key column is as narrow as its widest unbreakable entry; the descriptions take the rest. */
+#help th[scope="row"] { width: 1%; }
+#help th.wrap { white-space: normal; }
+#help th.wrap > span { white-space: nowrap; }
 #help p.note { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #eee; color: #666; }
 #help kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid #ccc; border-bottom-width: 2px;
             border-radius: 3px; background: #f6f6f6; }

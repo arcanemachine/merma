@@ -20,7 +20,7 @@ import { createPicker } from './picker.mjs';
  * @param {ReturnType<import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, toast(message: string): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void }} deps.ui
  * @param {Record<'stage'|'diagram'|'labelBox', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
@@ -43,6 +43,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const nodeOf = (target) => target.closest('g.node[data-page-node]')?.dataset.pageNode;
   const edgeOf = (target) => (edgesOk ? target.closest('[data-page-edge]')?.dataset.pageEdge : undefined);
   const selectedNode = () => (selected?.kind === 'node' ? selected.id : null);
+  /** A node as messages name it: its label as drawn, in quotes, on one line; a node drawn with no label shows its id. */
+  const named = (id) => `"${(nodeEl(id)?.querySelector('.nodeLabel')?.innerText ?? id).trim().replace(/\s+/g, ' ') || id}"`;
   const shownEdge = (id) => edges(shownText).find((e) => e.svgId === id);
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
@@ -59,7 +61,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'add-connected-node': () => addAndName((text) => addConnected(text, selected.id)),
     'connect': () => {
       connecting = true;
-      ui.notice(`Click the node to connect ${selected.id} to. Click away or press Escape to cancel.`, 'info');
+      ui.notice('Click the node the edge goes to. Click away or press Escape to cancel.', 'info');
     },
     'edit-label': () => openLabelBox(selected),
     'delete-node': () => deleteSelected(),
@@ -160,9 +162,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       connecting = false;
       ui.hideNotice();
       if (!id) { deselect(); return; }
-      if (id === from) { ui.notice('Pick a different node to connect to.', 'info'); select(selected); return; }
+      if (id === from) { ui.notice('Pick a different node to connect to.', 'warning'); select(selected); return; }
       deselect();
-      edit((text) => connect(text, from, id));
+      const names = [named(from), named(id)];
+      edit((text) => connect(text, from, id), () => ui.announce(`Connected ${names[0]} to ${names[1]}`));
       return;
     }
     const edge = !id && edgeOf(target);
@@ -196,9 +199,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const sel = selected;
     if (!sel) return;
     if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(), 'warning'); return; }
+    // Named before the edit: once deleted, the node is no longer drawn.
+    const name = sel.kind === 'node' && named(sel.id);
     editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
-      if (sel.kind === 'edge') ui.toast('Deleted the edge');
-      else ui.toast(`Deleted ${sel.id}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
+      if (sel.kind === 'edge') ui.announce('Deleted the edge');
+      else ui.announce(`Deleted ${name}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
     });
   }
 
@@ -414,7 +419,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const redoing = history.peekRedo(base.text);
       if (!redoing.ok) {
-        if (redoing.reason === 'empty') ui.notice('Nothing to redo.', 'info');
+        if (redoing.reason === 'empty') ui.notice('Nothing to redo.', 'warning');
         else ui.notice('Cannot redo: the file has changed since.', 'error');
         return;
       }
@@ -423,7 +428,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       deselect();
       closeLabelBox();
       await display(redoing.text);
-      ui.toast('Redone');
+      ui.announce('Redone');
     });
   }
 
@@ -434,7 +439,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const undoing = history.peek(base.text);
       if (!undoing.ok) {
-        if (undoing.reason === 'empty') ui.notice('Nothing to undo.', 'info');
+        if (undoing.reason === 'empty') ui.notice('Nothing to undo.', 'warning');
         else ui.notice('Cannot undo: the file has changed since that edit.', 'error');
         return;
       }
@@ -443,7 +448,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       deselect();
       closeLabelBox();
       await display(undoing.text);
-      ui.toast('Undone');
+      ui.announce('Undone');
     });
   }
 
@@ -463,7 +468,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
       return false;
     }
-    ui.toast('Saved');
+    ui.announce('Saved');
     return true;
   }
 
