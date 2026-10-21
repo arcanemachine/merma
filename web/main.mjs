@@ -137,6 +137,24 @@ for (const id of ['path', 'host']) {
   });
 }
 
+// Help shows the keys of one system, Windows and Linux or macOS: the browser's own at first, then the one last chosen
+// in this browser (localStorage: the browser's, never the file's).
+const osKey = 'merma:help-os';
+function showOs(os) {
+  el('help').dataset.os = os;
+  for (const b of el('help').querySelectorAll('[data-os-pick]')) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
+}
+let savedOs = null;
+try { savedOs = localStorage.getItem(osKey); } catch { /* storage unavailable: use the browser's system */ }
+const platform = navigator.userAgentData?.platform || navigator.platform || '';
+showOs(savedOs || (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
+for (const b of el('help').querySelectorAll('[data-os-pick]')) {
+  b.addEventListener('click', () => {
+    showOs(b.dataset.osPick);
+    try { localStorage.setItem(osKey, b.dataset.osPick); } catch { /* not remembered */ }
+  });
+}
+
 // The footer. The SVG is exported as this browser drew it, with its fonts, so it can differ slightly from a
 // mermaid-cli PNG.
 el('reset-view').addEventListener('click', viewer.fit);

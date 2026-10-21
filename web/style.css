@@ -49,8 +49,19 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 /* The key column is as narrow as its widest unbreakable entry; the descriptions take the rest. */
 #help th[scope="row"] { width: 1%; }
 #help th.wrap { white-space: normal; }
-#help th.wrap > span { white-space: nowrap; }
-#help p.note { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #eee; color: #666; }
+#help th.wrap .combo { white-space: nowrap; }
+/* The foot: which system's keys the rows show, and where the rest is. Only the chosen system's keys are shown. */
+#help .help-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
+                   margin-top: 10px;
+                   padding-top: 10px; border-top: 1px solid #eee; }
+#help p.note { margin: 0; color: #666; white-space: nowrap; }
+#help .os-toggle { display: inline-flex; border: 1px solid #bbb; border-radius: 6px; overflow: hidden; }
+#help .os-toggle button { font: inherit; font-size: 12px; padding: 3px 10px; border: 0; background: #fff; color: #444;
+                          cursor: pointer; }
+#help .os-toggle button + button { border-left: 1px solid #bbb; }
+#help .os-toggle button[aria-pressed="true"] { background: #0969da; color: #fff; }
+#help .os-toggle button:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
+#help:not([data-os="mac"]) [data-os="mac"], #help[data-os="mac"] [data-os="pc"] { display: none; }
 #help kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid #ccc; border-bottom-width: 2px;
             border-radius: 3px; background: #f6f6f6; }
 #help code { font: 12px ui-monospace, monospace; }
