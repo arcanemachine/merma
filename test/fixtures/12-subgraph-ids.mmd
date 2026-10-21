@@ -1,0 +1,26 @@
+flowchart TD
+  start[Begin] --> pay
+  subgraph pay [Payment]
+    charge[Charge] --> record[Record]
+  end
+  subgraph "Order log"
+    log[(Log)]
+  end
+  subgraph Shipping
+    pack[Pack]
+  end
+  subgraph outer [Outer]
+    subgraph "Inner step"
+      step[Step]
+    end
+    subgraph tight["Tight"]
+      t1
+    end
+  end
+  subgraph Two words
+    w1
+  end
+  subgraph "Single"
+  end
+  record --> Shipping
+  Shipping --> log

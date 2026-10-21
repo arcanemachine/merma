@@ -96,5 +96,11 @@
   "L_C_B_0",
   "L_oak_xen_0",
   "L_in1_in2_0"
+ ],
+ "12-subgraph-ids.mmd": [
+  "L_start_pay_0",
+  "L_charge_record_0",
+  "L_record_Shipping_0",
+  "L_Shipping_log_0"
  ]
 }

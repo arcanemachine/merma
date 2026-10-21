@@ -79,5 +79,15 @@
   "in2",
   "oak",
   "xen"
+ ],
+ "12-subgraph-ids.mmd": [
+  "charge",
+  "log",
+  "pack",
+  "record",
+  "start",
+  "step",
+  "t1",
+  "w1"
  ]
 }
