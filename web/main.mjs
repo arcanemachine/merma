@@ -147,7 +147,7 @@ function showOs(os) {
 let savedOs = null;
 try { savedOs = localStorage.getItem(osKey); } catch { /* storage unavailable: use the browser's system */ }
 const platform = navigator.userAgentData?.platform || navigator.platform || '';
-showOs(savedOs || (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
+showOs(['pc', 'mac'].includes(savedOs) ? savedOs : (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
 for (const b of el('help').querySelectorAll('[data-os-pick]')) {
   b.addEventListener('click', () => {
     showOs(b.dataset.osPick);
