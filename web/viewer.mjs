@@ -51,12 +51,14 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     onViewChange();
   }
 
+  // The fit leaves the diagram area's top padding clear, besides its own margin.
   function fit() {
     const box = diagram.getBoundingClientRect();
     if (!size.w || !size.h) return;
-    view.k = Math.min(1, (box.width - 2 * PAD) / size.w, (box.height - 2 * PAD) / size.h);
+    const top = parseFloat(getComputedStyle(diagram).paddingTop) || 0;
+    view.k = Math.min(1, (box.width - 2 * PAD) / size.w, (box.height - top - 2 * PAD) / size.h);
     view.x = (box.width - size.w * view.k) / 2;
-    view.y = (box.height - size.h * view.k) / 2;
+    view.y = top + (box.height - top - size.h * view.k) / 2;
     touched = false;
     apply();
   }
