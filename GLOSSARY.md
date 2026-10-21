@@ -55,7 +55,7 @@ note where merma had to make one up.
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label to edit it in place (Edit label). merma's own. |
 | **toast** | A short message at the top right that fades on its own: "Saved", "Undone". Never an error. |
-| **notice** | The bar above the diagram: what to do next, or (in red) what was not saved and why. |
+| **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
 | **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |

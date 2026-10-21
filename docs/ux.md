@@ -38,6 +38,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
+- A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
+  Connect to…) ends on one, as on Escape.
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
@@ -50,12 +52,24 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   not apply right now is greyed out, not hidden, so items keep their place and their keys. It says why on hover, and
   in the notice when its key is pressed or it is tapped.
 - An item for another kind of thing is left out.
+- Items run make, change, rearrange, delete: Add and Connect, then Edit and Remove, then Reverse and Move, then Delete,
+  last and set apart. Within a group, the most used first.
 - This is a balance, not a fixed rule: hide what would only be noise.
 
 ## Messages
 
-- A toast says what happened ("Saved", "Connected C to B"), and fades. A notice says what to do next, or what was not
-  saved and why, and stays. An error is never a toast.
+- A toast says what happened ("Saved", "Connected C to B"), and fades; it never says what to do. A notice says what to
+  do next, or why something was not done, and stays. An error is never a toast.
+- Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
+- A notice is one of three kinds, by what was lost:
+  - **info** (blue): what to do next ("Click the node to connect A to"), or that there was nothing to do ("Nothing to
+    undo").
+  - **warning** (amber): the page will not do this here, and nothing was tried: a greyed item's key, merma unable to
+    match the edges. The no is firm; the colour says nothing was lost.
+  - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
+    empty label on Enter.
+- Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so
+  pressing a greyed item's key over and over does not keep cutting in.
 
 ## One way to do each thing
 

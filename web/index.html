@@ -13,7 +13,9 @@
     <div class="right"><span class="status" id="status">loading…</span><span class="toast" id="toast"></span></div>
   </header>
   <div id="error"></div>
-  <div id="notice" role="status"></div>
+  <div id="notice"></div>
+  <div id="notice-status" class="visually-hidden" role="status"></div>
+  <div id="notice-alert" class="visually-hidden" role="alert"></div>
   <div id="diagram" tabindex="-1">
     <div id="stage"></div>
     <textarea id="label-box" rows="1" aria-label="Node label" title="Enter saves, Shift+Enter starts a new line, Escape cancels" data-overlay></textarea>
@@ -36,11 +38,12 @@
       <tr><th scope="row">Double-click</th><td>Edit its label</td></tr>
       <tr><th colspan="2" class="section">Keys</th></tr>
       <tr><th scope="row"><kbd>N</kbd></th><td>Add a node, connected to the selected one if any</td></tr>
-      <tr><th scope="row"><kbd>Enter</kbd> <kbd>F2</kbd></th><td>Edit the selected label</td></tr>
-      <tr><th scope="row"><kbd>Delete</kbd> <kbd>Backspace</kbd></th><td>Delete the selected node or edge</td></tr>
+      <tr><th scope="row"><span><kbd>Enter</kbd></span><span><kbd>F2</kbd></span></th><td>Edit the selected label</td></tr>
+      <tr><th scope="row"><span><kbd>Delete</kbd></span><span><kbd>Backspace</kbd></span></th><td>Delete the selected node or edge</td></tr>
+      <tr><th scope="row"><kbd>M</kbd></th><td>Open the menu for the selection (or Add node)</td></tr>
       <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel, or let go of the selection</td></tr>
-      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>Z</kbd><br><kbd>⌘</kbd>+<kbd>Z</kbd></th><td>Undo</td></tr>
-      <tr><th scope="row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd><br><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd><br><kbd>Ctrl</kbd>+<kbd>Y</kbd></th><td>Redo</td></tr>
+      <tr><th scope="row"><span><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span><kbd>⌘</kbd>+<kbd>Z</kbd></span></th><td>Undo</td></tr>
+      <tr><th scope="row"><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span><span><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span><span><kbd>Ctrl</kbd>+<kbd>Y</kbd></span></th><td>Redo</td></tr>
     </table>
     <p class="note">Menus show their own keys, underlined. The page follows the file: a save anywhere shows within a
       second. Everything else: the guide in merma's docs folder (<code>docs/guide.md</code>).</p>

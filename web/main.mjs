@@ -55,14 +55,27 @@ function showError(message) {
   el('error').style.display = message ? 'block' : 'none';
 }
 
+// The notice is drawn in #notice and read out from a hidden live region: an error at once (role="alert"), anything
+// else when the screen reader is free (role="status"). Setting the role on #notice itself just before its text is not
+// announced reliably.
+const NOTICE_KINDS = ['info', 'warning', 'error'];
 const ui = {
   toast,
-  notice(message, bad = false) {
+  notice(message, kind) {
+    if (!NOTICE_KINDS.includes(kind)) throw new Error(`Unknown notice kind ${kind}`);
     el('notice').textContent = message;
-    el('notice').classList.add('show');
-    el('notice').classList.toggle('bad', bad);
+    el('notice').classList.remove(...NOTICE_KINDS);
+    el('notice').classList.add('show', kind);
+    // Cleared first, so the same message twice in a row is announced again.
+    const [speak, quiet] = kind === 'error' ? ['notice-alert', 'notice-status'] : ['notice-status', 'notice-alert'];
+    el(quiet).textContent = '';
+    el(speak).textContent = '';
+    requestAnimationFrame(() => { el(speak).textContent = message; });
   },
-  hideNotice: () => el('notice').classList.remove('show'),
+  hideNotice() {
+    el('notice').classList.remove('show');
+    for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
+  },
 };
 
 /** @type {ReturnType<typeof createEditor> | null} set once the source and viewer it needs exist */
