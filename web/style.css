@@ -83,13 +83,23 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice.warning { background: #fff4d6; color: #5c4400; }
 #notice.error { background: #fde2e2; color: #7b1d1d; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one glows, whatever its shape. */
+/* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one is outlined in blue, whatever its
+   shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage
+   leaves stray fragments around it. !important wins over the colours Mermaid writes inline from classDef and style. */
 #stage.editable g.node[data-page-node], #stage.editable g.node[data-page-node] *,
 #stage.editable g.cluster[data-page-subgraph], #stage.editable g.cluster[data-page-subgraph] *,
 #stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
-#stage [data-page-selected]:not([data-page-only]) { filter: drop-shadow(0 0 2px #0969da) drop-shadow(0 0 4px #0969da); }
+#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.cluster[data-page-selected] > rect { stroke: #0969da !important; stroke-width: 3px !important; }
+/* An edge one step wider than its own 2 px or 3.5 px line; a dotted edge keeps its dashes. */
+#stage path.edge-thickness-normal[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: #0969da !important;
+  stroke-width: 3px !important; }
+#stage path.edge-thickness-thick[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: #0969da !important;
+  stroke-width: 4.5px !important; }
+/* Inside the label: its foreignObject clips anything drawn outside it. */
+#stage g.edgeLabel[data-page-selected] .labelBkg { box-shadow: inset 0 0 0 2px #0969da; }
 /* An edge's line is hard to hit, so a wide invisible path lies over it. An invisible edge (~~~) shows through it when
-   selected, since it has no line to glow. */
+   selected, since it has no line to outline. */
 #stage path[data-page-only] { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
 #stage path.edge-thickness-invisible[data-page-selected] + path[data-page-only] { stroke: rgba(9, 105, 218, 0.3); }
 /* Menus are manual popovers (top layer), placed in viewport coordinates beside what they belong to. */
