@@ -59,7 +59,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 ## Messages
 
 - An edit that worked shows no message: the redrawn diagram shows what it did. Screen readers, which cannot see the
-  redraw, hear a line for it ("Connected "Take order" to "Order log"").
+  redraw, hear a line for it ('Connected "Take order" to "Order log"').
 - A toast is only for a result you cannot see on screen ("Copied!", "SVG downloaded"), and fades; it never says what
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
