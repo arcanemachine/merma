@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="merma-build" content="{{MERMA_BUILD}}">
   <title>merma</title>
   <link rel="stylesheet" href="/style.css">
@@ -38,15 +39,14 @@
       <tr><th scope="row">Double-click</th><td>Edit its label</td></tr>
       <tr><th colspan="2" class="section">Keys</th></tr>
       <tr><th scope="row"><kbd>N</kbd></th><td>Add a node, connected to the selected one if any</td></tr>
-      <tr><th scope="row"><span><kbd>Enter</kbd></span><span><kbd>F2</kbd></span></th><td>Edit the selected label</td></tr>
-      <tr><th scope="row"><span><kbd>Delete</kbd></span><span><kbd>Backspace</kbd></span></th><td>Delete the selected node or edge</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd></th><td>Edit the selected label</td></tr>
+      <tr><th scope="row"><kbd>Delete</kbd> or <kbd>Backspace</kbd></th><td>Delete the selected node or edge</td></tr>
       <tr><th scope="row"><kbd>M</kbd></th><td>Open the menu for the selection (or Add node)</td></tr>
       <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel, or let go of the selection</td></tr>
-      <tr><th scope="row"><span><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span><kbd>⌘</kbd>+<kbd>Z</kbd></span></th><td>Undo</td></tr>
-      <tr><th scope="row"><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span><span><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span><span><kbd>Ctrl</kbd>+<kbd>Y</kbd></span></th><td>Redo</td></tr>
+      <tr><th scope="row"><kbd title="Linux, Windows: Ctrl; macOS: ⌘">Ctrl | ⌘</kbd>+<kbd>Z</kbd></th><td>Undo</td></tr>
+      <tr><th scope="row" class="wrap"><span><kbd title="Linux, Windows: Ctrl; macOS: ⌘">Ctrl | ⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span> or <span><kbd>Ctrl</kbd>+<kbd>Y</kbd></span></th><td>Redo</td></tr>
     </table>
-    <p class="note">Menus show their own keys, underlined. The page follows the file: a save anywhere shows within a
-      second. Everything else: the guide in merma's docs folder (<code>docs/guide.md</code>).</p>
+    <p class="note">Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ on macOS. More: <code>docs/guide.md</code>.</p>
   </div>
   <script type="module" src="/main.mjs"></script>
 </body>

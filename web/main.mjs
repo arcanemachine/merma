@@ -60,20 +60,23 @@ function showError(message) {
 // announced reliably.
 const NOTICE_KINDS = ['info', 'warning', 'error'];
 let speakFrame;
+/** Read `message` out from the live region `id`, and empty the other one. */
+function speak(id, message) {
+  cancelAnimationFrame(speakFrame);
+  for (const region of ['notice-status', 'notice-alert']) el(region).textContent = '';
+  // Set on the next frame, after the clearing, so the same message twice in a row is announced again.
+  speakFrame = requestAnimationFrame(() => { el(id).textContent = message; });
+}
 const ui = {
-  toast,
   notice(message, kind) {
     if (!NOTICE_KINDS.includes(kind)) throw new Error(`Unknown notice kind ${kind}`);
-    cancelAnimationFrame(speakFrame);
     el('notice').textContent = message;
     el('notice').classList.remove(...NOTICE_KINDS);
     el('notice').classList.add('show', kind);
-    // Cleared first, so the same message twice in a row is announced again.
-    const [speak, quiet] = kind === 'error' ? ['notice-alert', 'notice-status'] : ['notice-status', 'notice-alert'];
-    el(quiet).textContent = '';
-    el(speak).textContent = '';
-    speakFrame = requestAnimationFrame(() => { el(speak).textContent = message; });
+    speak(kind === 'error' ? 'notice-alert' : 'notice-status', message);
   },
+  /** What an edit did, for screen readers only: on screen, the redrawn diagram shows it. */
+  announce: (message) => speak('notice-status', message),
   hideNotice() {
     cancelAnimationFrame(speakFrame);
     el('notice').classList.remove('show');

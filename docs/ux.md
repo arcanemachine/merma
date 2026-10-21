@@ -58,14 +58,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 ## Messages
 
-- A toast says what happened ("Saved", "Connected C to B"), and fades; it never says what to do. A notice says what to
-  do next, or why something was not done, and stays. An error is never a toast.
+- An edit that worked shows no message: the redrawn diagram shows what it did. Screen readers, which cannot see the
+  redraw, hear a line for it ("Connected "Take order" to "Order log"").
+- A toast is only for a result you cannot see on screen ("Copied!", "SVG downloaded"), and fades; it never says what
+  to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
+- A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
 - A notice is one of three kinds, by what was lost:
-  - **info** (blue): what to do next ("Click the node to connect A to"), or that there was nothing to do ("Nothing to
-    undo").
-  - **warning** (amber): the page will not do this here, and nothing was tried: a greyed item's key, merma unable to
-    match the edges. The no is firm; the colour says nothing was lost.
+  - **info** (blue): what to do next ("Click the node the edge goes to"), and nothing else.
+  - **warning** (amber): the page will not do this here, and nothing was tried: a greyed item's key, "Nothing to
+    undo", merma unable to match the edges. The no is firm; the colour says nothing was lost.
   - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
     empty label on Enter.
 - Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so

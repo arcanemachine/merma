@@ -82,12 +82,14 @@ Outside menus, and not while typing in the label box:
 | Key | Does |
 |---|---|
 | N | Add a node, connected to the selected node if there is one |
-| Enter, F2 | Edit the selected node's or edge's label |
-| Delete, Backspace | Delete the selected node or edge |
+| Enter or F2 | Edit the selected node's or edge's label |
+| Delete or Backspace | Delete the selected node or edge |
 | M | Open the selected node's or edge's menu; with nothing selected, Add node |
 | Escape | Cancel Connect to…, or let go of the selection |
-| Ctrl+Z (Cmd+Z) | Undo the page's last edit |
-| Ctrl+Shift+Z (Cmd+Shift+Z), Ctrl+Y | Redo |
+| Ctrl \| ⌘+Z | Undo the page's last edit |
+| Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
+
+Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS.
 
 A double-click on a node or an edge edits its label too.
 
