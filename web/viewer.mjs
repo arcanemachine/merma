@@ -1,4 +1,4 @@
-// The diagram view: renders Mermaid text into the stage, and lets the user zoom (wheel), move (drag) and fit
+// The diagram view: renders Mermaid text into the stage, and lets the user zoom (wheel, pinch), move (drag) and fit
 // (double-click) it. It knows nothing about files or editing: it reports clicks, double-clicks and context menus
 // (right-click, long-press), and whoever wired it decides what they mean. Elements marked `data-overlay` (a menu or an
 // input laid over the diagram) are left to themselves. What the page adds to the drawing is marked `data-page-…`: the
@@ -78,10 +78,36 @@ export function createViewer({ diagram, stage }, hooks = {}) {
 
   // The pointer is captured on press, so the move and the release reach the diagram even off its edge. That also makes
   // the browser's own click events target the diagram itself, so a click is reported with the element pressed.
+  // A press is one gesture, `drag`, however many fingers it has: a second finger on a touch screen makes it a pinch
+  // (zoom about the point between the fingers, and move with it), and is never a click or a long-press.
   let drag = null;
   let clicked = null;   // the element the last click pressed, for the double-click that follows it
+  const pointers = new Map();   // pointerId → { x, y }: the fingers (or the mouse) down in this gesture
+  const spread = () => {
+    const [a, b] = pointers.values();
+    const box = diagram.getBoundingClientRect();
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2 - box.left, y: (a.y + b.y) / 2 - box.top };
+  };
+  /** Carry on with the fingers still down, from where they are now, so the view does not jump. */
+  function reanchor() {
+    if (pointers.size >= 2) { drag.pinch = spread(); return; }
+    const [rest] = pointers.values();
+    drag.pinch = null;
+    drag.x = drag.startX = rest.x;
+    drag.y = drag.startY = rest.y;
+  }
   diagram.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || e.target.closest('[data-overlay]')) return;
+    if (drag && e.pointerType !== 'mouse') {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      diagram.setPointerCapture(e.pointerId);
+      clearTimeout(drag.timer);
+      drag.handled = drag.moving = true;
+      reanchor();
+      return;
+    }
+    pointers.clear();
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moving: false, target: e.target };
     diagram.setPointerCapture(e.pointerId);
     if (e.pointerType === 'touch') {
@@ -101,7 +127,16 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     if (onContextMenu(drag?.target ?? e.target, e.clientX, e.clientY)) e.preventDefault();
   });
   diagram.addEventListener('pointermove', (e) => {
-    if (!drag) return;
+    if (!drag || !pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (drag.pinch) {
+      const was = drag.pinch, now = spread();
+      view.x += now.x - was.x;
+      view.y += now.y - was.y;
+      drag.pinch = now;
+      zoomAt(now.x, now.y, was.dist ? now.dist / was.dist : 1);
+      return;
+    }
     if (!drag.moving) {
       if (Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) < CLICK_SLOP) return;
       drag.moving = true;
@@ -115,14 +150,21 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     touched = true;
     apply();
   });
-  const endDrag = () => { if (drag) clearTimeout(drag.timer); drag = null; diagram.classList.remove('dragging'); };
-  diagram.addEventListener('pointerup', () => {
+  const endDrag = () => { if (drag) clearTimeout(drag.timer); drag = null; pointers.clear(); diagram.classList.remove('dragging'); };
+  /** A finger lifted: the gesture goes on while any are down. Returns whether it did. */
+  const lifted = (e) => {
+    if (!drag || !pointers.delete(e.pointerId) || !pointers.size) return false;
+    reanchor();
+    return true;
+  };
+  diagram.addEventListener('pointerup', (e) => {
+    if (lifted(e)) return;
     const press = drag;
     endDrag();
     clicked = press && !press.moving && !press.handled ? press.target : null;
     if (clicked) onClick(clicked);
   });
-  diagram.addEventListener('pointercancel', endDrag);
+  diagram.addEventListener('pointercancel', (e) => { if (!lifted(e)) endDrag(); });
   diagram.addEventListener('dblclick', (e) => {
     if (e.target.closest('[data-overlay]')) return;
     if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
