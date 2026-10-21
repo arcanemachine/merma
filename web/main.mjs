@@ -59,10 +59,12 @@ function showError(message) {
 // else when the screen reader is free (role="status"). Setting the role on #notice itself just before its text is not
 // announced reliably.
 const NOTICE_KINDS = ['info', 'warning', 'error'];
+let speakFrame;
 const ui = {
   toast,
   notice(message, kind) {
     if (!NOTICE_KINDS.includes(kind)) throw new Error(`Unknown notice kind ${kind}`);
+    cancelAnimationFrame(speakFrame);
     el('notice').textContent = message;
     el('notice').classList.remove(...NOTICE_KINDS);
     el('notice').classList.add('show', kind);
@@ -70,9 +72,10 @@ const ui = {
     const [speak, quiet] = kind === 'error' ? ['notice-alert', 'notice-status'] : ['notice-status', 'notice-alert'];
     el(quiet).textContent = '';
     el(speak).textContent = '';
-    requestAnimationFrame(() => { el(speak).textContent = message; });
+    speakFrame = requestAnimationFrame(() => { el(speak).textContent = message; });
   },
   hideNotice() {
+    cancelAnimationFrame(speakFrame);
     el('notice').classList.remove('show');
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
   },

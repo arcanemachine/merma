@@ -205,9 +205,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
   // opens its History with it); N adds a node (connected to the selected node, if any); Enter or F2 edits the selected
   // item's label; Delete or Backspace deletes the selection; M opens the selection's menu, or with nothing selected the
-// empty-space menu at the middle of the diagram (top level: a key has no pointer to be over a subgraph); Escape backs
-// out of whatever is open. None of them while
-  // the label box (or another field) has the keyboard; an open menu takes its own keys first.
+  // empty-space menu at the middle of the diagram (top level: a key has no pointer to be over a subgraph); Escape backs
+  // out of whatever is open. None of them while the label box (or another field) has the keyboard; an open menu takes
+  // its own keys first.
   const keys = {
     n: () => {
       if (connecting) return false;
