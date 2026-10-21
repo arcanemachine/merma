@@ -98,7 +98,8 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   }
   diagram.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || e.target.closest('[data-overlay]')) return;
-    if (drag && e.pointerType !== 'mouse') {
+    // A primary pointer is the only one of its kind down: a gesture still open then lost its release, and is replaced.
+    if (drag && e.pointerType !== 'mouse' && !e.isPrimary) {
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       diagram.setPointerCapture(e.pointerId);
       clearTimeout(drag.timer);
