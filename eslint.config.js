@@ -5,6 +5,6 @@ import globals from 'globals';
 export default [
   { ignores: ['node_modules/'] },
   js.configs.recommended,
-  { files: ['web/**/*.mjs', 'checks/parse-check.js', 'checks/fixture-ids.js', 'checks/edge-point.js'], languageOptions: { globals: globals.browser } },
+  { files: ['web/**/*.mjs', 'checks/parse-check.js', 'checks/fixture-ids.js', 'checks/edge-point.js', 'checks/a11y-scan.js', 'checks/a11y-heard.js'], languageOptions: { globals: globals.browser } },
   { files: ['bin/**', 'server/**', 'test/**', 'checks/*.mjs', 'eslint.config.js'], languageOptions: { globals: globals.node } },
 ];
