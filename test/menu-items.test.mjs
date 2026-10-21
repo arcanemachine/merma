@@ -6,7 +6,10 @@ import { GLOBAL_KEYS, keyIndex, MENUS, VERBS } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType } from '../web/patch/flowchart.mjs';
 
-const STATES = [{ edgesOk: true, hasLabel: true }, { edgesOk: false, hasLabel: false }];
+const STATES = [
+  { edgesOk: true, hasLabel: true, nameWhy: null },
+  { edgesOk: false, hasLabel: false, nameWhy: 'This subgraph has no id in the file…' },
+];
 const items = Object.entries(MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));
 
 test('every menu label starts with one of the verbs, in sentence case', () => {
@@ -60,7 +63,7 @@ test('an item that can be greyed says why', () => {
   for (const { item } of items) {
     if (!item.applies) continue;
     assert.equal(typeof item.why, 'function', item.action);
-    for (const state of STATES) assert.ok(item.why(state).length > 0);
+    for (const state of STATES) if (!item.applies(state)) assert.ok(item.why(state).length > 0);
   }
 });
 

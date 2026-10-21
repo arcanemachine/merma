@@ -22,10 +22,10 @@ const noEdgeMatch = "The drawn edges don't match the file's text (no edge match)
   + 'edge. Delete it in the file.';
 
 /**
- * Each item: `action` (what the editor runs), `label`, `key` (its
- * shortcut letter), and optionally `applies(state)` with `why(state)` (when it does not apply, the item is greyed and
- * says why), `submenu` (the name of what opens beside it), `mode` (it waits for a further click), `separated`.
- * The state: { edgesOk, hasLabel }.
+ * Each item: `action` (what the editor runs), `label`, `key` (its shortcut letter), and optionally `applies(state)`
+ * with `why(state)` (when it does not apply, the item is greyed and says why), `submenu` (the name of what opens beside
+ * it), `mode` (it waits for a further click), `separated`. The state: { edgesOk, hasLabel, nameWhy }, `nameWhy` saying
+ * why the selected subgraph cannot be given an id, or null.
  */
 export const MENUS = {
   node: [
@@ -44,8 +44,8 @@ export const MENUS = {
   subgraph: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
-    { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
-    { action: 'edit-title', label: 'Edit title', key: 't' },
+    { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
   ],
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
