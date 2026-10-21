@@ -75,5 +75,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 ## One way to do each thing
 
+- One look, one meaning: a style used for one role (the small note after a Help heading says what the section is
+  limited to, "Editing flowcharts") is not reused for another (a usage note gets a look of its own). Two roles in one
+  look tell the reader they are the same kind of thing.
+
 - Like things share one component: one menu, one picker for arrow types and shapes. A new kind of choice uses them
   rather than a look of its own.
