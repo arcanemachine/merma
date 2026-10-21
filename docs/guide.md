@@ -7,7 +7,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Viewing
 
-- The wheel zooms at the cursor; a drag moves the diagram.
+- The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click on empty space, or **Reset view**, fits the diagram to the window. Once you have zoomed or moved it,
   edits keep your view, and so does a reload of the tab.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
