@@ -148,11 +148,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection -----------------------------------------------------------------------------------------------
 
-  const unglow = () => { for (const e of els.stage.querySelectorAll('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
+  const unmark = () => { for (const e of els.stage.querySelectorAll('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
 
-  /** Select a node, an edge or a subgraph (it glows); with `menu`, also open its menu beside it. */
+  /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
   function select(sel, { keepMode = false, menu = false } = {}) {
-    unglow();
+    unmark();
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
@@ -168,7 +168,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function deselect() {
-    unglow();
+    unmark();
     selected = null;
     connecting = false;
     closeMenus();

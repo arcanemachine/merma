@@ -18,7 +18,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 ## Selecting
 
 In a flowchart, click a node, an edge's line or label, or a subgraph (anywhere on its box that is not a node or an
-edge), to select it: it glows. Click empty space to deselect. Right-click it (or long-press on a touch screen) for its
+edge), to select it: it is outlined in blue. Click empty space to deselect. Right-click it (or long-press on a touch screen) for its
 menu. Other diagram types are view-only.
 
 A subgraph written with no id (`subgraph "Order log"`, or a title with spaces) is known only by the name Mermaid gives
