@@ -77,7 +77,7 @@ where the layout puts it.
 
 ## Keys
 
-Outside menus, and not while typing in the label box:
+Outside menus, and not while typing in the label box. Keys are case-insensitive, here and in menus:
 
 | Key | Does |
 |---|---|
