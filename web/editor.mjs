@@ -231,11 +231,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       openSpaceMenu(null, r.left + r.width / 2, r.top + r.height / 2);
       return true;
     },
+    // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
+    // goes ahead.
     escape: () => {
       if (connecting) { connecting = false; ui.hideNotice(); select(selected); return true; }
+      const had = Boolean(selected);
       deselect();
       ui.hideNotice();
-      return true;
+      return had;
     },
   };
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
