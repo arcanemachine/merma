@@ -41,7 +41,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
   show on hover and also as text, since touch has no hover.
-- Nothing moves under the pointer: a menu or picker never changes its items while it is open.
+- Nothing moves under the pointer: a menu or picker never changes its items while it is open, and a notice lies over
+  the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
+  that moved as Connect to… asked for a click would put another node under the click aimed at.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
