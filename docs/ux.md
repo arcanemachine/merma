@@ -14,6 +14,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 ## Words
 
+- Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit label").
+  When a gesture or key does different things depending on what it is on or what is selected, it gets a row per case,
+  and the case is named on the left ("Double-click empty space", "N with a node selected"). One action whatever the
+  target ("Open menu": the target's own menu) is one row, and so is a key that backs out of whatever is open ("Cancel
+  or deselect").
+
 - Mermaid's word wherever it has one: node, edge, label, shape, subgraph, title, direction, arrow type, length. A word
   of merma's own needs a reason, given in `GLOSSARY.md`. Readers who know Mermaid should not have to translate.
 - Menu labels are in sentence case and read verb + noun, from a fixed set of verbs, so one label predicts the next:

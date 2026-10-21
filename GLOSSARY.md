@@ -48,7 +48,7 @@ note where merma had to make one up.
 | **page** | merma in the browser, showing one file. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
-| **select**, **selection** | Clicking a node or an edge marks it: it **glows**. One item at a time, for now. |
+| **select**, **selection**, **deselect** | Clicking a node or an edge marks it: it **glows**. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types (later the shapes). Shows the current one. |
