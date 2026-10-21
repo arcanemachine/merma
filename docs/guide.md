@@ -25,7 +25,8 @@ A subgraph written with no id (`subgraph "Order log"`, or a title with spaces) i
 it, which changes as subgraphs come and go: such a subgraph stays selected only while the file is unchanged. An edit
 that has to name it in the file (Edit title, Connect to…) first gives it an id of its own, `s1`, in the same edit:
 `subgraph s1 ["Order log"]`. When the file already names it by Mermaid's name (`style subGraph1 …`), that would
-break those lines, so the page says to give it an id in the file instead.
+break those lines, so Edit title and Connect to… are greyed and say to give it an id in the file instead. A subgraph
+whose id has `-` or `.` in it (valid in Mermaid, not here) cannot be selected.
 
 Edges can be selected only when merma can match the drawn edges to the text, edge for edge (an edge match). When it
 cannot (a node id with `-` or `.`, a label spread over several lines), the page says so, and edges and deleting nodes
@@ -33,8 +34,8 @@ are left to the file.
 
 ## Menus
 
-A menu stays open until you click anywhere else on the page or press Escape. M opens the selected node's or edge's
-menu, the selected subgraph's, or with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
+A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
+with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or Escape closes it.
 

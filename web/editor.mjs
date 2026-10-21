@@ -1,7 +1,7 @@
-// Editing a flowchart by pointing: click a node, an edge or a subgraph to select it, right-click (or long-press) for its
-// menu, or right-click empty space to add a node; each action is a small text edit to the file (patch/flowchart.mjs). Each edit
-// is checked with Mermaid's parser before it is saved, and saved over the version it was based on (source.mjs), so a
-// change saved meanwhile by an agent or an editor is never overwritten. What this adds to the drawing is marked
+// Editing a flowchart by pointing: click a node, an edge or a subgraph to select it, right-click (or long-press) for
+// its menu, or right-click empty space to add a node; each action is a small text edit to the file
+// (patch/flowchart.mjs). Each edit is checked with Mermaid's parser before it is saved, and saved over the version it
+// was based on (source.mjs), so a change saved meanwhile by an agent or an editor is never overwritten. What this adds to the drawing is marked
 // `data-page-…`, which the SVG export leaves out.
 
 import { ARROW_TYPES } from './arrow-types.mjs';
@@ -25,14 +25,14 @@ import { createPicker } from './picker.mjs';
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
-  let selected = null;        // { kind: 'node' | 'edge' | 'subgraph', id }: a Mermaid node or subgraph id, or an edge's SVG id
+  let selected = null;        // { kind: 'node' | 'edge' | 'subgraph', id }: a Mermaid id, or an edge's SVG id
   let shownText = null;       // the text on screen, which edge ids refer to
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
   let pendingLabel = null;    // { kind, id } of a node or subgraph just added: open the label box on it once drawn
   const history = createHistory();
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
-  let naming = null;          // { kind, id, entry } while a thing just added is being named: its name belongs to its add
+  let naming = null;          // { kind, id, entry } while what was just added is named: its name belongs to its add
   let labelling = null;       // { kind, id } while the label box is open over it
   let refused = false;        // the notice shows why a menu item does not apply
 
@@ -66,7 +66,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * known by Mermaid's `subGraph<k>`, which renumbers when subgraphs come and go.
    */
   const drawnOnly = (id) => !subgraphs(shownText).find((s) => s.id === id)?.written;
-  /** Refuse, with a warning, an edit that would need an id written for a subgraph the file already names otherwise. */
+  /**
+   * Refuse, with a warning, an edit that would need an id written for a subgraph the file already names otherwise: for
+   * the ways in that pass no menu, which greys its items instead.
+   */
   function refuseUnnamed(id) {
     const why = subgraphRefusal(shownText, id);
     if (why) ui.notice(why, 'warning');
@@ -87,12 +90,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const handlers = {
     'add-connected-node': () => addAndName((text) => addConnected(text, selected.id)),
     'connect': () => {
-      if (selected.kind === 'subgraph' && refuseUnnamed(selected.id)) return;
       connecting = true;
       ui.notice('Click the node or subgraph the edge goes to. Click away or press Escape to cancel.', 'info');
     },
     'edit-label': () => openLabelBox(selected),
-    'edit-title': () => editTitle(selected),
+    'edit-title': () => openLabelBox(selected),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
     'remove-label': () => { const id = selected.id; editDrawn((text) => setEdgeLabel(text, id, '')); },
@@ -137,7 +139,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** What the menus need to know to grey their items. */
   function menuState() {
-    return { edgesOk, hasLabel: selected?.kind === 'edge' && Boolean(shownEdge(selected.id)?.label) };
+    return {
+      edgesOk,
+      hasLabel: selected?.kind === 'edge' && Boolean(shownEdge(selected.id)?.label),
+      nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
+    };
   }
 
   // --- selection -----------------------------------------------------------------------------------------------
@@ -253,8 +259,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
   // opens its History with it); N adds a node (connected to the selected node, or in the selected subgraph); Enter or F2
   // edits the selected item's label or title; Delete or Backspace deletes the selection; M opens the selection's menu,
-  // or with nothing selected the empty-space menu at the middle of the diagram; Escape backs out of whatever is open. None of them while the label box (or another field) has the keyboard; an open menu takes
-  // its own keys first.
+  // or with nothing selected the empty-space menu at the middle of the diagram; Escape backs out of whatever is open.
+  // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
   const keys = {
     n: () => {
       if (connecting) return false;
@@ -558,9 +564,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         const id = nodeIdFromSvgId(g.id, viewer.renderId);
         if (id) g.dataset.pageNode = id;
       }
+      // A subgraph whose id merma cannot read (`subgraph a-b [X]`) is left unselectable, as such a node's edges are.
+      const known = new Set(subgraphs(text).map((s) => s.id));
       for (const g of els.stage.querySelectorAll('g.cluster')) {
         const id = subgraphIdFromSvgId(g.id, viewer.renderId);
-        if (id) g.dataset.pageSubgraph = id;
+        if (known.has(id)) g.dataset.pageSubgraph = id;
       }
       tagEdges(text);
       const menu = menuOpen();

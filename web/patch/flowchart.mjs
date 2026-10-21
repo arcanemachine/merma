@@ -142,7 +142,7 @@ export function quoteLabel(label) {
   return '"' + label.split(/\r?\n/).map((part) => part.replace(/[#"<>&]/g, (c) => codes[c])).join('<br>') + '"';
 }
 
-/** The first of `n1`, `n2`, … (or another prefix's) that appears nowhere in the text, labels and comments included. */
+/** The first of `n1`, `n2`, … (or of another prefix) that appears nowhere in the text, labels and comments included. */
 export function freeId(text, prefix = 'n') {
   for (let k = 1; ; k++) {
     const id = prefix + k;
@@ -304,7 +304,8 @@ function endpoint(text, id) {
 
 /**
  * Why subgraph `id` cannot be given an id, or null when it can (or has one). The file can name an id-less subgraph
- * only by Mermaid's `subGraph<k>`, in a `style` or `class` line or an edge; giving it an id of its own would break them.
+ * only by Mermaid's `subGraph<k>`, in a `style` or `class` line or an edge; giving it an id of its own would break
+ * them.
  */
 export function subgraphRefusal(text, id) {
   const sg = subgraphBlock(text, id);
@@ -699,8 +700,8 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
 
 /**
  * Throw unless `out`'s edges are `expect` applied to `text`'s, in order, and every node of `text` (but `gone`, and
- * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No test reaches the throw: it
- * catches a bug in the rewriting, not an input.
+ * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No
+ * test reaches the throw: it catches a bug in the rewriting, not an input.
  */
 function check(text, out, expect, gone = null, skip = new Set()) {
   const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');

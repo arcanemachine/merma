@@ -35,7 +35,7 @@ Mermaid syntax.
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
 | **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |
-| **connect** | Make an edge between two nodes by pointing (Connect to…). |
+| **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…). |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
 
