@@ -89,7 +89,8 @@ Outside menus, and not while typing in the label box:
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 
-Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS.
+Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS. Help shows the keys for your system; a toggle at its bottom
+switches between Windows and Linux, and macOS.
 
 A double-click on a node or an edge edits its label too.
 
