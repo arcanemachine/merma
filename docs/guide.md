@@ -26,7 +26,8 @@ are left to the file.
 
 ## Menus
 
-A menu stays open until you click elsewhere or press Escape. Each item's key is underlined: press it to run the item.
+A menu stays open until you click anywhere else on the page or press Escape. M opens the selected node's or edge's
+menu, or with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or Escape closes it.
 
@@ -36,7 +37,7 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
   appended at the end of the file; if the node's last statement is inside a subgraph, the new node is declared there,
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node, adds `<a> --> <b>` at the end of the file, outside any subgraph, so
-  neither node moves. Escape cancels.
+  neither node moves. A click anywhere else, or Escape, cancels.
 - **Edit label** edits the label in place (the label box): Enter saves, Shift+Enter starts a new line (written as
   `<br>`), Escape cancels. Only the label changes, where the node is first given a shape; a node that only appears
   bare gets brackets at its first appearance.
@@ -47,8 +48,6 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
 
 - **Edit label** edits the edge's label in place; it is written as `-->|"label"|`.
 - **Remove label** removes it. Greyed when the edge has none.
-- **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
-  partly by the order it first meets them, so the layout may shift a little.
 - **Edit arrow type ▸** opens the arrow types; click one or press its digit. The arrow changes and keeps its label and
   its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
   "Other".
@@ -66,12 +65,15 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
   | 9 | Two-way arrow | `<-->` |
   | 0 | Invisible | `~~~` |
 
+- **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
+  partly by the order it first meets them, so the layout may shift a little.
 - **Delete edge** removes it. Its nodes stay.
 
 ### Empty space
 
-Right-click empty space for **Add node**; over a subgraph it reads **Add node in** and the subgraph's title, and the
-node goes inside that subgraph. Mermaid lays the diagram out, so a new node lands where the layout puts it.
+Right-click empty space (or press M with nothing selected) for **Add node**; over a subgraph it reads **Add node in**
+and the subgraph's title, and the node goes inside that subgraph. Mermaid lays the diagram out, so a new node lands
+where the layout puts it.
 
 ## Keys
 
@@ -82,6 +84,7 @@ Outside menus, and not while typing in the label box:
 | N | Add a node, connected to the selected node if there is one |
 | Enter, F2 | Edit the selected node's or edge's label |
 | Delete, Backspace | Delete the selected node or edge |
+| M | Open the selected node's or edge's menu; with nothing selected, Add node |
 | Escape | Cancel Connect to…, or let go of the selection |
 | Ctrl+Z (Cmd+Z) | Undo the page's last edit |
 | Ctrl+Shift+Z (Cmd+Shift+Z), Ctrl+Y | Redo |

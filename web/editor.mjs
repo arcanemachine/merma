@@ -20,7 +20,7 @@ import { createPicker } from './picker.mjs';
  * @param {ReturnType<import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, bad?: boolean): void, hideNotice(): void, toast(message: string): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, toast(message: string): void }} deps.ui
  * @param {Record<'stage'|'diagram'|'labelBox', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
@@ -59,7 +59,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'add-connected-node': () => addAndName((text) => addConnected(text, selected.id)),
     'connect': () => {
       connecting = true;
-      ui.notice(`Click the node to connect ${selected.id} to. Escape cancels.`);
+      ui.notice(`Click the node to connect ${selected.id} to. Click away or press Escape to cancel.`, 'info');
     },
     'edit-label': () => openLabelBox(selected),
     'delete-node': () => deleteSelected(),
@@ -89,7 +89,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     returnFocus: els.diagram,
     submenus: { 'arrow-types': arrowPicker },
     onRun: (action) => handlers[action](),
-    onRefuse: (why) => { refused = true; ui.notice(why, true); },
+    onRefuse: (why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
   };
@@ -138,7 +138,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // the diagram out, so the node lands where the layout puts it, not where the menu was opened.
   function openSpaceMenu(target, x, y) {
     deselect();
-    const cluster = target.closest('g.cluster');
+    const cluster = target?.closest('g.cluster');
     spaceSubgraph = cluster ? subgraphIdFromSvgId(cluster.id, viewer.renderId) : null;
     const title = spaceSubgraph ? cluster.querySelector('.cluster-label, .nodeLabel')?.textContent.trim() || spaceSubgraph : '';
     menus.space.open({ left: x, top: y, right: x, bottom: y }, { ...menuState(), title }, { gap: 0 });
@@ -160,7 +160,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       connecting = false;
       ui.hideNotice();
       if (!id) { deselect(); return; }
-      if (id === from) { ui.notice('Pick a different node to connect to.'); select(selected); return; }
+      if (id === from) { ui.notice('Pick a different node to connect to.', 'info'); select(selected); return; }
       deselect();
       edit((text) => connect(text, from, id));
       return;
@@ -195,7 +195,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function deleteSelected() {
     const sel = selected;
     if (!sel) return;
-    if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(), true); return; }
+    if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(), 'warning'); return; }
     editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
       if (sel.kind === 'edge') ui.toast('Deleted the edge');
       else ui.toast(`Deleted ${sel.id}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
@@ -204,7 +204,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
   // opens its History with it); N adds a node (connected to the selected node, if any); Enter or F2 edits the selected
-  // item's label; Delete or Backspace deletes the selection; Escape backs out of whatever is open. None of them while
+  // item's label; Delete or Backspace deletes the selection; M opens the selection's menu, or with nothing selected the
+// empty-space menu at the middle of the diagram (top level: a key has no pointer to be over a subgraph); Escape backs
+// out of whatever is open. None of them while
   // the label box (or another field) has the keyboard; an open menu takes its own keys first.
   const keys = {
     n: () => {
@@ -217,6 +219,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     f2: () => selected && !connecting && (openLabelBox(selected), true),
     delete: () => selected && !connecting && (deleteSelected(), true),
     backspace: () => selected && !connecting && (deleteSelected(), true),
+    m: () => {
+      if (connecting) return false;
+      if (selected) { select(selected, { menu: true }); return true; }
+      const r = els.diagram.getBoundingClientRect();
+      openSpaceMenu(null, r.left + r.width / 2, r.top + r.height / 2);
+      return true;
+    },
     escape: () => {
       if (connecting) { connecting = false; ui.hideNotice(); select(selected); return true; }
       deselect();
@@ -225,6 +234,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
   };
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
+
+  // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
+  // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
+  document.addEventListener('pointerdown', (e) => {
+    if (els.diagram.contains(e.target)) return;
+    if (connecting) { connecting = false; ui.hideNotice(); select(selected); }
+    closeMenus();
+  });
   document.addEventListener('keydown', (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
     const key = e.key.toLowerCase();
@@ -311,7 +328,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     e.preventDefault();
     const label = input.value;
     // A node needs a label; an edge's can be emptied, which removes it.
-    if (target.kind === 'node' && !label.trim()) { ui.notice('A label cannot be empty.', true); return; }
+    if (target.kind === 'node' && !label.trim()) { ui.notice('A label cannot be empty.', 'error'); return; }
     const unchanged = label === input.dataset.initial;
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label.
@@ -333,7 +350,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     edgesOk = ids.length === drawn.length && drawn.every((p, k) => p.dataset.id === ids[k]);
     if (!edgesOk) {
       ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
-        + 'deleted here; edit those in the file.');
+        + 'deleted here; edit those in the file.', 'warning');
       return;
     }
     for (const p of drawn) {
@@ -378,7 +395,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       try {
         result = change(base.text);
       } catch (e) {
-        ui.notice('Not saved: ' + (e.message || e), true);
+        ui.notice('Not saved: ' + (e.message || e), 'error');
         return;
       }
       if (!(await save(result.text, base.version))) return;
@@ -397,8 +414,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const redoing = history.peekRedo(base.text);
       if (!redoing.ok) {
-        if (redoing.reason === 'empty') ui.notice('Nothing to redo.');
-        else ui.notice('Cannot redo: the file has changed since.', true);
+        if (redoing.reason === 'empty') ui.notice('Nothing to redo.', 'info');
+        else ui.notice('Cannot redo: the file has changed since.', 'error');
         return;
       }
       if (!(await save(redoing.text, base.version))) return;
@@ -417,8 +434,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const undoing = history.peek(base.text);
       if (!undoing.ok) {
-        if (undoing.reason === 'empty') ui.notice('Nothing to undo.');
-        else ui.notice('Cannot undo: the file has changed since that edit.', true);
+        if (undoing.reason === 'empty') ui.notice('Nothing to undo.', 'info');
+        else ui.notice('Cannot undo: the file has changed since that edit.', 'error');
         return;
       }
       if (!(await save(undoing.text, base.version))) return;
@@ -438,12 +455,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     try {
       await parse(text);
     } catch (e) {
-      ui.notice('Not saved: the edit would make the diagram invalid.\n' + (e.message || e), true);
+      ui.notice('Not saved: the edit would make the diagram invalid.\n' + (e.message || e), 'error');
       return false;
     }
     const saved = await source.save(text, base);
     if (!saved.ok) {
-      ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), true);
+      ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
       return false;
     }
     ui.toast('Saved');
