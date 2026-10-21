@@ -407,6 +407,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const entry = history.record(base.text, result.text, into);
       // The action is done: drop the selection, so its menu does not linger over the diagram.
       deselect();
+      ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
       await display(result.text);
     });
@@ -468,7 +469,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
       return false;
     }
-    ui.announce('Saved');
     return true;
   }
 
