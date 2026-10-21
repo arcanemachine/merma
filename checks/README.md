@@ -1,6 +1,7 @@
 # Browser checks
 
-Checks that need Mermaid itself, which runs only in a browser. Run them after changing `web/patch/`.
+Checks that need a browser: Mermaid itself (run after changing `web/patch/`), and accessibility (after changing
+anything under `web/`).
 
 ## Every edit parses
 
@@ -38,3 +39,24 @@ changing a fixture:
 `checks/edge-point.js` gives a point on an edge's line that no node covers, for a click in a check or a UAT brief:
 `pw-repl send eval --file=checks/edge-point.js 'path[data-page-only][data-page-edge="<id>"]'` prints `X Y`, then
 `pw-repl send mouseclick X Y` (add `right` for a right-click).
+
+## Accessibility
+
+Two tools, both for checks only: each script loads its tool from the CDN at a pinned version, never in the page's own
+code. Run them on a development server, never the shared one, and reload the page afterwards (the tools stay loaded in
+it).
+
+**The scan**, after any change under `web/`: `checks/a11y-scan.js` runs axe-core (WCAG 2.2 A and AA, and axe's best
+practices) on what the page shows now, leaving out the diagram, and lists each violation as `[rule, impact, count,
+first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=checks/a11y-scan.js`. Scan it in each of
+these states, since each shows other elements and colours: nothing open; a node menu; an edge menu with a greyed
+item; the arrow-type picker; each notice kind (Connect to… for info, a greyed item's key for warning, an empty label on
+Enter for error); the label box; Help. With `'#stage'` after the file it scans only the diagram: that is Mermaid's
+markup, so its findings are recorded as Mermaid's and never fixed here.
+
+**The virtual screen reader**, after a change to messages, live regions, names or roles: `checks/a11y-heard.js` runs
+Guidepup's virtual screen reader, a model of a screen reader built from the page's roles, names and live regions (not
+VoiceOver or NVDA). Run it once to start listening, do the action (`press`, `mouseclick`), wait about 100 ms (longer
+when the action saves and redraws), and run it again: it returns what was announced, as `"polite: …"` or
+`"assertive: …"`. With a selector after the file (`'#help'`) it reads that element from the top instead, item by
+item. It reads the text of the diagram's `<style>` element aloud, which real screen readers skip.
