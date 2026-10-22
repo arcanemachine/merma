@@ -164,7 +164,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     entries: ARROW_TYPES,
     onPick: (arrow) => {
       const id = selection().id;
-      editDrawn((text) => setEdgeArrow(text, id, arrow), { after: sameEdge(id) });
+      const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
+      editDrawn((text) => setEdgeArrow(text, id, arrow), {
+        after: sameEdge(id),
+        afterSave: () => ui.announce(`Changed the edge to ${name}`),
+      });
     },
   });
 
@@ -175,7 +179,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const node = selection();
       // The shape it has already: nothing to write; the menu closes as after an edit.
       if (shownShape(node.id) === at) { select(node); return; }
-      edit((text) => setShape(text, node.id, at), { after: () => ({ item: node }) });
+      const names = [named(node), NODE_SHAPES.find((e) => e.key === at)?.name];
+      edit((text) => setShape(text, node.id, at), {
+        after: () => ({ item: node }),
+        afterSave: () => ui.announce(`Changed ${names[0]} to ${names[1]}`),
+      });
     },
   });
 
