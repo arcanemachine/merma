@@ -33,6 +33,7 @@ Mermaid syntax.
 | **chain** | Several edges in one statement: `A --> B --> C`. |
 | **`&` group** | Several nodes on one side of a connector: `A & B --> C`, which is two edges. |
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
+| **contents** | What a subgraph holds: its nodes and nested subgraphs, as Mermaid draws them. Never "children": parent and child are words for edges. |
 | **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |
 | **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…). |
@@ -49,6 +50,7 @@ note where merma had to make one up.
 | **page** | merma in the browser, showing one file. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
+| **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in the code means a DOM element. |
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
