@@ -33,6 +33,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
 
 - An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu.
+- A split item does its plain action on its label, and has a ▸ of its own for a submenu of variants (Add node ▸: add
+  it with a shape), so the common case stays one click or key. Its ▸ is a second button with a name of its own, a
+  listed verb first ("Add node with shape"), not in the Up and Down cycle: Right on the item opens it, as on any ▸
+  item. Not one item that opens on Enter: Enter must run the plain action.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
 ## Gestures and keys

@@ -4,6 +4,8 @@
 //
 // Keys while focus is in it (it takes focus when it opens): Up and Down move, an item's letter or Enter runs it, Right
 // opens the focused item's submenu and Left, Escape or the item's letter again closes it, Escape closes the menu.
+// A split item runs its action on its letter, Enter or a click, and opens its submenu on Right or a click on its own
+// ▸, a second button in its row that Up and Down pass over.
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
@@ -34,19 +36,48 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   /** @type {import('./menu-items.mjs').MenuItem | null} the item whose submenu is open */
   let openSub = null;
 
+  /** A split item's ▸, by the item. */
+  const opens = new Map();
   const buttons = items.map((item) => {
+    const b = menuButton();
+    b.dataset.action = item.action;
+    if (item.separated) b.classList.add('separated');
+    b.addEventListener('click', () => choose(item));
+    if (!item.split) {
+      if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
+      el.append(b);
+      return b;
+    }
+    // Its own name, since its text is only ▸; never in the Up and Down cycle, where Right on the item does the same.
+    const more = menuButton();
+    more.className = 'open-sub';
+    more.tabIndex = -1;
+    more.textContent = '▸';
+    more.title = item.split;
+    more.setAttribute('aria-label', item.split);
+    more.setAttribute('aria-haspopup', 'menu');
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', () => toggleSub(item));
+    opens.set(item, more);
+    const row = document.createElement('div');
+    row.className = 'split';
+    row.setAttribute('role', 'none');
+    row.append(b, more);
+    el.append(row);
+    return b;
+  });
+
+  function menuButton() {
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('role', 'menuitem');
-    b.dataset.action = item.action;
-    if (item.separated) b.classList.add('separated');
-    if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
-    b.addEventListener('click', () => choose(item));
     // The item under the pointer is the focused one, so there is one highlight and Enter runs what it shows.
     b.addEventListener('pointerenter', () => b.focus());
-    el.append(b);
     return b;
-  });
+  }
+
+  /** The button that shows whether `item`'s submenu is open, and that it opens beside: its ▸ when it is split. */
+  const opener = (/** @type {MenuItem} */ item) => opens.get(item) ?? buttons[items.indexOf(item)];
 
   /** @typedef {import('./menu-items.mjs').MenuItem} MenuItem */
   const applies = (/** @type {MenuItem} */ item) => !item.applies || item.applies(state);
@@ -61,18 +92,24 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }),
         label.slice(at + 1));
       b.replaceChildren(text);
-      if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
+      if (item.submenu && !item.split) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
-      b.setAttribute('aria-disabled', String(off));
+      for (const x of [b, opens.get(item)].filter(Boolean)) x.setAttribute('aria-disabled', String(off));
       if (off) b.title = item.why?.(state) ?? ''; else b.removeAttribute('title');
     });
   }
 
   function choose(/** @type {MenuItem} */ item) {
+    if (item.submenu && !item.split) { toggleSub(item); return; }
     if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
-    if (item.submenu) { if (openSub === item) closeSub(); else openSubmenu(item); return; }
     close();
     onRun(item.action);
+  }
+
+  /** Open `item`'s submenu, or close it when it is open. */
+  function toggleSub(/** @type {MenuItem} */ item) {
+    if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
+    if (openSub === item) closeSub(); else openSubmenu(item);
   }
 
   /** Open the submenu of `item`, an item that has one. */
@@ -82,7 +119,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     const host = submenus[/** @type {string} */ (item.submenu)];
     sub.replaceChildren(host.el);
     sub.showPopover();
-    buttons[items.indexOf(item)].setAttribute('aria-expanded', 'true');
+    opener(item).setAttribute('aria-expanded', 'true');
     placeSub();
     host.focus();
   }
@@ -90,7 +127,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function closeSub() {
     if (!openSub) return;
     const b = buttons[items.indexOf(openSub)];
-    b.setAttribute('aria-expanded', 'false');
+    opener(openSub).setAttribute('aria-expanded', 'false');
     openSub = null;
     if (sub.matches(':popover-open')) sub.hidePopover();
     if (sub.contains(document.activeElement) || document.activeElement === document.body) b.focus();
@@ -98,7 +135,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   function placeSub() {
     if (!openSub) return;
-    const r = buttons[items.indexOf(openSub)].getBoundingClientRect();
+    const r = opener(openSub).getBoundingClientRect();
     put(sub, place(r, sub.getBoundingClientRect(), bounds(), { gap: 4 }));
   }
 
@@ -128,7 +165,10 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+    const active = document.activeElement;
+    // On a split item's ▸ (under the pointer), keys act as on its item.
+    let at = buttons.indexOf(/** @type {HTMLButtonElement} */ (active));
+    if (at < 0) at = items.findIndex((i) => opens.get(i) === active);
     const item = items[at];
     const key = e.key.toLowerCase();
     const byKey = items.find((i) => i.key === key);
@@ -137,7 +177,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       buttons[(at + (e.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus();
     } else if (e.key === 'ArrowRight' && item?.submenu) {
       e.preventDefault();
-      if (openSub !== item) choose(item); else submenus[item.submenu].focus();
+      if (openSub !== item) toggleSub(item); else submenus[item.submenu].focus();
     } else if (e.key === 'ArrowLeft' && openSub) {
       e.preventDefault();
       closeSub();

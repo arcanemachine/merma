@@ -20,6 +20,14 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
   }
 });
 
+test('a split item has a submenu, and its ▸ is named like a menu label: a listed verb, sentence case', () => {
+  for (const { item } of items.filter(({ item }) => item.split)) {
+    assert.ok(item.submenu, `${item.action}: split with no submenu`);
+    assert.ok(VERBS.includes(item.split.split(' ')[0]), `${item.split}: not a listed verb`);
+    assert.ok(item.split.split(' ').slice(1).every((w) => w === w.toLowerCase()), `${item.split}: not sentence case`);
+  }
+});
+
 test('keys are unique within a menu and are a letter of their label', () => {
   for (const [menu, list] of Object.entries(MENUS)) {
     const keys = list.map((i) => i.key);

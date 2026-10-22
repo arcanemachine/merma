@@ -40,11 +40,14 @@ A menu stays open until you click anywhere else on the page or press Escape. M o
 with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Left, Escape, its key again or
-another click on it closes it.
+another click on it closes it. A split item (Add node, Add connected node) runs on a click, its key or Enter, and has a
+▸ of its own at the row's end: click that, or press Right on the item, for its submenu (the shapes, so the node is
+added with one). With that submenu open, its key closes it rather than running the item.
 
 ### Node menu
 
-- **Add connected node** adds a new node with an edge from this one, then opens the label box on it. The edge is
+- **Add connected node ▸** adds a new node with an edge from this one, then opens the label box on it; its ▸ adds it
+  with the shape you pick. The edge is
   appended at the end of the file; if the node's last statement is inside a subgraph, the new node is declared there,
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
@@ -88,7 +91,8 @@ another click on it closes it.
 
 ### Subgraph menu
 
-- **Add node** adds a new node inside the subgraph, before its `end`, then opens the label box on it.
+- **Add node ▸** adds a new node inside the subgraph, before its `end`, then opens the label box on it; its ▸ adds it
+  with the shape you pick.
 - **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
   the label box on its title. Mermaid draws an empty subgraph as its title alone, until it has nodes.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
@@ -100,7 +104,7 @@ Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Ed
 
 ### Empty space
 
-Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
+Right-click empty space (or press M with nothing selected) for **Add node ▸** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 
 ## Naming a new node
