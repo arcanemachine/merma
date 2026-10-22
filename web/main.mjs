@@ -13,7 +13,7 @@ const file = new URLSearchParams(location.search).get('f') || '/tmp/mermaid-diag
 // The build of merma this page was served from. When the server reports another, the page reloads to run it, once
 // nothing is in progress that a reload would lose. Zoom and pan survive the reload: they are kept for this tab in
 // sessionStorage, which is the browser's, never the file's.
-const loadedBuild = document.querySelector('meta[name="merma-build"]').content;
+const loadedBuild = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="merma-build"]')).content;
 const viewKey = 'merma:view:' + file;
 function reloadWhenIdle() {
   if (editor && !editor.idle()) { setTimeout(reloadWhenIdle, 500); return; }
@@ -103,7 +103,7 @@ async function display(text) {
     editor?.failed();
     return;
   }
-  for (const b of ['copy-svg', 'download-svg', 'reset-view']) el(b).disabled = false;
+  for (const b of ['copy-svg', 'download-svg', 'reset-view']) /** @type {HTMLButtonElement} */ (el(b)).disabled = false;
   showError('');
   if (!shownOnce) { shownOnce = true; restoreView(); }
   el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
@@ -140,15 +140,16 @@ for (const id of ['path', 'host']) {
 // Help shows the keys of one system, Windows and Linux or macOS: the browser's own at first, then the one last chosen
 // in this browser (localStorage: the browser's, never the file's).
 const osKey = 'merma:help-os';
+const osPicks = /** @type {NodeListOf<HTMLButtonElement>} */ (el('help').querySelectorAll('[data-os-pick]'));
 function showOs(os) {
   el('help').dataset.os = os;
-  for (const b of el('help').querySelectorAll('[data-os-pick]')) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
+  for (const b of osPicks) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
 }
 let savedOs = null;
 try { savedOs = localStorage.getItem(osKey); } catch { /* storage unavailable: use the browser's system */ }
 const platform = navigator.userAgentData?.platform || navigator.platform || '';
 showOs(['pc', 'mac'].includes(savedOs) ? savedOs : (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
-for (const b of el('help').querySelectorAll('[data-os-pick]')) {
+for (const b of osPicks) {
   b.addEventListener('click', () => {
     showOs(b.dataset.osPick);
     try { localStorage.setItem(osKey, b.dataset.osPick); } catch { /* not remembered */ }

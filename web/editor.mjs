@@ -16,8 +16,8 @@ import { createPicker } from './picker.mjs';
 
 /**
  * @param {object} deps
- * @param {ReturnType<import('./source.mjs').createSource>} deps.source
- * @param {ReturnType<import('./viewer.mjs').createViewer>} deps.viewer
+ * @param {ReturnType<typeof import('./source.mjs').createSource>} deps.source
+ * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void }} deps.ui
@@ -36,9 +36,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let labelling = null;       // { kind, id } while the label box is open over it
   let refused = false;        // the notice shows why a menu item does not apply
 
-  const nodeEl = (id) => [...els.stage.querySelectorAll('g.node[data-page-node]')].find((g) => g.dataset.pageNode === id);
-  const edgeEls = (id) => [...els.stage.querySelectorAll('[data-page-edge]')].filter((e) => e.dataset.pageEdge === id);
-  const clusterEl = (id) => [...els.stage.querySelectorAll('g.cluster[data-page-subgraph]')].find((g) => g.dataset.pageSubgraph === id);
+  /** The drawing's elements that match `selector`: SVG, apart from labels' HTML. */
+  const drawn = (selector) => /** @type {SVGElement[]} */ ([...els.stage.querySelectorAll(selector)]);
+  const nodeEl = (id) => drawn('g.node[data-page-node]').find((g) => g.dataset.pageNode === id);
+  const edgeEls = (id) => drawn('[data-page-edge]').filter((e) => e.dataset.pageEdge === id);
+  const clusterEl = (id) => drawn('g.cluster[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
   /** What is drawn for an item: a node's or a subgraph's group, or an edge's line, hit path and label. */
   const elsOf = (sel) => (sel.kind === 'edge' ? edgeEls(sel.id) : [sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id)].filter(Boolean));
   const selectedEl = () => selected && elsOf(selected)[0];
@@ -55,7 +57,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const selectedNode = () => (selected?.kind === 'node' ? selected.id : null);
   const selectedSubgraph = () => (selected?.kind === 'subgraph' ? selected.id : null);
   /** The label element of a node, or the title element of a subgraph. */
-  const labelEl = (sel) => (sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id))?.querySelector('.nodeLabel');
+  const labelEl = (sel) => /** @type {HTMLElement | null} */ (
+    (sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id))?.querySelector('.nodeLabel'));
   /**
    * A node or a subgraph as messages name it: its label or title as drawn, in quotes, on one line; one drawn with
    * none shows its id.
@@ -148,7 +151,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection -----------------------------------------------------------------------------------------------
 
-  const unmark = () => { for (const e of els.stage.querySelectorAll('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
+  const unmark = () => { for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
 
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
   function select(sel, { keepMode = false, menu = false } = {}) {
@@ -247,7 +250,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const sel = selected;
     if (!sel) return;
     if (sel.kind === 'subgraph') { ui.notice('Deleting a subgraph is not supported yet; edit it in the file.', 'warning'); return; }
-    if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(), 'warning'); return; }
+    if (!edgesOk) { ui.notice(MENUS.node.find((i) => i.action === 'delete-node').why(menuState()), 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
     const name = sel.kind === 'node' && named(sel);
     editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
@@ -296,12 +299,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
   // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
   document.addEventListener('pointerdown', (e) => {
-    if (els.diagram.contains(e.target)) return;
+    if (els.diagram.contains(/** @type {Node} */ (e.target))) return;
     if (connecting) { connecting = false; ui.hideNotice(); select(selected); }
     closeMenus();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+    if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
     const key = e.key.toLowerCase();
     if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
@@ -333,7 +336,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const label = parts.find((e) => e.matches('g.edgeLabel'));
     const r = label?.getBoundingClientRect();
     if (r && r.width && r.height) return r;
-    const path = parts.find((e) => e.matches('path[data-page-only]'));
+    const path = /** @type {SVGPathElement | undefined} */ (parts.find((e) => e.matches('path[data-page-only]')));
     if (!path) return null;
     const p = path.getPointAtLength(path.getTotalLength() / 2), m = path.getScreenCTM();
     const x = p.x * m.a + p.y * m.c + m.e, y = p.x * m.b + p.y * m.d + m.f;
@@ -350,7 +353,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const shown = target.kind === 'edge'
       ? edgeEls(target.id).find((e) => e.matches('g.edgeLabel'))
       : labelEl(target) || elsOf(target)[0];
-    input.value = shown ? (shown.innerText ?? shown.textContent).trim() : '';
+    input.value = shown ? (shown instanceof HTMLElement ? shown.innerText : shown.textContent).trim() : '';
     input.dataset.initial = input.value;
     input.setAttribute('aria-label', { node: 'Node label', edge: 'Edge label', subgraph: 'Subgraph title' }[target.kind]);
     input.style.display = 'block';
@@ -409,15 +412,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // which text it is. Each gets a wide invisible path over it, since a line is hard to hit, and its label selects it
   // too. Nodes are drawn after edges, so a click near a node still picks the node.
   function tagEdges(text) {
-    const drawn = [...els.stage.querySelectorAll('path[data-edge="true"]')];
+    const lines = drawn('path[data-edge="true"]');
     const ids = edges(text).map((e) => e.svgId);
-    edgesOk = ids.length === drawn.length && drawn.every((p, k) => p.dataset.id === ids[k]);
+    edgesOk = ids.length === lines.length && lines.every((p, k) => p.dataset.id === ids[k]);
     if (!edgesOk) {
       ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
         + 'deleted here; edit those in the file.', 'warning');
       return;
     }
-    for (const p of drawn) {
+    for (const p of lines) {
       p.dataset.pageEdge = p.dataset.id;
       const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       hit.setAttribute('d', p.getAttribute('d'));
@@ -426,8 +429,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       hit.dataset.pageEdge = p.dataset.id;
       p.after(hit);
     }
-    for (const g of els.stage.querySelectorAll('g.edgeLabel')) {
-      const id = g.querySelector('[data-id]')?.dataset.id;
+    for (const g of drawn('g.edgeLabel')) {
+      const id = /** @type {SVGElement | null} */ (g.querySelector('[data-id]'))?.dataset.id;
       if (id) g.dataset.pageEdge = id;
     }
   }
@@ -478,7 +481,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (base.text === null) return;
       ui.hideNotice();
       const redoing = history.peekRedo(base.text);
-      if (!redoing.ok) {
+      if (redoing.ok === false) {
         if (redoing.reason === 'empty') ui.notice('Nothing to redo.', 'warning');
         else ui.notice('Cannot redo: the file has changed since.', 'error');
         return;
@@ -498,7 +501,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (base.text === null) return;
       ui.hideNotice();
       const undoing = history.peek(base.text);
-      if (!undoing.ok) {
+      if (undoing.ok === false) {
         if (undoing.reason === 'empty') ui.notice('Nothing to undo.', 'warning');
         else ui.notice('Cannot undo: the file has changed since that edit.', 'error');
         return;
@@ -524,7 +527,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return false;
     }
     const saved = await source.save(text, base);
-    if (!saved.ok) {
+    if (saved.ok === false) {
       ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
       return false;
     }
@@ -560,13 +563,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!editable) return;
       const changed = text !== shownText;
       shownText = text;
-      for (const g of els.stage.querySelectorAll('g.node')) {
+      for (const g of drawn('g.node')) {
         const id = nodeIdFromSvgId(g.id, viewer.renderId);
         if (id) g.dataset.pageNode = id;
       }
       // A subgraph whose id merma cannot read (`subgraph a-b [X]`) is left unselectable, as such a node's edges are.
       const known = new Set(subgraphs(text).map((s) => s.id));
-      for (const g of els.stage.querySelectorAll('g.cluster')) {
+      for (const g of drawn('g.cluster')) {
         const id = subgraphIdFromSvgId(g.id, viewer.renderId);
         if (known.has(id)) g.dataset.pageSubgraph = id;
       }

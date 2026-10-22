@@ -99,7 +99,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     drag.y = drag.startY = rest.y;
   }
   diagram.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || e.target.closest('[data-overlay]')) return;
+    if (e.button !== 0 || /** @type {Element} */ (e.target).closest('[data-overlay]')) return;
     // A primary pointer is the only one of its kind down: a gesture still open then lost its release, and is replaced.
     if (drag && e.pointerType !== 'mouse' && !e.isPrimary) {
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -123,7 +123,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     }
   });
   diagram.addEventListener('contextmenu', (e) => {
-    if (e.target.closest('[data-overlay]')) return;
+    if (/** @type {Element} */ (e.target).closest('[data-overlay]')) return;
     // On Android this is the long-press itself: whichever of it and the timer above comes first reports it, once.
     if (drag?.handled) { e.preventDefault(); return; }
     if (drag) { clearTimeout(drag.timer); drag.handled = true; }
@@ -169,7 +169,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   });
   diagram.addEventListener('pointercancel', (e) => { if (!lifted(e)) endDrag(); });
   diagram.addEventListener('dblclick', (e) => {
-    if (e.target.closest('[data-overlay]')) return;
+    if (/** @type {Element} */ (e.target).closest('[data-overlay]')) return;
     if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
   });
   // Refit when the diagram's box changes (window resize, the header growing when the host path arrives, an error
@@ -218,7 +218,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     svgMarkup() {
       const svg = stage.querySelector('svg');
       if (!svg) return null;
-      const copy = svg.cloneNode(true);
+      const copy = /** @type {SVGSVGElement} */ (svg.cloneNode(true));
       for (const e of copy.querySelectorAll('[data-page-only]')) e.remove();
       for (const e of [copy, ...copy.querySelectorAll('*')]) {
         for (const a of [...e.attributes]) if (a.name.startsWith('data-page-')) e.removeAttribute(a.name);

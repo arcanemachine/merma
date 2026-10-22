@@ -105,12 +105,12 @@ function start(roots, port, host, onListening) {
     if (Date.now() - server.lastRequest >= idleMs) process.exit(0);
   }, Math.min(5000, idleMs)).unref();
 
-  server.on('error', (e) => {
+  server.on('error', (/** @type {NodeJS.ErrnoException} */ e) => {
     console.error(`merma: ${e.code === 'EADDRINUSE' ? `port ${port} is held by something else` : e.message}`);
     process.exit(1);
   });
   server.listen(Number(port), host, () => {
     const name = ['127.0.0.1', '0.0.0.0', '::'].includes(host) ? 'localhost' : host.includes(':') ? `[${host}]` : host;
-    onListening(`http://${name}:${server.address().port}`);
+    onListening(`http://${name}:${/** @type {import('node:net').AddressInfo} */ (server.address()).port}`);
   });
 }
