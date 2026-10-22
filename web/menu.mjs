@@ -27,9 +27,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   parent.append(el, sub);
   /** @type {import('./menu-items.mjs').MenuState} set when the menu opens */
   let state;
+  /** @type {{ left: number, top: number, right: number, bottom: number } | null} */
   let anchor = null;
   let gap = 8;
-  let openSub = null;   // the item whose submenu is open
+  /** @type {import('./menu-items.mjs').MenuItem | null} the item whose submenu is open */
+  let openSub = null;
 
   const buttons = items.map((item) => {
     const b = document.createElement('button');
@@ -60,7 +62,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
-      if (off) b.title = item.why(state); else b.removeAttribute('title');
+      if (off) b.title = item.why?.(state) ?? ''; else b.removeAttribute('title');
     });
   }
 

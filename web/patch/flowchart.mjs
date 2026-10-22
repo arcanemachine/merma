@@ -5,6 +5,34 @@
 // The rule every edit keeps: no edit puts an edge before an existing one. `linkStyle N` styles the Nth edge in the
 // file, so an edge inserted earlier would silently restyle every edge after it. New edges are appended at the end.
 
+/** @typedef {{ start: number, end: number }} Span where something is: offsets into the text, or a line */
+/** @typedef {Span & { text: string, form?: 'text' }} Label an edge label as written, quotes kept; `form` for `-- a -->` */
+/** @typedef {Span & { arrow: string, label: Label | null, userId: string | null }} Link a connector: `e1@-->|a|` */
+/** @typedef {Span & { id: string }} Ref a node reference as written: `A[Start]:::cls` */
+/**
+ * One statement of the diagram body: a line, or part of one between `;`.
+ * @typedef {object} Statement
+ * @property {number} start
+ * @property {number} end
+ * @property {number} line its line's number
+ * @property {boolean} [alone] the only statement on its line
+ * @property {string | null} keyword `style`, `class`, `linkStyle`… for a statement that is not about nodes, else null
+ * @property {Ref[][]} groups node groups, each a node or several joined by `&`…
+ * @property {Link[]} links …joined by connectors
+ * @property {boolean} complete all of it was read
+ */
+/**
+ * A subgraph, as subgraphs() reads it.
+ * @typedef {object} Subgraph
+ * @property {string | null} id Mermaid's id (null while unclosed and written with none)
+ * @property {boolean} written the file writes its id
+ * @property {number} start the line of `subgraph`
+ * @property {number | null} end the line of its `end`, null while unclosed
+ * @property {number | null} parent the index of the subgraph it is in, or null
+ * @property {Span & { form: 'bracket' | 'bare' }} title
+ */
+/** @typedef {{ from: string, to: string, arrow: string, label: { text: string } | null }} EdgeSig what an edge reads as */
+
 const ID = String.raw`[\p{L}\p{N}_]+`;
 const ID_CHAR = /[\p{L}\p{N}_]/u;
 
@@ -96,6 +124,7 @@ function shapeSpan(line, at) {
       if (q < 0) return null;
       from = q + 1;
     }
+    /** @type {{ k: number, close: string } | null} */
     let best = null;
     for (const close of closers) {
       const k = line.indexOf(close, from);
@@ -180,17 +209,18 @@ function lastContentLine(text) {
 }
 
 /**
- * Every subgraph in the file, in text order: { id, written, start, end, parent, title }. `start` and `end` are the
- * lines of `subgraph` and its `end` (null while unclosed); `parent` is the index of the subgraph it is in, or null.
- * `id` is Mermaid's: the word before a bracketed title (`subgraph pay [Payment]`), or a bare title with no whitespace
+ * Every subgraph in the file, in text order. `id` is Mermaid's: the word before a bracketed title (`subgraph pay [Payment]`), or a bare title with no whitespace
  * in it (`subgraph Payment`, `subgraph "Payment"`). A bare title with whitespace has no id in the file (`written`
  * false), and Mermaid calls it `subGraph<k>`, k counting every subgraph in the order their `end`s come: an id only
- * good for the text it was drawn from. `title`: { start, end } offsets into the text of the bracket's contents, or of
- * the bare title, and `form`: 'bracket' or 'bare'.
+ * good for the text it was drawn from. `title`: the bracket's contents, or the bare title.
+ * @returns {Subgraph[]}
  */
 export function subgraphs(text) {
   const ls = lines(text);
-  const out = [], open = [];
+  /** @type {Subgraph[]} */
+  const out = [];
+  /** @type {number[]} */
+  const open = [];
   let closed = 0;
   let offset = 0;
   const header = headerIndex(ls);
@@ -205,7 +235,8 @@ export function subgraphs(text) {
       let from = kw[0].length;
       while (from < to && /\s/.test(line[from])) from++;
       const raw = line.slice(from, to);
-      const s = { id: null, written: false, start: k, end: null, parent: open.at(-1) ?? null, title: null };
+      /** @type {Subgraph} */
+      const s = { id: null, written: false, start: k, end: null, parent: open.at(-1) ?? null, title: { start: 0, end: 0, form: 'bare' } };
       const bracket = raw.match(new RegExp(`^("[^"]*"|${ID})\\s*\\[`, 'u'));
       if (bracket && raw.endsWith(']')) {
         s.id = bracket[1].replace(/^"(.*)"$/, '$1');
@@ -219,7 +250,7 @@ export function subgraphs(text) {
       open.push(out.length);
       out.push(s);
     } else if (/^\s*end\s*;?\s*$/.test(m) && open.length) {
-      const s = out[open.pop()];
+      const s = out[/** @type {number} */ (open.pop())];
       s.end = k;
       if (!s.written) s.id = `subGraph${closed}`;
       closed++;
@@ -261,6 +292,8 @@ export function addConnected(text, fromId, label = 'New node') {
 /**
  * Add a new node with no edges: inside subgraph `subgraph` (before its `end`) when given, else at the end of the
  * file. Returns { text, id }.
+ * @param {string} text
+ * @param {{ subgraph?: string | null, label?: string }} [options]
  */
 export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
   const id = freeId(text);
@@ -273,11 +306,12 @@ export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
 function insideSubgraph(text, id, body) {
   const block = subgraphBlock(text, id);
   if (!block) throw new Error('That subgraph is not in the file.');
+  const end = /** @type {number} */ (block.end);   // subgraphBlock finds closed subgraphs only
   const ls = lines(text);
   // Indented like the subgraph's own lines: the line above `end`, or one step deeper than `end` for an empty one.
-  const above = block.end - 1 > block.start ? ls[block.end - 1] : null;
-  const indent = above ? above.match(/^[ \t]*/)[0] : ls[block.end].match(/^[ \t]*/)[0] + '  ';
-  ls.splice(block.end, 0, ...body.map((l) => indent + l + '\n'));
+  const above = end - 1 > block.start ? ls[end - 1] : null;
+  const indent = (above ?? ls[end]).match(/^[ \t]*/)?.[0] + (above ? '' : '  ');
+  ls.splice(end, 0, ...body.map((l) => indent + l + '\n'));
   return ls.join('');
 }
 
@@ -314,7 +348,7 @@ export function subgraphRefusal(text, id) {
 }
 
 /** Give id-less subgraph `sg` an id of its own (`subgraph "A b"` → `subgraph s1 ["A b"]`), with `title` if given. */
-function nameSubgraph(text, sg, title = null) {
+function nameSubgraph(text, sg, /** @type {string | null} */ title = null) {
   const why = subgraphRefusal(text, sg.id);
   if (why) throw new Error(why);
   const id = freeId(text, 's');
@@ -341,6 +375,8 @@ export function setSubgraphTitle(text, id, title) {
 /**
  * Add an empty subgraph, `subgraph s1 ["New subgraph"]` and its `end`: inside subgraph `parent` (before its `end`) when
  * given, else at the end of the file. Returns { text, id }.
+ * @param {string} text
+ * @param {{ parent?: string | null, title?: string }} [options]
  */
 export function addSubgraph(text, { parent = null, title = 'New subgraph' } = {}) {
   const id = freeId(text, 's');
@@ -399,6 +435,8 @@ const OPENER = /^[xo<]?(?:--|==|-\.)/;
 const CLOSERS = { '-': /\s*-{2,}[-xo>]/y, '=': /\s*={2,}[=xo>]/y, '.': /\s*\.+-[xo>]?/y };
 const ID_AT = new RegExp(`^${ID}`, 'u');
 
+/** @typedef {ReturnType<typeof edges>[number]} Edge an edge, as edges() reads it */
+
 /**
  * Every edge in the file, in Mermaid's order: statements in text order, a chain left to right, `A & B --> C & D` as
  * A→C, A→D, B→C, B→D. Positions are offsets into `text`.
@@ -450,14 +488,13 @@ export function edgeBySvgId(text, svgId) {
 }
 
 /**
- * The diagram body's statements in text order, split at line ends and `;`: { start, end, line, alone, keyword,
- * groups, links, complete }. `alone`: the only statement on its line. `keyword`: `style`, `class`, `linkStyle`… for a
- * statement that is not about nodes, else null. A node statement is node groups (refs { id, start, end }, joined by
- * `&`) joined by `links` (connectors); `complete` says all of it was read.
+ * The diagram body's statements in text order, split at line ends and `;`.
+ * @returns {Statement[]}
  */
 function statements(text) {
   const ls = lines(text);
   const header = headerIndex(ls);
+  /** @type {Statement[]} */
   const out = [];
   let offset = 0;
   for (let n = 0; n < ls.length; offset += ls[n].length, n++) {
@@ -470,6 +507,7 @@ function statements(text) {
       if (semi < 0) continue;
       m = ' '.repeat(semi + 1) + m.slice(semi + 1);
     }
+    /** @type {Statement[]} */
     const found = [];
     for (const part of m.matchAll(/[^;\n]+/g)) {
       // Trimmed on the line itself: in the mask, a shape at the end of the statement is blank.
@@ -485,12 +523,14 @@ function statements(text) {
 
 /** Read one statement, `m.slice(st, end)` of line `n`, which starts at `offset` in the text. */
 function readStatement(line, m, st, end, offset, n) {
+  /** @type {Statement} */
   const s = { start: offset + st, end: offset + end, line: n, keyword: null, groups: [], links: [], complete: false };
   const keyword = m.slice(st, end).match(NOT_A_STATEMENT);
   if (keyword) { s.keyword = keyword[1]; return s; }
   let i = st;
   const skip = () => { while (i < end && /\s/.test(m[i])) i++; };
   const group = () => {
+    /** @type {Ref[]} */
     const refs = [];
     for (;;) {
       skip();
@@ -560,7 +600,8 @@ function extraLength(arrow) {
 function locate(text, svgId) {
   const e = edges(text).find((x) => x.svgId === svgId);
   if (!e) throw new Error('That edge is not in the file.');
-  const s = statements(text).find((x) => x.start === e.statement.start);
+  // An edge is read from a statement, so its statement is there.
+  const s = /** @type {Statement} */ (statements(text).find((x) => x.start === e.statement.start));
   const i = s.groups[e.step].findIndex((r) => r.start === e.fromRef.start);
   const j = s.groups[e.step + 1].findIndex((r) => r.start === e.toRef.start);
   return { e, s, key: `${e.step} ${i} ${j}` };
@@ -643,6 +684,13 @@ export function reverseEdge(text, svgId) {
  * The text with the statement at `at` rewritten by `pairs` (per `"step i j"`: { drop }, { body } a new connector, or
  * { reverse }), or with node `gone` taken out of every statement. `removed`: the edges this deletes, whose `linkStyle`
  * numbers go and whose `e1@{ … }` lines go. `expect(edge)`: each old edge as it should read after, or null.
+ * @param {string} text
+ * @param {object} options
+ * @param {number} [options.at]
+ * @param {Map<string, { drop?: boolean, body?: string, reverse?: boolean }>} [options.pairs]
+ * @param {string | null} [options.gone]
+ * @param {Edge[]} [options.removed]
+ * @param {((e: Edge) => EdgeSig | null) | null} [options.expect]
  */
 function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], expect = null }) {
   const all = statements(text);
@@ -683,7 +731,8 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
       if (body.match(new RegExp(`^${s.keyword}\\s+(${ID})`, 'u'))?.[1] === gone) changes.push({ s, parts: [] });
     } else if (gone && s.keyword === 'class') {
       const m = body.match(/^(class\s+)(\S+)/);
-      const names = m ? m[2].split(',') : [];
+      if (!m) continue;
+      const names = m[2].split(',');
       if (!names.includes(gone)) continue;
       const left = names.filter((x) => x !== gone);
       changes.push({ s, parts: left.length ? [{ text: m[1] + left.join(',') + body.slice(m[0].length) }] : [] });
@@ -703,7 +752,8 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
  * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No
  * test reaches the throw: it catches a bug in the rewriting, not an input.
  */
-function check(text, out, expect, gone = null, skip = new Set()) {
+function check(text, out, /** @type {(e: Edge) => EdgeSig | null} */ expect, /** @type {string | null} */ gone = null,
+  skip = new Set()) {
   const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
   const want = edges(text).map(expect).filter(Boolean).map(sig);
   const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
@@ -786,6 +836,7 @@ function rewrite(text, s, { pairs, gone, stays }) {
   };
 
   const parts = [];
+  /** @type {{ text: string } | null} */
   let chain = null;
   const flush = () => { if (chain) parts.push(chain.text); chain = null; };
   for (let g = 0; g < G.length; g++) {
@@ -860,6 +911,7 @@ function connector(line, m, i, end) {
   const plain = rest.match(LINK);
   if (plain) {
     i += plain[0].length;
+    /** @type {Label | null} */
     let label = null;
     const pipe = line.slice(i).match(/^\s*\|/);
     if (pipe) {

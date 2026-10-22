@@ -44,7 +44,7 @@ export function createPicker({ title, entries, onPick }) {
   function setCurrent(key, other = '') {
     current = entries.find((e) => e.key === key) ? key : null;
     for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === current));
-    name.textContent = current ? entries.find((e) => e.key === current).name : other ? `Other: ${other}` : '';
+    name.textContent = current ? entries.find((e) => e.key === current)?.name ?? '' : other ? `Other: ${other}` : '';
   }
 
   el.addEventListener('keydown', (e) => {
@@ -52,6 +52,7 @@ export function createPicker({ title, entries, onPick }) {
     const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
     const digit = entries.findIndex((entry) => e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`);
+    /** @type {number | null} */
     let to = null;
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); onPick(entries[digit].key); return; }
     if (e.key === 'ArrowRight') to = at + 1;

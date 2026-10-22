@@ -11,9 +11,12 @@
  */
 export function createSource(file, { onText, onError, onBuild = () => {} }) {
   const q = encodeURIComponent(file);
+  /** @type {string | null} */
   let text = null;
+  /** @type {string | null} */
   let version = null;
-  let timer = null;
+  /** @type {ReturnType<typeof setInterval> | undefined} */
+  let timer;
   let saves = 0;   // bumped as a save starts and ends, so a poll that overlaps one is dropped
 
   async function poll() {
@@ -79,7 +82,7 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
     poll,
     save,
     start() { poll(); if (!timer) timer = setInterval(poll, 1000); },
-    stop() { clearInterval(timer); timer = null; },
+    stop() { clearInterval(timer); timer = undefined; },
     async hostPath() { return (await fetch('/hostpath?f=' + q)).text(); },
   };
 }

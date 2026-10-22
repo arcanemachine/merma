@@ -18,7 +18,7 @@ export const GLOBAL_KEYS = {
   escape: [],
 };
 
-const noEdgeMatch = "The drawn edges don't match the file's text (no edge match), so deleting could change the wrong "
+export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no edge match), so deleting could change the wrong "
   + 'edge. Delete it in the file.';
 
 /**
@@ -36,7 +36,7 @@ const noEdgeMatch = "The drawn edges don't match the file's text (no edge match)
  * @property {string} label
  * @property {string} key its shortcut letter
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is greyed
- * @property {(state: MenuState) => string} [why] what a greyed item says
+ * @property {(state: MenuState) => string | null} [why] what a greyed item says
  * @property {string} [submenu] the name of what opens beside it
  * @property {boolean} [mode] it waits for a further click
  * @property {boolean} [separated] set apart from the items above it
@@ -48,7 +48,7 @@ export const MENUS = {
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'edit-label', label: 'Edit label', key: 'l' },
-    { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => noEdgeMatch },
+    { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
   ],
   edge: [
     { action: 'edit-label', label: 'Edit label', key: 'l' },
