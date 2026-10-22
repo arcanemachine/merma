@@ -66,8 +66,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Left does not close a picker in a submenu (Escape does). The strip's one exception: Up from its top row goes back to
   the label box above it.
 - In the strip, selected and focused are apart (the user): the fill is the selected shape, moved only by a click, a
-  digit or Enter; the outline is keyboard focus, moved by the arrows. While focus is not in the grid, the selected
-  shape has the outline too, since that is where the arrows start. Enter in the grid selects and goes back to the
+  digit or Enter; the outline is keyboard focus, moved by the arrows. While focus is not in the grid, the outline
+  stays where the arrows go on from (the user): Up or Escape back to the label leaves it on the shape last focused, and
+  Down returns there; a pick moves it to the picked shape. A picker in a menu keeps it on the current entry instead,
+  since there the item under the pointer is the focused one. Enter in the grid selects and goes back to the
   label; only Enter in the label saves, so each Enter has one meaning. Escape in the grid keeps what was selected
   there. A picker in a menu saves on each pick, so there the item under the pointer takes focus, as in any menu.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so

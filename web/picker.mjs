@@ -5,7 +5,8 @@
 // focused one. Keys it does not use (Escape; in a strip, Up from the top row) go on to whoever holds it.
 //
 // As a strip (under a text field), its buttons take focus only when its host gives it (`focus`), not under the pointer;
-// the host keeps a click from moving focus.
+// the host keeps a click from moving focus. It remembers where the arrows were when focus went back to its field, and
+// `focus` returns there; a pick moves that place to the picked entry. A picker in a menu always starts at the current one.
 
 import { move } from './grid.mjs';
 
@@ -64,7 +65,7 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
       if (!strip) b.focus();
       showName();
     });
-    b.addEventListener('focus', () => showName());
+    b.addEventListener('focus', () => { if (strip) markStart(b); showName(); });
     if (strip) b.tabIndex = -1;
     grid.append(b);
     return b;
@@ -77,6 +78,11 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
   let hovered = null;
   grid.addEventListener('pointerleave', () => { hovered = null; showName(); });
   grid.addEventListener('focusout', (e) => showName(/** @type {Element | null} */ (e.relatedTarget)));
+
+  /** Mark `start` as where the arrows start from (`focus`), outlined while focus is elsewhere; null marks none. */
+  function markStart(/** @type {HTMLButtonElement | null | undefined} */ start) {
+    for (const b of buttons) b.toggleAttribute('data-start', b === start);
+  }
 
   /** Name the entry under the pointer, else the focused one (`focused`, while focus moves), else the current one. */
   function showName(focused = document.activeElement) {
@@ -97,6 +103,7 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     current = entries.find((e) => e.key === key) ? key : null;
     other = otherName;
     for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === current));
+    markStart(buttons.find((b) => b.dataset.key === current));
     showName();
   }
 
@@ -120,8 +127,8 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
   return {
     el,
     current: setCurrent,
-    /** Focus the current entry, or the first. */
-    focus: () => (buttons.find((b) => b.dataset.key === current) ?? buttons[0]).focus(),
+    /** Focus where the arrows start from, or the first entry. */
+    focus: () => (buttons.find((b) => b.hasAttribute('data-start')) ?? buttons[0]).focus(),
     /** The current entry's key, or null. */
     value: () => current,
   };
