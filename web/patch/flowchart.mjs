@@ -523,7 +523,8 @@ export function setShape(/** @type {string} */ text, /** @type {string} */ id, /
     // in `label:` as plain text, backticks and all.
     if (label.includes('}')) throw new Error('its label has a } in it, which a shape with no brackets cannot hold here. Change the shape in the file.');
     if (/^"`/.test(label.trim())) throw new Error('its label is Markdown, which Mermaid does not draw in a shape with no brackets. Change the shape in the file.');
-    const quoted = /^".*"$/s.test(label.trim()) ? label.trim() : `"${label}"`;
+    // An unquoted label is quoted as written, entity codes and markup kept; only a `"` (valid in `[/a"b/]`) is coded.
+    const quoted = /^".*"$/s.test(label.trim()) ? label.trim() : `"${label.trim().replaceAll('"', '#quot;')}"`;
     const cls = CLASS_AT.exec(s.slice(span.end))?.[0] ?? '';
     ls[m.line] = s.slice(0, m.at) + cls + `@{ shape: ${at}, label: ${quoted} }` + s.slice(span.end + cls.length);
     return { text: ls.join('') };
