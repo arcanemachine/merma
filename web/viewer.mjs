@@ -23,7 +23,7 @@ const CLICK_SLOP = 4;
 const LONG_PRESS_MS = 500;
 
 /** Check that `text` is valid Mermaid; throws with Mermaid's message if not. */
-export const parse = (text) => mermaid.parse(text);
+export const parse = (/** @type {string} */ text) => mermaid.parse(text);
 
 /**
  * @param {object} els
@@ -65,7 +65,8 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     apply();
   }
 
-  function zoomAt(px, py, factor) {
+  /** Zoom by `factor` about the point (`px`, `py`) of the diagram area. */
+  function zoomAt(/** @type {number} */ px, /** @type {number} */ py, /** @type {number} */ factor) {
     const k = Math.min(8, Math.max(0.1, view.k * factor));
     view.x = px - (px - view.x) * (k / view.k);
     view.y = py - (py - view.y) * (k / view.k);
@@ -172,7 +173,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   });
   const endDrag = () => { if (drag) clearTimeout(drag.timer); drag = null; pointers.clear(); diagram.classList.remove('dragging'); };
   /** A finger lifted: the gesture goes on while any are down. Returns whether it did. */
-  const lifted = (e) => {
+  const lifted = (/** @type {PointerEvent} */ e) => {
     if (!drag || !pointers.delete(e.pointerId) || !pointers.size) return false;
     reanchor();
     return true;
@@ -200,7 +201,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     getView: () => ({ ...view, touched }),
 
     /** Put back a view from getView(). It counts as the user's, so a refit (window resize) leaves it alone. */
-    setView({ x, y, k }) {
+    setView(/** @type {{ x: number, y: number, k: number }} */ { x, y, k }) {
       Object.assign(view, { x, y, k });
       touched = true;
       apply();
@@ -210,7 +211,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     get renderId() { return renderId; },
 
     /** Render `text` in place of the current diagram. On a syntax error the last good render stays. */
-    async show(text) {
+    async show(/** @type {string} */ text) {
       const id = 'd' + n++;
       try {
         const { svg } = await mermaid.render(id, text);
