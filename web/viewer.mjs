@@ -4,6 +4,7 @@
 // input laid over the diagram) are left to themselves. What the page adds to the drawing is marked `data-page-…`: the
 // SVG export leaves out elements marked `data-page-only` and every `data-page-…` attribute.
 
+// A change to this version changes the module's name in types/mermaid.d.ts too.
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
 
 // useMaxWidth: false renders every diagram type at its natural size; the view below fits and zooms it.

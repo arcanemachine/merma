@@ -66,6 +66,7 @@ there is no login.
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
 | `checks/` | Checks that need a browser (`checks/README.md`) |
+| `tsconfig.json`, `web/tsconfig.json`, `types/` | Type-checking (`npm run typecheck`): the Node side, the page, and declarations JSDoc cannot make (Mermaid's CDN module). Not shipped |
 | `GLOSSARY.md` | The words merma uses, in the page, the docs and the code |
 | `docs/guide.md`, `docs/ux.md` | How to use the page; the rules it follows, and why |
 
