@@ -60,7 +60,8 @@ there is no login.
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |
 | `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types) |
-| `web/arrow-types.mjs` | The arrow types in their fixed, numbered order, with their names and icons |
+| `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
+| `web/icons.mjs` | The frame every icon shares |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |

@@ -9,8 +9,9 @@ import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
-  setSubgraphTitle, addSubgraph, subgraphRefusal,
+  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS,
 } from '../web/patch/flowchart.mjs';
+import { NODE_SHAPES } from '../web/shapes.mjs';
 
 const FIXTURES = join(import.meta.dirname, 'fixtures');
 const fixture = (name) => readFileSync(join(FIXTURES, name), 'utf8');
@@ -520,6 +521,79 @@ test('an edge id stays on its pair when the pair is reversed', () => {
   assert.equal(reverseEdge('flowchart LR\n  A & B e1@--> C\n', 'e1').text, 'flowchart LR\n  A --> C\n  C e1@--> B\n');
 });
 
+test('setShape between bracket shapes swaps the brackets and keeps the label\'s bytes', () => {
+  const src = fixture('05-chains-shapes.mmd');
+  for (const [at, [open, close]] of Object.entries(BRACKETS)) {
+    assert.equal(setShape(src, 'D', at).text, src.replace('D[/Four/]', `D${open}Four${close}`), at);
+  }
+  const quoted = fixture('07-tricky-labels.mmd');
+  assert.equal(setShape(quoted, 'A', 'diam').text, quoted.replace('A["Say #quot;hi#quot; [now]"]', 'A{"Say #quot;hi#quot; [now]"}'));
+});
+
+test('setShape to a shape with no brackets writes @{ shape, label }, quoting an unquoted label as written', () => {
+  assert.equal(setShape(fixture('01-basic.mmd'), 'A', 'doc').text, fixture('01-basic.mmd').replace('A[Start]', 'A@{ shape: doc, label: "Start" }'));
+  const quoted = fixture('07-tricky-labels.mmd');
+  assert.equal(setShape(quoted, 'B', 'doc').text, quoted.replace('B["Ünïcödé — 東京"]', 'B@{ shape: doc, label: "Ünïcödé — 東京" }'));
+  const markup = 'flowchart TD\n  A[a #amp; <b>b</b>] --> B\n';
+  assert.equal(setShape(markup, 'A', 'doc').text, 'flowchart TD\n  A@{ shape: doc, label: "a #amp; <b>b</b>" } --> B\n');
+});
+
+test('setShape refuses, for a shape with no brackets, a label with a } and a Markdown label; brackets take both', () => {
+  assert.throws(() => setShape('flowchart TD\n  A["a } b"]\n', 'A', 'doc'), /has a \} in it/);
+  const md = 'flowchart TD\n  A["`**bold** text`"] --> B\n';
+  assert.throws(() => setShape(md, 'A', 'docs'), /is Markdown/);
+  assert.equal(setShape(md, 'A', 'diam').text, 'flowchart TD\n  A{"`**bold** text`"} --> B\n');
+});
+
+test('setShape on @{ } changes or adds only the shape key', () => {
+  const src = fixture('08-new-shape-syntax.mmd');
+  assert.ok(setShape(src, 'A', 'diam').text.includes('A@{ shape: diam, label: "New syntax" }'));
+  assert.equal(setShape('flowchart TD\n  A@{ label: "x" }\n', 'A', 'hex').text, 'flowchart TD\n  A@{ shape: hex, label: "x" }\n');
+  assert.equal(setShape('flowchart TD\n  A@{}\n', 'A', 'hex').text, 'flowchart TD\n  A@{ shape: hex }\n');
+  assert.equal(setShape('flowchart TD\n  A@{ shape: "circle" }\n', 'A', 'doc').text, 'flowchart TD\n  A@{ shape: doc }\n');
+});
+
+test('setShape keeps a :::class before @{ }, where Mermaid takes it, and reads a shape written after one', () => {
+  const src = 'flowchart TD\n  A[x]:::hot --> B:::hot\n';
+  assert.equal(setShape(src, 'A', 'doc').text, 'flowchart TD\n  A:::hot@{ shape: doc, label: "x" } --> B:::hot\n');
+  assert.equal(setShape(src, 'B', 'doc').text, 'flowchart TD\n  A[x]:::hot --> B:::hot@{ shape: doc }\n');
+  assert.equal(setShape(src, 'A', 'diam').text, 'flowchart TD\n  A{x}:::hot --> B:::hot\n');
+  const written = 'flowchart TD\n  A:::hot@{ shape: doc, label: "x" }\n';
+  assert.equal(shapeOf(written, 'A'), 'doc');
+  assert.equal(setShape(written, 'A', 'hex').text, 'flowchart TD\n  A:::hot@{ shape: hex, label: "x" }\n');
+});
+
+test('setShape on a bare node shapes its first appearance, labelled with its id', () => {
+  const src = fixture('02-graph-header-bare.mmd');
+  assert.equal(setShape(src, 'B', 'diam').text, 'graph LR\n    A --> B{B}\n    B --> C\n    C --> A\n');
+  assert.equal(setShape(src, 'B', 'doc').text, 'graph LR\n    A --> B@{ shape: doc }\n    B --> C\n    C --> A\n');
+  assert.equal(setShape('flowchart TD\n  style A fill:#eef\n  A --> B\n', 'A', 'circle').text,
+    'flowchart TD\n  style A fill:#eef\n  A((A)) --> B\n');
+});
+
+test('setShape and shapeOf go by the last mention with a shape, as Mermaid does', () => {
+  const src = 'flowchart TD\n  A[x] --> B\n  A(y) --> C\n  A --> D\n';
+  assert.equal(shapeOf(src, 'A'), 'rounded');
+  assert.equal(setShape(src, 'A', 'diam').text, 'flowchart TD\n  A[x] --> B\n  A{y} --> C\n  A --> D\n');
+  const mixed = 'flowchart TD\n  A@{ shape: doc }\n  A[x] --> B\n  A@{ label: "y" }\n';
+  assert.equal(shapeOf(mixed, 'A'), 'rect');
+  assert.equal(setShape(mixed, 'A', 'hex').text, 'flowchart TD\n  A@{ shape: doc }\n  A{{x}} --> B\n  A@{ label: "y" }\n');
+});
+
+test('shapeOf reads brackets, @{ shape }, and bare nodes as rect; a name merma does not list as written', () => {
+  const src = fixture('05-chains-shapes.mmd');
+  const expected = { A: 'rect', B: 'circle', C: 'hex', D: 'lean-r', E: 'lean-l', F: 'odd', G: 'fr-rect', H: 'stadium', I: 'dbl-circ', J: 'trap-b', K: 'trap-t' };
+  for (const [id, at] of Object.entries(expected)) assert.equal(shapeOf(src, id), at, id);
+  assert.equal(shapeOf(fixture('08-new-shape-syntax.mmd'), 'B'), 'circle');
+  assert.equal(shapeOf(fixture('02-graph-header-bare.mmd'), 'B'), 'rect');
+  assert.equal(shapeOf('flowchart TD\n  A@{ shape: bolt }\n', 'A'), 'bolt');
+  assert.equal(shapeOf('flowchart TD\n  A@{ shape: "circle" }\n', 'A'), 'circle');
+});
+
+test('setShape refuses what is not a shape name', () => {
+  assert.throws(() => setShape(fixture('01-basic.mmd'), 'A', 'doc }'), /Not a shape name/);
+});
+
 // --- properties over every node of every fixture -------------------------------------------------------------
 
 for (const [name, ids] of Object.entries(NODE_IDS)) {
@@ -554,6 +628,17 @@ for (const [name, ids] of Object.entries(NODE_IDS)) {
       const d = lineDiff(src, text);
       assert.deepEqual(d.removed, []);
       assert.deepEqual(d.added.map((l) => l.trim()), [`${id} --> ${other}`]);
+    });
+
+    test(`${name} ${id}: setShape to every shape changes one line, reads back as that shape, and no other node's`, () => {
+      const others = ids.filter((x) => x !== id).map((x) => [x, shapeOf(src, x)]);
+      for (const { key } of NODE_SHAPES) {
+        const { text } = setShape(src, id, key);
+        const d = lineDiff(src, text);
+        if (shapeOf(src, id) !== key) assert.equal(d.removed.length, 1, key);
+        assert.equal(shapeOf(text, id), key);
+        for (const [x, was] of others) assert.equal(shapeOf(text, x), was, `${key}: ${x} changed`);
+      }
     });
 
     test(`${name} ${id}: relabel changes one line, and only just after the node id`, () => {

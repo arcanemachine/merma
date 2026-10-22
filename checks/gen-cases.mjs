@@ -3,13 +3,15 @@
 // index before; `at`: the edge changed in place (`swap`: turned around), and `want` what it should be: { type, stroke }
 // as Mermaid names an arrow, { label } a label as written, or { sameLabel } the label it had. `renamed`: a subgraph
 // given an id, { from, to }; `into`: { id, subgraph } a node or subgraph added inside another; `title`: { id, text }
-// the subgraph retitled, and its new title as written.
+// the subgraph retitled, and its new title as written. `shape`: { id, refs } the node given a shape, and that shape
+// written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel, relabel,
-  reverseEdge, setEdgeArrow, setEdgeLabel, setSubgraphTitle, subgraphs,
+  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
+  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, subgraphs,
 } from '../web/patch/flowchart.mjs';
+import { NODE_SHAPES } from '../web/shapes.mjs';
 // Mermaid's db names for each arrow type: [type, stroke].
 const DRAWN = {
   '-->': ['arrow_point', 'normal'], '---': ['arrow_open', 'normal'], '-.->': ['arrow_point', 'dotted'],
@@ -45,6 +47,11 @@ for (const [name, list, src] of sources) {
     cases.push({ name: `${name} add ${id}`, kind: 'add', src, out: addConnected(src, id).text });
     cases.push({ name: `${name} connect ${id}->${other}`, kind: 'connect', src, out: connect(src, id, other).text });
     cases.push({ name: `${name} relabel ${id}`, kind: 'relabel', src, out: relabel(src, id, 'Say "hi" #1 <b> & [x]; 東京 🚀').text });
+    for (const { key } of NODE_SHAPES) {
+      const b = BRACKETS[key];
+      const refs = [`flowchart TD\n  X@{ shape: ${key} }\n`, ...(b ? [`flowchart TD\n  X${b[0]}x${b[1]}\n`] : [])];
+      cases.push({ name: `${name} shape ${key} ${id}`, kind: 'shape', src, out: setShape(src, id, key).text, shape: { id, refs } });
+    }
     const keep = edges(src).filter((e) => e.from !== id && e.to !== id).map((e) => e.index);
     cases.push({ name: `${name} delete node ${id}`, kind: 'delete', src, out: deleteNode(src, id).text, gone: id, keep });
   }

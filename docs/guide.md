@@ -39,7 +39,8 @@ are left to the file.
 A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
 with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
-point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or Escape closes it.
+point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Left, Escape, its key again or
+another click on it closes it.
 
 ### Node menu
 
@@ -52,6 +53,11 @@ point at it or choose it. ▸ opens a submenu: click it, or press Right; Left or
 - **Edit label** edits the label in place (the label box): Enter saves, Shift+Enter starts a new line (written as
   `<br>`), Escape cancels. Only the label changes, where the node is first given a shape; a node that only appears
   bare gets brackets at its first appearance.
+- **Edit shape ▸** opens the shapes, each named with what it means in a flowchart (Diamond — Decision); click one, or
+  press its digit for the first ten. The shape changes where Mermaid takes it from, the node's last mention with one,
+  and the label stays as written. Shapes with brackets keep that form (`B{OK?}`); the others are written
+  `B@{ shape: doc, label: "OK?" }`, after any `:::class`. A label with a `}`, or a Markdown label, cannot move into
+  that form: the page says so, and the file keeps its shape. A shape merma does not offer (`bolt`) shows as "Other".
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
 

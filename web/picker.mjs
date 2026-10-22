@@ -6,9 +6,23 @@
 const COLUMNS = 5;
 
 /**
+ * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
+ * @typedef {object} PickerEntry
+ * @property {string} key what a pick reports
+ * @property {string} [digit] the key that picks it; entries past the tenth have none
+ * @property {string} name
+ * @property {string} [meaning] what it stands for, shown after its name: "Diamond — Decision"
+ * @property {() => string} icon an SVG drawing (icons.mjs)
+ */
+
+/** How an entry is named: in its accessible name, below the grid, and in its title with its key. */
+const label = (/** @type {PickerEntry} */ entry) => entry.name
+  + (entry.meaning && entry.meaning !== entry.name ? ` — ${entry.meaning}` : '');
+
+/**
  * @param {object} options
  * @param {string} options.title the noun for what is picked ("Arrow type")
- * @param {{ key: string, digit: string, name: string, icon: () => string }[]} options.entries
+ * @param {PickerEntry[]} options.entries
  * @param {(key: string) => void} options.onPick
  */
 export function createPicker({ title, entries, onPick }) {
@@ -29,9 +43,10 @@ export function createPicker({ title, entries, onPick }) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.key = entry.key;
-    b.title = `${entry.name} (${entry.key})`;
-    b.setAttribute('aria-label', entry.name);
-    b.innerHTML = entry.icon() + `<span class="digit">${entry.digit}</span>`;
+    b.title = `${label(entry)} (${entry.key})`;
+    // The digit shown is part of the name, so a voice user can say what they see (WCAG 2.5.3).
+    b.setAttribute('aria-label', (entry.digit ? `${entry.digit} ` : '') + label(entry));
+    b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit">${entry.digit}</span>` : '');
     b.addEventListener('click', () => onPick(entry.key));
     b.addEventListener('pointerenter', () => b.focus());
     grid.append(b);
@@ -49,14 +64,15 @@ export function createPicker({ title, entries, onPick }) {
   function setCurrent(key, other = '') {
     current = entries.find((e) => e.key === key) ? key : null;
     for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === current));
-    name.textContent = current ? entries.find((e) => e.key === current)?.name ?? '' : other ? `Other: ${other}` : '';
+    const entry = entries.find((e) => e.key === current);
+    name.textContent = entry ? label(entry) : other ? `Other: ${other}` : '';
   }
 
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
-    const digit = entries.findIndex((entry) => e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`);
+    const digit = entries.findIndex((entry) => entry.digit && (e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`));
     /** @type {number | null} */
     let to = null;
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); onPick(entries[digit].key); return; }

@@ -3,8 +3,9 @@
 // it stays open until whoever opened it closes it: a pan of the diagram is not a click away.
 //
 // Keys while focus is in it (it takes focus when it opens): Up and Down move, an item's letter or Enter runs it, Right
-// opens the focused item's submenu and Left or Escape closes it, Escape closes the menu. Other keys stop here, so the
-// page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt combinations go on (undo still works).
+// opens the focused item's submenu and Left, Escape or the item's letter again closes it, Escape closes the menu.
+// Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
+// combinations go on (undo still works).
 
 import { keyIndex } from './menu-items.mjs';
 import { place } from './place.mjs';
@@ -152,10 +153,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     e.stopPropagation();
   });
 
-  // Keys the picker leaves (Escape, Left at the start of a row) close the submenu, back to its item.
+  // Keys the picker leaves (Escape, Left at the start of a row) close the submenu, back to its item; so does the item's
+  // letter, as a second click on the item does.
   sub.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape' || e.key === 'ArrowLeft') { e.preventDefault(); closeSub(); }
+    if (e.key === 'Escape' || e.key === 'ArrowLeft' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
     e.stopPropagation();
   });
 

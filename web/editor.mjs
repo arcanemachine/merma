@@ -10,9 +10,11 @@ import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
-  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setSubgraphTitle, subgraphIdFromSvgId, subgraphRefusal, subgraphs,
+  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, shapeOf, subgraphIdFromSvgId,
+  subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { createPicker } from './picker.mjs';
+import { NODE_SHAPES } from './shapes.mjs';
 
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
@@ -113,6 +115,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return Boolean(why);
   }
   const shownEdge = (/** @type {string} */ id) => edges(shownText).find((e) => e.svgId === id);
+  /** A drawn node's shape as written, or null for one these edits cannot read (an id they do not take). */
+  const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
   function setEditable(/** @type {boolean} */ on) {
@@ -164,11 +168,22 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
   });
 
+  const shapePicker = createPicker({
+    title: 'Shape',
+    entries: NODE_SHAPES,
+    onPick: (at) => {
+      const node = selection();
+      // The shape it has already: nothing to write; the menu closes as after an edit.
+      if (shownShape(node.id) === at) { select(node); return; }
+      edit((text) => setShape(text, node.id, at), { after: () => ({ item: node }) });
+    },
+  });
+
   const menuOptions = {
     parent: els.diagram,
     bounds: () => els.diagram.getBoundingClientRect(),
     returnFocus: els.diagram,
-    submenus: { 'arrow-types': arrowPicker },
+    submenus: { 'arrow-types': arrowPicker, shapes: shapePicker },
     onRun: (/** @type {string} */ action) => handlers[action](),
     onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
@@ -206,6 +221,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (sel.kind === 'edge') {
       const arrow = shownEdge(sel.id)?.arrow ?? '';
       arrowPicker.current(arrowType(arrow), arrow);
+    }
+    if (sel.kind === 'node') {
+      const at = shownShape(sel.id);
+      shapePicker.current(at, at ?? '');
     }
     menus[sel.kind].open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
   }
