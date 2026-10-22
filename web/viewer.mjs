@@ -47,6 +47,12 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   let n = 0;
   /** @type {string | null} */
   let renderId = null;
+  // Mermaid lays a diagram out in a scratch element before handing back its SVG. Left to itself it puts that element
+  // in the body, where it takes up room in the page's layout for a frame or more, so the page jumps on every render.
+  const scratch = document.createElement('div');
+  Object.assign(scratch.style, { position: 'absolute', left: '0', top: '0', visibility: 'hidden', pointerEvents: 'none' });
+  scratch.setAttribute('aria-hidden', 'true');
+  diagram.append(scratch);
 
   function apply() {
     stage.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
@@ -214,7 +220,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     async show(/** @type {string} */ text) {
       const id = 'd' + n++;
       try {
-        const { svg } = await mermaid.render(id, text);
+        const { svg } = await mermaid.render(id, text, scratch);
         stage.innerHTML = svg;
         renderId = id;
         const rect = /** @type {SVGSVGElement} */ (stage.querySelector('svg')).getBoundingClientRect();
