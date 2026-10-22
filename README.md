@@ -62,6 +62,7 @@ there is no login.
 | `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types, shapes), in a menu or as a strip |
 | `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
 | `web/icons.mjs` | The frame every icon shares |
+| `web/grid.mjs` | Where an arrow key moves focus in a picker's grid |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |

@@ -116,12 +116,6 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
 .menu button.separated { margin-top: 5px; position: relative; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }
-/* A split item: its action, and its own ▸ at the row's end, a touch-sized target (WCAG 2.5.8). */
-.menu .split { display: flex; }
-.menu .split > button:first-child { flex: 1; }
-.menu button.open-sub { min-width: 32px; min-height: 24px; justify-content: flex-end; color: #888; padding: 6px 10px 6px 8px;
-                        margin-left: 2px; box-shadow: inset 1px 0 0 #e4e4e4; }
-.menu button.open-sub[aria-expanded="true"] { background: #eef3fb; }
 /* An item that does not apply now: greyed, still focusable, its reason in its title. */
 .menu button[aria-disabled="true"] { color: #aaa; cursor: default; }
 /* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
@@ -132,13 +126,19 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
 .menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
 .menu .picker-grid button:focus { outline: 2px solid #0969da; outline-offset: -2px; }
-.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; text-align: center; }
+/* The grid sets the width, never the name: a picker that resized as names changed would move under the pointer. */
+.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; text-align: center;
+               contain: inline-size; }
 /* The label box: laid exactly over the label being edited, so it is edited in place. */
 #label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid #0969da; border-radius: 4px;
           background: #fff; resize: none; overflow: hidden; user-select: text; cursor: text; }
-/* The strip of shapes under the label box while a new node is named: a menu's look, placed by the editor. */
+/* The strip of shapes under a node's label box: a menu's look, placed by the editor. */
 .menu.strip { padding: 4px 6px 6px; }
 /* On a narrow screen the strip's ten columns would not fit: five, in four rows. The picker's arrow keys follow the grid
    as drawn. */
-@media (max-width: 480px) { .strip .picker-grid { --columns: 5 !important; } }
+@media (max-width: 480px) {
+  .strip .picker-grid { --columns: 5 !important; }
+  /* The longest names take two lines at this width: room for both, so the strip keeps its height. */
+  .strip .picker-name { min-height: 2.4em; }
+}

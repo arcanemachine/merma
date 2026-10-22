@@ -1,10 +1,13 @@
 // A grid of choices (arrow types, shapes), each drawn as a small icon with its digit in the corner. The line under it
-// names the current one, or the one under the pointer or keyboard focus while there is one. It reports a pick; what a pick does is up to whoever shows it (a menu makes the edit at once, the label
-// box keeps it until Enter). Keys while focus is in it: a digit picks, the arrow keys move, Enter picks the focused one.
-// Keys it does not use (Escape, Left at the start of a row) go on to whoever holds it.
+// names the entry under the pointer, else the one with keyboard focus, else the current one. It reports a pick; what a
+// pick does is up to whoever shows it (a menu makes the edit at once, the label box keeps it until Enter). Keys while
+// focus is in it: a digit picks, the arrow keys move, wrapping within their row or column (grid.mjs), Enter picks the
+// focused one. Keys it does not use (Escape; in a strip, Up from the top row) go on to whoever holds it.
 //
 // As a strip (under a text field), its buttons take focus only when its host gives it (`focus`), not under the pointer;
 // the host keeps a click from moving focus.
+
+import { move } from './grid.mjs';
 
 /**
  * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
@@ -55,8 +58,13 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
       if (!strip || grid.contains(document.activeElement)) b.focus();
       onPick(entry.key);
     });
-    b.addEventListener('pointerenter', () => { if (strip) name.textContent = label(entry); else b.focus(); });
-    b.addEventListener('focus', () => { name.textContent = label(entry); });
+    b.addEventListener('pointerenter', (e) => {
+      // Touch has no hover: a tap names the current one (docs/ux.md).
+      if (e.pointerType !== 'touch') hovered = entry;
+      if (!strip) b.focus();
+      showName();
+    });
+    b.addEventListener('focus', () => showName());
     if (strip) b.tabIndex = -1;
     grid.append(b);
     return b;
@@ -64,24 +72,32 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
 
   /** @type {string | null} */
   let current = null;
-  let atRest = '';
-  // Back to the current one once neither the pointer nor the keyboard is on an entry.
-  const rest = () => { if (!grid.contains(document.activeElement)) name.textContent = atRest; };
-  grid.addEventListener('pointerleave', rest);
-  grid.addEventListener('focusout', (e) => { if (!grid.contains(/** @type {Node | null} */ (e.relatedTarget))) name.textContent = atRest; });
+  let other = '';
+  /** @type {PickerEntry | null} the entry under the pointer */
+  let hovered = null;
+  grid.addEventListener('pointerleave', () => { hovered = null; showName(); });
+  grid.addEventListener('focusout', (e) => showName(/** @type {Element | null} */ (e.relatedTarget)));
+
+  /** Name the entry under the pointer, else the focused one (`focused`, while focus moves), else the current one. */
+  function showName(focused = document.activeElement) {
+    const at = buttons.findIndex((b) => b === focused);
+    const entry = entries.find((e) => e.key === current);
+    // A picker hidden under the pointer gets no pointerleave: what it last had under it is stale when it shows again.
+    const under = hovered && grid.matches(':hover') ? hovered : null;
+    name.textContent = under ? label(under) : at >= 0 ? label(entries[at])
+      : entry ? `Current: ${label(entry)}` : other ? `Current: ${other}` : '';
+  }
 
   /**
-   * Mark `key` as current; for one not in the list, `other` names it instead ("o--o").
+   * Mark `key` as current; for one not in the list, `otherName` names it instead ("o--o").
    * @param {string | null} key
-   * @param {string} [other]
+   * @param {string} [otherName]
    */
-  function setCurrent(key, other = '') {
+  function setCurrent(key, otherName = '') {
     current = entries.find((e) => e.key === key) ? key : null;
+    other = otherName;
     for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === current));
-    const entry = entries.find((e) => e.key === current);
-    atRest = entry ? `Current: ${label(entry)}` : other ? `Current: ${other}` : '';
-    const on = buttons.find((b) => b === document.activeElement);
-    name.textContent = on ? label(entries[buttons.indexOf(on)]) : atRest;
+    showName();
   }
 
   el.addEventListener('keydown', (e) => {
@@ -91,17 +107,14 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     const across = buttons.filter((b) => b.offsetTop === buttons[0].offsetTop).length;
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
     const digit = entries.findIndex((entry) => entry.digit && (e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`));
-    /** @type {number | null} */
-    let to = null;
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); buttons[digit].focus(); onPick(entries[digit].key); return; }
-    if (e.key === 'ArrowRight') to = at + 1;
-    else if (e.key === 'ArrowLeft' && at % across > 0) to = at - 1;
-    else if (e.key === 'ArrowDown') to = at + across;
-    else if (e.key === 'ArrowUp' && at >= across) to = at - across;
+    // In a strip, Up from the top row is the way back to its field.
+    if (at < 0 || (strip && e.key === 'ArrowUp' && at < across)) return;
+    const to = move(at, e.key, buttons.length, across);
     if (to === null) return;
     e.preventDefault();
     e.stopPropagation();
-    buttons[Math.max(0, Math.min(to, buttons.length - 1))].focus();
+    buttons[to].focus();
   });
 
   return {
