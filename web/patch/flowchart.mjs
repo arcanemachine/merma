@@ -365,16 +365,17 @@ function nameSubgraph(/** @type {string} */ text, /** @type {Subgraph} */ sg, /*
 /**
  * Give subgraph `id` the title `title`, quoted: the bracket's contents are replaced (`subgraph pay ["New"]`); a bare
  * title that is also the id gets a bracket after it, keeping the id (`subgraph Payment ["New"]`); a subgraph with no
- * id is given one, since a new title with no whitespace in it would otherwise become its id.
+ * id is given one, since a new title with no whitespace in it would otherwise become its id. Returns { text, id }: the
+ * id it has after.
  */
 export function setSubgraphTitle(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ title) {
   const sg = subgraphBlock(text, id);
   if (!sg) throw new Error('That subgraph is not in the file.');
   const quoted = quoteLabel(title);
   const { start, end, form } = sg.title;
-  if (form === 'bracket') return { text: text.slice(0, start) + quoted + text.slice(end) };
-  if (sg.written) return { text: text.slice(0, end) + ` [${quoted}]` + text.slice(end) };
-  return { text: nameSubgraph(text, sg, quoted).text };
+  if (form === 'bracket') return { text: text.slice(0, start) + quoted + text.slice(end), id };
+  if (sg.written) return { text: text.slice(0, end) + ` [${quoted}]` + text.slice(end), id };
+  return nameSubgraph(text, sg, quoted);
 }
 
 /**

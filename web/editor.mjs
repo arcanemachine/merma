@@ -15,6 +15,16 @@ import {
 import { createPicker } from './picker.mjs';
 
 /**
+ * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
+ * named); `into`: the history entry the edit completes; `after(result)`: the item to select once its text is drawn,
+ * with `label` to open the label box on it, or null for nothing.
+ * @typedef {object} EditOptions
+ * @property {(result: any, entry: import('./history.mjs').Entry) => void} [afterSave]
+ * @property {import('./history.mjs').Entry | null} [into]
+ * @property {(result: any) => ({ item: Item, label?: boolean } | null)} [after]
+ */
+
+/**
  * A node, an edge or a subgraph: what can be selected. `id` is Mermaid's node or subgraph id, or an edge's SVG id.
  * @typedef {{ kind: 'node' | 'edge' | 'subgraph', id: string }} Item
  */
@@ -36,8 +46,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let shownText = '';
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
-  /** @type {Item | null} a node or subgraph just added: open the label box on it once drawn */
-  let pendingLabel = null;
+  /**
+   * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
+   * Good for that text only: an edge is found by its place in it.
+   * @type {{ text: string, item: Item, label?: boolean } | null}
+   */
+  let pending = null;
   const history = createHistory();
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   /** @type {(Item & { entry: import('./history.mjs').Entry }) | null} while what was just added is named: its name belongs to its add */
@@ -124,8 +138,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
-    'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, '')); },
-    'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id)); },
+    'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, ''), { after: sameEdge(id) }); },
+    'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
     'add-node': () => {
       const subgraph = selectedSubgraph();
       addAndName((text) => addNode(text, { subgraph }), subgraph);
@@ -146,7 +160,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     entries: ARROW_TYPES,
     onPick: (arrow) => {
       const id = selection().id;
-      editDrawn((text) => setEdgeArrow(text, id, arrow));
+      editDrawn((text) => setEdgeArrow(text, id, arrow), { after: sameEdge(id) });
     },
   });
 
@@ -216,12 +230,22 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @param {'node' | 'subgraph'} [kind]
    */
   function addAndName(change, into = null, kind = 'node') {
-    const done = (/** @type {{ id: string }} */ result, /** @type {import('./history.mjs').Entry} */ entry) => {
-      pendingLabel = { kind, id: result.id };
-      naming = { kind, id: result.id, entry };
+    /** @type {EditOptions} */
+    const options = {
+      afterSave: (result, entry) => { naming = { kind, id: result.id, entry }; },
+      after: (result) => ({ item: { kind, id: result.id }, label: true }),
     };
-    if (into && drawnOnly(into)) editDrawn(change, done); else edit(change, done);
+    if (into && drawnOnly(into)) editDrawn(change, options); else edit(change, options);
   }
+
+  /** After an edit to the edge drawn as `id`: that edge again, found by its place, which no edit changes. */
+  const sameEdge = (/** @type {string} */ id) => {
+    const index = shownEdge(id)?.index;
+    return (/** @type {{ text: string }} */ result) => {
+      const e = index === undefined ? undefined : edges(result.text)[index];
+      return e ? { item: /** @type {Item} */ ({ kind: 'edge', id: e.svgId }) } : null;
+    };
+  };
 
   /** Open the label box on a subgraph's title, unless writing it would need an id the file cannot take. */
   function editTitle(/** @type {Item} */ sel) {
@@ -242,9 +266,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       deselect();
       const names = [named(from), named(to)];
       const change = (/** @type {string} */ text) => connect(text, from.id, to.id);
-      const announce = () => ui.announce(`Connected ${names[0]} to ${names[1]}`);
+      /** @type {EditOptions} */
+      const options = {
+        afterSave: () => ui.announce(`Connected ${names[0]} to ${names[1]}`),
+        // The new edge is appended: it is the last.
+        after: (result) => {
+          const e = edges(result.text).at(-1);
+          return e ? { item: { kind: 'edge', id: e.svgId } } : null;
+        },
+      };
       const drawn = [from, to].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
-      if (drawn) editDrawn(change, announce); else edit(change, announce);
+      if (drawn) editDrawn(change, options); else edit(change, options);
       return;
     }
     if (item) select(item);
@@ -263,18 +295,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * Make an edit that names what is drawn (an edge, a node to delete, a subgraph with no id in the file): only good
    * for the text it was drawn from.
-   */
-  /**
    * @param {(text: string) => { text: string }} change
-   * @param {((result: any, entry: import('./history.mjs').Entry) => void) | null} [afterSave]
-   * @param {import('./history.mjs').Entry | null} [into]
+   * @param {EditOptions} [options]
    */
-  function editDrawn(change, afterSave = null, into = null) {
+  function editDrawn(change, options = {}) {
     const drawnFrom = shownText;
     return edit((text) => {
       if (text !== drawnFrom) throw new Error('the diagram changed; select it again.');
       return change(text);
-    }, afterSave, into);
+    }, options);
   }
 
   /** Delete the selected node or edge. */
@@ -285,10 +314,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
     const name = sel.kind === 'node' && named(sel);
-    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), (result) => {
+    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), { afterSave: (result) => {
       if (sel.kind === 'edge') ui.announce('Deleted the edge');
       else ui.announce(`Deleted ${name}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
-    });
+    } });
   }
 
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
@@ -430,14 +459,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     const unchanged = label === input.dataset.initial;
     closeLabelBox();
-    // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label.
-    if (unchanged) { deselect(); naming = null; return; }
-    if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label)); return; }
+    // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
+    // selected, as after an edit: the two look alike.
+    if (unchanged) { select(target); naming = null; return; }
+    if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) }); return; }
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
-    if (target.kind === 'node') { edit((text) => relabel(text, target.id, label), null, into); return; }
+    if (target.kind === 'node') { edit((text) => relabel(text, target.id, label), { into, after: () => ({ item: target }) }); return; }
     const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
-    if (drawnOnly(target.id)) editDrawn(change, null, into); else edit(change, null, into);
+    /** @type {EditOptions} */
+    const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };
+    if (drawnOnly(target.id)) editDrawn(change, options); else edit(change, options);
   });
 
   // --- edges ---------------------------------------------------------------------------------------------------
@@ -486,13 +518,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // Make an edit to the file's latest text and save it over that text's version. The edit runs on the text as the page
   // has it now, so a change it has already picked up is kept; one it has not yet seen, even one that arrives while the
   // edit is being checked, makes the save fail rather than be overwritten. `into` is the history entry this edit
-  // completes, if any.
+  // completes, if any; `after` picks what is selected once the edit's text is drawn.
   /**
    * @param {(text: string) => { text: string }} change
-   * @param {((result: any, entry: import('./history.mjs').Entry) => void) | null} [afterSave]
-   * @param {import('./history.mjs').Entry | null} [into]
+   * @param {EditOptions} [options]
    */
-  function edit(change, afterSave = null, into = null) {
+  function edit(change, { afterSave, into = null, after } = {}) {
     return exclusively(async () => {
       ui.hideNotice();
       const base = source.snapshot();
@@ -506,8 +537,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       if (!(await save(result.text, base.version))) return;
       const entry = history.record(base.text, result.text, into);
-      // The action is done: drop the selection, so its menu does not linger over the diagram.
+      // The action is done: its menu closes. What it acted on is selected again once drawn (`after`), or nothing.
       deselect();
+      const next = after?.(result);
+      pending = next ? { text: result.text, ...next } : null;
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
       await display(result.text);
@@ -621,11 +654,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
       if (kept) select(sel, { keepMode: sel.kind !== 'edge', menu });
       else deselect();
-      if (pendingLabel && elsOf(pendingLabel).length) {
-        const sel = pendingLabel;
-        pendingLabel = null;
-        select(sel);
-        openLabelBox(sel);
+      const next = pending;
+      pending = null;
+      if (next && text === next.text && elsOf(next.item).length) {
+        select(next.item);
+        if (next.label) openLabelBox(next.item);
       }
     },
 
