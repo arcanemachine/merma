@@ -43,6 +43,16 @@ export function createHistory() {
       return { ok: true, text: entry.before };
     },
 
+    /**
+     * Drop `entry`, once what it took back is saved: a cancelled add, which redo does not bring back. Only the newest
+     * entry can go; returns whether it did.
+     */
+    discard(/** @type {Entry} */ entry) {
+      if (entries.at(-1) !== entry) return false;
+      entries.pop();
+      return true;
+    },
+
     /** Move the newest entry to the redo stack, once its undo is saved. */
     pop() { undone.push(/** @type {Entry} */ (entries.pop())); },
 

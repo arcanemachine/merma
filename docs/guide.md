@@ -85,7 +85,8 @@ another click on it closes it.
 
 - **Add node** adds a new node inside the subgraph, before its `end`, then opens the node panel on it.
 - **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
-  the label box on its title. Mermaid draws an empty subgraph as its title alone, until it has nodes.
+  the label box on its title (Escape there takes the add back, as for a node). Mermaid draws an empty subgraph as its
+  title alone, until it has nodes.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
 - **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
@@ -104,7 +105,9 @@ Edit node, Enter, F2 or a double-click on a node, and adding one (Add connected 
 the label box over the node, and a strip of the shapes under it, the node's shape selected (a new node's is
 Rectangle). Nothing is drawn until Enter in the label box, or a click or tap away, or Tab, which writes the label
 and the shape as one change (only what changed); for a node just added, it is undone together with the add. Only
-Escape closes the panel without writing (a node just added stays as it was added).
+Escape closes the panel without writing. On a node just added, Escape takes the add back, as if it never was (Redo
+does not bring it back); from the shapes it takes two, since the first goes back to the label. On a touch screen, tap
+away and then Undo. Once the panel an add opened is closed, Undo is the way back.
 
 - **The label:** Shift+Enter starts a new line (written as `<br>`). A label you empty is refused; a node drawn with
   none (a shape such as `bolt`) can still change shape with its label left empty: the panel stays open with the error, even after a
