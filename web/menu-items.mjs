@@ -69,7 +69,11 @@ export const MENUS = {
   ],
 };
 
-/** Where an item's key is shown in its label: its first letter that starts a word, else its first letter at all. */
+/**
+ * Where an item's key is shown in its label: its first letter that starts a word, else its first letter at all.
+ * @param {string} label
+ * @param {string} key
+ */
 export function keyIndex(label, key) {
   const lower = label.toLowerCase();
   const word = [...lower].findIndex((c, i) => c === key && (i === 0 || /\W/.test(lower[i - 1])));

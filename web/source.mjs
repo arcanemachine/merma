@@ -43,6 +43,8 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
    * caller passes it rather than this reading the latest, because a poll can bring in a newer version while the edit
    * is being checked; saving over that one would throw away the change it brought. On a conflict (the file changed
    * since), the new version is fetched and passed to onText as usual.
+   * @param {string} next
+   * @param {string | null} base
    * @returns {Promise<{ ok: true } | { ok: false, conflict?: boolean, message: string }>}
    */
   async function save(next, base) {
@@ -52,7 +54,7 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
       try {
         res = await fetch('/edit?f=' + q, {
           method: 'POST',
-          headers: { 'If-Match': base, 'Content-Type': 'text/plain; charset=utf-8' },
+          headers: { 'If-Match': base ?? '', 'Content-Type': 'text/plain; charset=utf-8' },
           body: next,
         });
       } catch {

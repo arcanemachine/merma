@@ -2,12 +2,14 @@
 // entries go at the end. `key` is the arrow's shortest Mermaid syntax, as in ARROWS (patch/flowchart.mjs); names
 // follow Mermaid's docs ("open link" is a line: no head).
 
+/** @type {Record<string, (x: number, dir: number) => string>} each end's drawing at `x`, pointing `dir` (1 right, -1 left) */
 const HEADS = {
   none: () => '',
   point: (x, dir) => `<path d="M${x} 6 l${-6 * dir} -4 v8 z" fill="currentColor"/>`,
   circle: (x) => `<circle cx="${x - 3}" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
   cross: (x) => `<path d="M${x - 6} 2 l6 8 m0 -8 l-6 8" stroke="currentColor" stroke-width="1.5"/>`,
 };
+/** @type {Record<string, string>} */
 const STROKES = {
   normal: 'stroke-width="1.5"',
   dotted: 'stroke-width="1.5" stroke-dasharray="2 2"',
@@ -15,7 +17,12 @@ const STROKES = {
   invisible: 'stroke-width="1.5" stroke-dasharray="1 3" opacity="0.35"',
 };
 
-/** A small drawing of an edge: its line and its ends, in the current text colour. */
+/**
+ * A small drawing of an edge: its line and its ends, in the current text colour.
+ * @param {string} stroke a key of STROKES
+ * @param {string} end a key of HEADS, as `start`
+ * @param {string} [start]
+ */
 function icon(stroke, end, start = 'none') {
   return () => '<svg viewBox="0 0 40 12" width="40" height="12" aria-hidden="true">'
     + `<path d="M${start === 'none' ? 2 : 6} 6 H${end === 'none' ? 38 : 34}" stroke="currentColor" ${STROKES[stroke]}/>`
