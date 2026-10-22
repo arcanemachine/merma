@@ -453,6 +453,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   });
   const stripBox = Object.assign(document.createElement('div'), { className: 'menu strip', popover: 'manual' });
   stripBox.dataset.overlay = '';
+  // A press anywhere on the strip, icon or not, leaves focus in the box: moving it would close the box.
+  stripBox.addEventListener('mousedown', (e) => e.preventDefault());
   const stripHint = Object.assign(document.createElement('div'), { className: 'strip-hint', id: 'strip-hint', textContent: 'Tab changes the shape' });
   stripBox.append(strip.el, stripHint);
   els.diagram.append(stripBox);
@@ -541,6 +543,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     const relabelled = label !== input.dataset.initial;
     const shape = stripFrom !== null && strip.value() !== stripFrom ? strip.value() : null;
+    /** A node's new label and shape, as one change. */
+    const renamed = (/** @type {string} */ text) => {
+      const named = relabelled ? relabel(text, target.id, label).text : text;
+      return shape ? setShape(named, target.id, shape) : { text: named };
+    };
+    // A shape the label cannot take is refused before the box closes, so what was typed is kept to try another.
+    if (shape) {
+      try { renamed(source.snapshot().text ?? ''); } catch (err) { ui.notice('Not saved: ' + err.message, 'error'); return; }
+    }
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
     // selected, as after an edit: the two look alike.
@@ -548,13 +559,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) }); return; }
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
-    if (target.kind === 'node') {
-      edit((text) => {
-        const named = relabelled ? relabel(text, target.id, label).text : text;
-        return shape ? setShape(named, target.id, shape) : { text: named };
-      }, { into, after: () => ({ item: target }) });
-      return;
-    }
+    if (target.kind === 'node') { edit(renamed, { into, after: () => ({ item: target }) }); return; }
     const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
     /** @type {EditOptions} */
     const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };

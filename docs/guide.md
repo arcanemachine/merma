@@ -108,7 +108,8 @@ top level, at the end of the file. Mermaid lays the diagram out, so what you add
 Whenever a node is added (Add connected node, Add node, N), the label box opens on it with a strip of the shapes under
 it, its shape (Rectangle) marked. Type the name; Tab and Shift+Tab step through the shapes, or click one, and the box
 keeps the keyboard. Nothing is drawn until Enter, which writes the label and the shape as one change, undone together
-with the add. Escape keeps the node as it was added. Editing an existing node's label shows no strip: Edit shape ▸
+with the add. A shape the label cannot take (a `}` or Markdown with a shape that has no brackets) is refused on Enter,
+and the box stays open with what you typed. Escape keeps the node as it was added. Editing an existing node's label shows no strip: Edit shape ▸
 changes its shape.
 
 ## Keys

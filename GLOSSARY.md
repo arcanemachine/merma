@@ -57,6 +57,7 @@ note where merma had to make one up.
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types and the shapes. Shows the current one. |
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit label, Edit title). merma's own. |
+| **strip** | The shape picker laid under the label box while a new node is named: Tab steps through it, and the box keeps the keyboard. merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |

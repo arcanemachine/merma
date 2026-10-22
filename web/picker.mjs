@@ -3,8 +3,8 @@
 // box keeps it until Enter). Keys while focus is in it: a digit picks, the arrow keys move, Enter picks the focused one.
 // Keys it does not use (Escape, Left at the start of a row) go on to whoever holds it.
 //
-// As a strip (beside a text field that keeps the keyboard), its buttons never take focus: a click picks without
-// taking focus from the field, and the field steps through the entries with `step`.
+// As a strip (beside a text field that keeps the keyboard), its buttons never take focus, and the field steps through
+// the entries with `step`; whoever shows it keeps a click from taking focus.
 
 /**
  * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
@@ -52,12 +52,8 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     b.setAttribute('aria-label', (entry.digit ? `${entry.digit} ` : '') + label(entry));
     b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit">${entry.digit}</span>` : '');
     b.addEventListener('click', () => onPick(entry.key));
-    if (strip) {
-      b.tabIndex = -1;
-      b.addEventListener('mousedown', (e) => e.preventDefault());
-    } else {
-      b.addEventListener('pointerenter', () => b.focus());
-    }
+    if (strip) b.tabIndex = -1;
+    else b.addEventListener('pointerenter', () => b.focus());
     grid.append(b);
     return b;
   });
