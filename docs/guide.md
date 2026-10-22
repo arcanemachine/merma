@@ -105,7 +105,8 @@ the label box over the node, and a strip of the shapes under it, the node's shap
 Rectangle). Nothing is drawn until Enter in the label box, which writes the label and the shape as one change (only
 what changed); for a node just added, it is undone together with the add.
 
-- **The label:** Shift+Enter starts a new line (written as `<br>`). Escape, Tab or a click away closes the panel and
+- **The label:** Shift+Enter starts a new line (written as `<br>`). A label you empty is refused; a node drawn with
+  none (a shape such as `bolt`) can still change shape with its label left empty. Escape, Tab or a click away closes the panel and
   writes nothing (a node just added stays as it was added). Only the label changes, where the node is first given a
   shape; a node that only appears bare gets brackets at its first appearance.
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
