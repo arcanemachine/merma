@@ -1,5 +1,5 @@
 // Type-checking only (`npm run typecheck`): the code runs as plain JavaScript, with no build step. This config is the
-// Node side, the command line and the server; the page has its own, web/tsconfig.json.
+// Node side, the command line and the server; the page's, web/tsconfig.json, extends it.
 {
   "compilerOptions": {
     "allowJs": true,

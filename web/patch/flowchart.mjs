@@ -243,20 +243,16 @@ export function subgraphs(/** @type {string} */ text) {
       let from = kw[0].length;
       while (from < to && /\s/.test(line[from])) from++;
       const raw = line.slice(from, to);
-      /** @type {Subgraph} */
-      const s = { id: null, written: false, start: k, end: null, parent: open.at(-1) ?? null, title: { start: 0, end: 0, form: 'bare' } };
       const bracket = raw.match(new RegExp(`^("[^"]*"|${ID})\\s*\\[`, 'u'));
-      if (bracket && raw.endsWith(']')) {
-        s.id = bracket[1].replace(/^"(.*)"$/, '$1');
-        s.written = true;
-        s.title = { start: offset + from + bracket[0].length, end: offset + to - 1, form: 'bracket' };
-      } else {
-        const bare = raw.replace(/^"(.*)"$/, '$1');
-        if (bare && !/\s/.test(bare)) { s.id = bare; s.written = true; }
-        s.title = { start: offset + from, end: offset + to, form: 'bare' };
-      }
+      const bare = raw.replace(/^"(.*)"$/, '$1');
+      // A bracketed title follows the id; a bare one with no whitespace is the id too.
+      const id = bracket && raw.endsWith(']') ? bracket[1].replace(/^"(.*)"$/, '$1') : bare && !/\s/.test(bare) ? bare : null;
+      /** @type {Subgraph['title']} */
+      const title = bracket && raw.endsWith(']')
+        ? { start: offset + from + bracket[0].length, end: offset + to - 1, form: 'bracket' }
+        : { start: offset + from, end: offset + to, form: 'bare' };
       open.push(out.length);
-      out.push(s);
+      out.push({ id, written: id !== null, start: k, end: null, parent: open.at(-2) ?? null, title });
     } else if (/^\s*end\s*;?\s*$/.test(m) && open.length) {
       const s = out[/** @type {number} */ (open.pop())];
       s.end = k;
@@ -601,8 +597,10 @@ function readStatement(/** @type {string} */ line, /** @type {string} */ m, /** 
 
 // --- changing and deleting edges and nodes ---------------------------------------------------------------------
 
-/** The arrow types an edge can be given. Each takes the extra body length to keep (`---->` is `-->` plus 2). */
-/** @type {Record<string, (n: number) => string>} */
+/**
+ * The arrow types an edge can be given. Each takes the extra body length to keep (`---->` is `-->` plus 2).
+ * @type {Record<string, (n: number) => string>}
+ */
 export const ARROWS = {
   '-->': (n) => '--' + '-'.repeat(n) + '>',
   '---': (n) => '---' + '-'.repeat(n),
@@ -722,7 +720,7 @@ export function reverseEdge(/** @type {string} */ text, /** @type {string} */ sv
  * @param {string} text
  * @param {object} options
  * @param {number} [options.at]
- * @param {Map<string, { drop?: boolean, body?: string, reverse?: boolean }>} [options.pairs]
+ * @param {Map<string, PairChange>} [options.pairs]
  * @param {string | null} [options.gone]
  * @param {Edge[]} [options.removed]
  * @param {((e: Edge) => EdgeSig | null) | null} [options.expect]
@@ -807,8 +805,6 @@ function check(/** @type {string} */ text, /** @type {string} */ out, /** @type 
  * its ends' connectors differ, with a reversed pair as a statement of its own. Consecutive starts are merged only when
  * each is a single plain statement with the same ends, since anything more would reorder their edges. A node written
  * more than once keeps its shape and label at its first appearance only.
- */
-/**
  * @param {string} text
  * @param {Statement} s
  * @param {{ pairs: Map<string, PairChange>, gone: string | null, stays: (id: string) => boolean }} options
@@ -952,8 +948,10 @@ function apply(/** @type {string} */ text, /** @type {Change[]} */ changes) {
   return out;
 }
 
-/** The connector at `i`: { start, end, arrow, label, userId }, or null. */
-/** @returns {Link | null} */
+/**
+ * The connector at `i`, or null.
+ * @returns {Link | null}
+ */
 function connector(/** @type {string} */ line, /** @type {string} */ m, /** @type {number} */ i, /** @type {number} */ end) {
   const start = i;
   /** @type {string | null} */
