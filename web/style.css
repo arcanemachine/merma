@@ -125,9 +125,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
 .picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
 /* Focus is the outline only, and the fill only what is selected (the user): two marks that never look alike. With
-   focus elsewhere (in the label box above the strip), the selected one has the outline too: where the arrows start. */
+   focus elsewhere (in the label box above the strip), the outline stays where the arrows start from. */
 .menu .picker-grid button:focus,
-.menu .picker-grid:not(:focus-within) button[aria-pressed="true"] { outline: 2px solid #0969da; outline-offset: -2px; }
+.menu .picker-grid:not(:focus-within) button[data-start] { outline: 2px solid #0969da; outline-offset: -2px; }
 .menu .picker-grid button:focus { background: none; }
 .menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
 /* The grid sets the width, never the name: a picker that resized as names changed would move under the pointer. */
