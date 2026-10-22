@@ -599,15 +599,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!editable) return;
       const changed = text !== shownText;
       shownText = text;
+      const renderId = /** @type {string} */ (viewer.renderId);   // what is on screen was rendered
       for (const g of drawn('g.node')) {
-        const id = nodeIdFromSvgId(g.id, viewer.renderId);
+        const id = nodeIdFromSvgId(g.id, renderId);
         if (id) g.dataset.pageNode = id;
       }
       // A subgraph whose id merma cannot read (`subgraph a-b [X]`) is left unselectable, as such a node's edges are.
       const known = new Set(subgraphs(text).map((s) => s.id));
       for (const g of drawn('g.cluster')) {
-        const id = subgraphIdFromSvgId(g.id, viewer.renderId);
-        if (known.has(id)) g.dataset.pageSubgraph = id;
+        const id = subgraphIdFromSvgId(g.id, renderId);
+        if (id && known.has(id)) g.dataset.pageSubgraph = id;
       }
       tagEdges(text);
       const menu = menuOpen();
