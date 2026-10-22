@@ -25,6 +25,7 @@ import { version } from './files.js';
 
 const WEB = fileURLToPath(new URL('../web/', import.meta.url));
 const FIXED = [fileURLToPath(new URL('../server/', import.meta.url)), fileURLToPath(new URL('../bin/', import.meta.url))];
+/** @type {Record<string, string>} */
 const TYPES = { '.html': 'text/html', '.css': 'text/css', '.mjs': 'text/javascript' };
 export const MAX_EDIT_BYTES = 1_000_000;
 
@@ -52,12 +53,14 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB 
   }));
   server.lastRequest = Date.now();
 
-  async function handle(req, res) {
+  /** @typedef {import('node:http').IncomingMessage} Request */
+  /** @typedef {import('node:http').ServerResponse} Response */
+  async function handle(/** @type {Request} */ req, /** @type {Response} */ res) {
     res.setHeader('X-Merma-Build', build.id());
     if (!allowedHosts.has(hostName(req.headers.host).toLowerCase())) {
       return send(res, 403, 'Unknown host: ' + (req.headers.host || '(none)'));
     }
-    const url = new URL(req.url, 'http://localhost');
+    const url = new URL(/** @type {string} */ (req.url), 'http://localhost');   // set on a server's requests
     const f = url.searchParams.get('f') || '';
     if (req.method === 'POST' && url.pathname === '/edit') return edit(req, res, f);
     if (req.method !== 'GET') return send(res, 405, 'Method not allowed');
@@ -80,7 +83,7 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB 
     return serveWeb(web, url.pathname, res, build.id());
   }
 
-  async function edit(req, res, f) {
+  async function edit(/** @type {Request} */ req, /** @type {Response} */ res, /** @type {string} */ f) {
     // A page from another site can send a POST to localhost. Requiring If-Match (not a CORS-safelisted header) makes
     // the browser ask first, and this server never says yes; the Origin check refuses any request that gets through.
     const origin = req.headers.origin;
@@ -118,14 +121,14 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB 
 }
 
 /** Why a file is refused, and how to start merma so that it is served. */
-function notServed(files, f) {
+function notServed(/** @type {ReturnType<typeof import('./files.js').createFiles>} */ files, /** @type {string | null} */ f) {
   if (!f) return 'No file given: open the page as /?f=<absolute path to a .mmd file>.';
   return `This server does not serve ${f}. It serves only .mmd files in or at: ${files.roots.join(', ')}.\n` +
     `To open this file, run: merma ${shellQuote(f)}`;
 }
 
 /** `s` as one shell word: as it is when it has nothing a shell would split or expand, else in single quotes. */
-function shellQuote(s) {
+function shellQuote(/** @type {string} */ s) {
   return /^[\w/.,:@%+=-]+$/.test(s) ? s : `'${s.replaceAll("'", "'\\''")}'`;
 }
 
@@ -133,7 +136,7 @@ function shellQuote(s) {
  * A file from the page's folder, by its path; nothing outside it and nothing but the page's own file types. The page
  * itself gets the build id filled in.
  */
-async function serveWeb(web, pathname, res, buildId) {
+async function serveWeb(/** @type {string} */ web, /** @type {string} */ pathname, /** @type {import('node:http').ServerResponse} */ res, /** @type {string} */ buildId) {
   const root = web.endsWith(sep) ? web : web + sep;
   const page = pathname === '/';
   const path = normalize(join(root, page ? 'index.html' : decodeURIComponent(pathname)));
@@ -147,6 +150,13 @@ async function serveWeb(web, pathname, res, buildId) {
   }
 }
 
+/**
+ * @param {import('node:http').ServerResponse} res
+ * @param {number} status
+ * @param {string} body
+ * @param {string} [type]
+ * @param {Record<string, string>} [headers]
+ */
 export function send(res, status, body, type = 'text/plain', headers = {}) {
   const data = Buffer.from(body, 'utf8');
   res.writeHead(status, {

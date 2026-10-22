@@ -8,14 +8,14 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 /** Every file under `dir`, recursively, sorted so the order never depends on the file system. */
-function filesUnder(dir) {
+function filesUnder(/** @type {string} */ dir) {
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())
     .map((entry) => join(entry.parentPath, entry.name))
     .sort();
 }
 
-function hashFiles(paths) {
+function hashFiles(/** @type {string[]} */ paths) {
   const hash = createHash('sha256');
   for (const path of paths) hash.update(path).update('\0').update(readFileSync(path)).update('\0');
   return hash.digest('hex');
@@ -41,7 +41,7 @@ export function createBuild({ web, fixed }) {
         signature = now;
         id = createHash('sha256').update(serverHash).update(hashFiles(paths)).digest('hex').slice(0, 12);
       }
-      return id;
+      return /** @type {string} */ (id);   // set above on the first call
     },
   };
 }
