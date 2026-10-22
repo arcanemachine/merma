@@ -28,7 +28,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Verb | Means | Examples |
   |---|---|---|
   | Add | makes a new thing | Add node, Add connected node |
-  | Edit | changes one property of a thing, or opens its panel | Edit label, Edit title, Edit arrow type ▸, Edit node |
+  | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | Remove label |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
