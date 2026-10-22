@@ -483,8 +483,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // A press anywhere on the strip, icon or not, leaves focus where it is: on the body, it would close the box.
   stripBox.addEventListener('mousedown', (e) => e.preventDefault());
   // Keys the picker leaves: Enter saves with the focused shape, Up from the top row and Escape go back to the box. None
-  // goes on to the page's own keys.
+  // goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
   stripBox.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
     if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); strip.current(on.dataset.key); submitLabel(); }
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }

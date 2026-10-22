@@ -50,7 +50,11 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     // The digit shown is part of the name, so a voice user can say what they see (WCAG 2.5.3).
     b.setAttribute('aria-label', (entry.digit ? `${entry.digit} ` : '') + label(entry));
     b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit">${entry.digit}</span>` : '');
-    b.addEventListener('click', () => onPick(entry.key));
+    b.addEventListener('click', () => {
+      // A click moves keyboard focus only when it is in the grid already (a strip's host keeps it in its field).
+      if (!strip || grid.contains(document.activeElement)) b.focus();
+      onPick(entry.key);
+    });
     b.addEventListener('pointerenter', () => { if (strip) name.textContent = label(entry); else b.focus(); });
     b.addEventListener('focus', () => { name.textContent = label(entry); });
     if (strip) b.tabIndex = -1;
