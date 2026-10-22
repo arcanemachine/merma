@@ -51,16 +51,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const nodeEl = (/** @type {string} */ id) => drawn('g.node[data-page-node]').find((g) => g.dataset.pageNode === id);
   const edgeEls = (/** @type {string} */ id) => drawn('[data-page-edge]').filter((e) => e.dataset.pageEdge === id);
   const clusterEl = (/** @type {string} */ id) => drawn('g.cluster[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
-  /** What is drawn for an item: a node's or a subgraph's group, or an edge's line, hit path and label. */
-  /** @returns {SVGElement[]} */
+  /**
+   * What is drawn for an item: a node's or a subgraph's group, or an edge's line, hit path and label.
+   * @returns {SVGElement[]}
+   */
   const elsOf = (/** @type {Item} */ sel) => {
     if (sel.kind === 'edge') return edgeEls(sel.id);
     const el = sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id);
     return el ? [el] : [];
   };
   const selectedEl = () => selected && elsOf(selected)[0];
-  /** The node, edge or subgraph a click on `target` is on, or null. Nodes and edges are drawn over subgraphs. */
-  /** @returns {Item | null} */
+  /**
+   * The node, edge or subgraph a click on `target` is on, or null. Nodes and edges are drawn over subgraphs.
+   * @returns {Item | null}
+   */
   function itemAt(/** @type {Element} */ target) {
     const node = (/** @type {SVGElement | null} */ (target.closest('g.node[data-page-node]')))?.dataset.pageNode;
     if (node) return { kind: 'node', id: node };
@@ -612,9 +616,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       tagEdges(text);
       const menu = menuOpen();
-      const kept = selected && elsOf(selected).length
-        && (selected.kind === 'node' || !changed || (selected.kind === 'subgraph' && !drawnOnly(selected.id)));
-      if (kept) select(selection(), { keepMode: selection().kind !== 'edge', menu });
+      const sel = selected;
+      const kept = sel && elsOf(sel).length
+        && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
+      if (kept) select(sel, { keepMode: sel.kind !== 'edge', menu });
       else deselect();
       if (pendingLabel && elsOf(pendingLabel).length) {
         const sel = pendingLabel;

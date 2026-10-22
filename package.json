@@ -19,7 +19,8 @@
     "web/",
     "docs/",
     "README.md",
-    "LICENSE.md"
+    "LICENSE.md",
+    "!web/tsconfig.json"
   ],
   "scripts": {
     "start": "node bin/merma.js serve",
