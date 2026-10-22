@@ -23,6 +23,7 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
 test('a split item has a submenu, and its ▸ is named like a menu label: a listed verb, sentence case', () => {
   for (const { item } of items.filter(({ item }) => item.split)) {
     assert.ok(item.submenu, `${item.action}: split with no submenu`);
+    assert.ok(item.split.startsWith(item.label + ' '), `${item.split}: does not start with its row's label`);
     assert.ok(VERBS.includes(item.split.split(' ')[0]), `${item.split}: not a listed verb`);
     assert.ok(item.split.split(' ').slice(1).every((w) => w === w.toLowerCase()), `${item.split}: not sentence case`);
   }
@@ -94,6 +95,15 @@ test('arrow types: digits unique, every one is an arrow type merma can write, an
   }
   assert.deepEqual(ARROW_TYPES.map((a) => a.key).sort(), Object.keys(ARROWS).sort());
   assert.equal(new Set(ARROW_TYPES.map((a) => a.name)).size, ARROW_TYPES.length);
+});
+
+test('the guide lists every shape with its digit, meaning and syntax', () => {
+  const guide = readFileSync(join(import.meta.dirname, '..', 'docs', 'guide.md'), 'utf8');
+  for (const s of NODE_SHAPES) {
+    const b = BRACKETS[s.key];
+    const syntax = b ? `A${b[0]}text${b[1]}` : `A@{ shape: ${s.key} }`;
+    assert.ok(guide.includes(`| ${s.digit ?? ''} | ${s.name} | ${s.meaning} | \`${syntax}\` |`), `${s.name} ${syntax}`);
+  }
 });
 
 test('the guide lists every arrow type with its digit and syntax', () => {

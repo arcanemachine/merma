@@ -2,8 +2,8 @@
 
 What the page does, control by control. What goes here: what each gesture, key and menu item does. What does not: why
 the page works the way it does (`docs/ux.md`), what the words mean (`GLOSSARY.md`), how to start merma (`README.md`).
-The page's Help panel is a short subset of this guide: the gestures and the keys that work outside menus. Menu letters
-are shown in the menus, and digits in the pickers, so Help does not list them.
+The page's Help panel is a short subset of this guide: the gestures, the keys that work outside menus, and the shapes
+with what each means. Menu letters are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Viewing
 
@@ -61,6 +61,30 @@ added with one). With that submenu open, its key closes it rather than running t
   and the label stays as written. Shapes with brackets keep that form (`B{OK?}`); the others are written
   `B@{ shape: doc, label: "OK?" }`, after any `:::class`. A label with a `}`, or a Markdown label, cannot move into
   that form: the page says so, and the file keeps its shape. A shape merma does not offer (`bolt`) shows as "Other".
+
+  | Digit | Shape | Meaning | Syntax |
+  |---|---|---|---|
+  | 1 | Rectangle | Process | `A[text]` |
+  | 2 | Rounded rectangle | Event | `A(text)` |
+  | 3 | Diamond | Decision | `A{text}` |
+  | 4 | Stadium | Terminal point | `A([text])` |
+  | 5 | Cylinder | Database | `A[(text)]` |
+  | 6 | Lean right | Data input/output | `A[/text/]` |
+  | 7 | Framed rectangle | Subprocess | `A[[text]]` |
+  | 8 | Hexagon | Prepare conditional | `A{{text}}` |
+  | 9 | Circle | Start | `A((text))` |
+  | 0 | Document | Document | `A@{ shape: doc }` |
+  |  | Odd | Odd | `A>text]` |
+  |  | Lean left | Data input/output | `A[\text\]` |
+  |  | Trapezoid base bottom | Priority action | `A[/text\]` |
+  |  | Trapezoid base top | Manual operation | `A[\text/]` |
+  |  | Double circle | Stop | `A(((text)))` |
+  |  | Stacked document | Multi-document | `A@{ shape: docs }` |
+  |  | Sloped rectangle | Manual input | `A@{ shape: sl-rect }` |
+  |  | Half-rounded rectangle | Delay | `A@{ shape: delay }` |
+  |  | Bow tie rectangle | Stored data | `A@{ shape: bow-rect }` |
+  |  | Curved trapezoid | Display | `A@{ shape: curv-trap }` |
+
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
 
