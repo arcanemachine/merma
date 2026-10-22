@@ -140,8 +140,8 @@ it, its shape (Rectangle) marked. Type the name, and click a shape; or press Dow
 into the shapes, where the arrows move, a digit picks, and Up from the top row or Escape goes back to the name. Nothing
 is drawn until Enter, from either, which writes the label and the shape as one change, undone together with the add. A
 shape the label cannot take (a `}` or Markdown with a shape that has no brackets) is refused on Enter, and the box
-stays open with what you typed. Escape in the name, Tab, or a click away keeps the node as it was added. Editing an existing node's label
-shows no strip: Edit shape ▸ changes its shape.
+stays open with what you typed. Escape in the name, Tab, or a click away keeps the node as it was added. Editing an
+existing node's label shows no strip: Edit shape ▸ changes its shape.
 
 ## Keys
 
