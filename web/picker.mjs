@@ -49,7 +49,7 @@ export function createPicker({ title, entries, onPick }) {
 
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const at = buttons.indexOf(document.activeElement);
+    const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
     const digit = entries.findIndex((entry) => e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`);
     let to = null;

@@ -10,7 +10,7 @@ import { keyIndex } from './menu-items.mjs';
 import { place } from './place.mjs';
 
 /**
- * @param {typeof import('./menu-items.mjs').MENUS.node} items
+ * @param {import('./menu-items.mjs').MenuItem[]} items
  * @param {object} options
  * @param {HTMLElement} options.parent where the menu lives in the DOM (events from it are the overlay's, not the diagram's)
  * @param {() => DOMRect} options.bounds the area it must stay inside
@@ -25,7 +25,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   el.setAttribute('role', 'menu');
   const sub = popover('menu submenu');
   parent.append(el, sub);
-  let state = {};
+  /** @type {import('./menu-items.mjs').MenuState} set when the menu opens */
+  let state;
   let anchor = null;
   let gap = 8;
   let openSub = null;   // the item whose submenu is open
@@ -122,7 +123,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const at = buttons.indexOf(document.activeElement);
+    const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     const item = items[at];
     const key = e.key.toLowerCase();
     const byKey = items.find((i) => i.key === key);

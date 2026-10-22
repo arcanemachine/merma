@@ -22,11 +22,27 @@ const noEdgeMatch = "The drawn edges don't match the file's text (no edge match)
   + 'edge. Delete it in the file.';
 
 /**
- * Each item: `action` (what the editor runs), `label`, `key` (its shortcut letter), and optionally `applies(state)`
- * with `why(state)` (when it does not apply, the item is greyed and says why), `submenu` (the name of what opens beside
- * it), `mode` (it waits for a further click), `separated`. The state: { edgesOk, hasLabel, nameWhy }, `nameWhy` saying
- * why the selected subgraph cannot be given an id, or null.
+ * What a menu needs to know to grey its items.
+ * @typedef {object} MenuState
+ * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
+ * @property {boolean} hasLabel the selected edge has a label
+ * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  */
+
+/**
+ * A menu item.
+ * @typedef {object} MenuItem
+ * @property {string} action what the editor runs
+ * @property {string} label
+ * @property {string} key its shortcut letter
+ * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is greyed
+ * @property {(state: MenuState) => string} [why] what a greyed item says
+ * @property {string} [submenu] the name of what opens beside it
+ * @property {boolean} [mode] it waits for a further click
+ * @property {boolean} [separated] set apart from the items above it
+ */
+
+/** @type {Record<'node' | 'edge' | 'subgraph' | 'space', MenuItem[]>} */
 export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },

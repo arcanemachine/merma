@@ -1,0 +1,20 @@
+// Type-checking only (`npm run typecheck`): the page, which runs in the browser. "types" is empty so that Node's types,
+// installed for the server, are not taken in here: the page cannot use Node's APIs.
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    // A catch variable is read as an Error throughout; narrowing each one would change what a thrown
+    // non-Error prints, and an `any` annotation on each would check nothing.
+    "useUnknownInCatchVariables": false,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [],
+    "skipLibCheck": true
+  },
+  "include": [".", "../types"]
+}

@@ -37,7 +37,7 @@ function hostName(header = '') {
 
 /**
  * @param {object} options
- * @param {ReturnType<import('./files.js').createFiles>} options.files
+ * @param {ReturnType<typeof import('./files.js').createFiles>} options.files
  * @param {string} options.script the path /health reports
  * @param {string[]} [options.hosts] host names requests may be addressed to (default: loopback only)
  * @param {string} [options.web] the page's files (default: web/ beside server/)
@@ -45,10 +45,11 @@ function hostName(header = '') {
 export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB }) {
   const allowedHosts = new Set(hosts.map((h) => h.toLowerCase()));
   const build = createBuild({ web, fixed: FIXED });
-  const server = http.createServer((req, res) => {
+  // lastRequest: the time of the last request, for the idle exit.
+  const server = /** @type {http.Server & { lastRequest: number }} */ (http.createServer((req, res) => {
     server.lastRequest = Date.now();
     handle(req, res).catch((e) => send(res, 500, String(e.message || e)));
-  });
+  }));
   server.lastRequest = Date.now();
 
   async function handle(req, res) {

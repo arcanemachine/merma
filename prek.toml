@@ -5,7 +5,8 @@ hooks = [
   # Fixtures are hand-written to exact bytes; one has no final newline on purpose.
   { id = "end-of-file-fixer", exclude = "^test/fixtures/.*\\.mmd$" },
   { id = "trailing-whitespace" },
-  { id = "check-json" },
+  # tsconfig.json is JSON with comments, which tsc reads and this check does not.
+  { id = "check-json", exclude = "(^|/)tsconfig\\.json$" },
   { id = "check-merge-conflict" },
 ]
 
