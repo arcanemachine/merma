@@ -53,7 +53,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
-  Connect to…) ends on one, as on Escape.
+  Connect to…) ends on one, as on Escape. The label box is the exception (the user): a click or tap away, or Tab,
+  keeps what you typed (it saves, as Enter does); only Escape discards it. Undo takes a save back, which is what
+  makes saving on a click away safe, and a touch screen has no other sure way to save. What cannot be saved (an
+  emptied label) keeps the box open with its error, and the click that left it does nothing. A click away onto
+  another item selects that item once the save is drawn.
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.

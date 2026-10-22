@@ -53,8 +53,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
-   * Good for that text only: an edge is found by its place in it.
-   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean } | null}
+   * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
+   * whose menu opens even though the edit closed every menu.
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean } | null}
    */
   let pending = null;
   const history = createHistory();
@@ -64,6 +65,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** @type {Item | null} while the label box is open over it */
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
+  let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
+  /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
+  let clickedMeanwhile = null;
 
   /** The drawing's elements that match `selector`: SVG, apart from labels' HTML. */
   const drawn = (/** @type {string} */ selector) => /** @type {SVGElement[]} */ ([...els.stage.querySelectorAll(selector)]);
@@ -273,9 +277,21 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!refuseUnnamed(sel.id)) openLabelBox(sel);
   }
 
+  /**
+   * An item clicked while an edit (a click away from the label box) saves: once the edit's text is drawn, select
+   * that item, not the edited one. Clicks on empty space leave the edited item to be selected.
+   */
+  function clickedDuringEdit(/** @type {Item | null} */ item, menu = false) {
+    if (!item) return;
+    if (pending) pending = { ...pending, item, menu, label: false, clicked: true };
+    else if (busy) clickedMeanwhile = { item, menu, clicked: true };
+  }
+
   function clicked(/** @type {Element} */ target) {
     if (!editable) return;
+    if (swallowClick) { swallowClick = false; return; }
     const item = itemAt(target);
+    clickedDuringEdit(item);
     if (connecting) {
       const from = selection();   // Connect to… starts from the selection
       connecting = false;
@@ -307,7 +323,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
     if (!editable) return false;
     if (connecting) return true;
+    if (swallowClick) { swallowClick = false; return true; }
     const item = itemAt(target);
+    clickedDuringEdit(item, true);
     if (item) select(item, { menu: true });
     else openSpaceMenu(x, y);
     return true;
@@ -383,7 +401,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
   // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
   document.addEventListener('pointerdown', (e) => {
-    if (els.diagram.contains(/** @type {Node} */ (e.target))) return;
+    // Any press is a new click: one left over from a refused save (its click landed outside the diagram) goes. This
+    // runs before the press moves focus, and so before that blur can set it again.
+    swallowClick = false;
+    // A press outside the label box and its strip ends it (and saves, commit): by the press itself, not by the focus
+    // it moves, which a touch moves only once it is a tap.
+    const at = /** @type {Node} */ (e.target), focused = /** @type {HTMLElement | null} */ (document.activeElement);
+    if (labelling && at !== input && !stripBox.contains(at) && (focused === input || stripBox.contains(focused))) focused?.blur();
+    if (els.diagram.contains(at)) return;
     if (connecting) { connecting = false; ui.hideNotice(); select(selection()); }
     closeMenus();
   });
@@ -461,7 +486,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // The box closes when focus leaves both it and the strip.
   stripBox.addEventListener('focusout', (e) => {
     const to = /** @type {Node | null} */ (e.relatedTarget);
-    if (labelling && to !== input && !stripBox.contains(to)) closeLabelBox();
+    if (to !== input && !stripBox.contains(to)) commit();
   });
   const stripHint = Object.assign(document.createElement('div'), {
     className: 'visually-hidden', id: 'strip-hint', textContent: 'Down arrow chooses a shape',
@@ -535,19 +560,41 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     placeStrip();
   }
 
+  // labelling goes first: hiding the input blurs it, and a blur with the box still open would save it (commit).
   function closeLabelBox() {
-    input.style.display = 'none';
     labelling = null;
+    input.style.display = 'none';
     closeStrip();
+  }
+
+  /**
+   * Focus left the label box and its strip (a click or tap away, Tab): save, as Enter does; only Escape discards
+   * (docs/ux.md). What cannot be saved keeps the box open, focus back in it, and the click that left it does nothing.
+   */
+  function commit() {
+    if (!labelling) return;
+    if (busy) { ui.notice('Not saved: another edit is still saving; try again.', 'error'); keepBox(); return; }
+    if (!submitLabel()) keepBox();
+  }
+  function keepBox() {
+    swallowClick = true;
+    input.focus();
   }
 
   input.addEventListener('input', sizeLabelBox);
   input.addEventListener('blur', (e) => {
-    if (labelling && !stripBox.contains(/** @type {Node | null} */ (e.relatedTarget))) closeLabelBox();
+    if (!stripBox.contains(/** @type {Node | null} */ (e.relatedTarget))) commit();
   });
   input.addEventListener('keydown', (e) => {
     const target = labelling;
-    if (e.key === 'Escape') { e.stopPropagation(); closeLabelBox(); naming = null; if (target) select(target); return; }
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      closeLabelBox();
+      naming = null;
+      ui.hideNotice();   // a refused save's error is about the box, which is gone
+      if (target) select(target);
+      return;
+    }
     // Down goes into the strip only from the last line, where it would not move the caret. The line is the text's:
     // the box widens to its text (sizeLabelBox), so a line never wraps.
     if (e.key === 'ArrowDown' && stripOpen && !input.value.slice(input.selectionEnd).includes('\n')) {
@@ -557,20 +604,24 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     if (e.key !== 'Enter' || e.shiftKey || !target) return;
     e.preventDefault();
-    submitLabel();
+    // Focus stays in the diagram, where what was edited is selected, rather than falling to the page.
+    if (submitLabel()) els.diagram.focus();
   });
 
-  /** Save what the label box holds (and the strip's shape, while it is open), as Enter does. */
+  /**
+   * Save what the label box holds (and the strip's shape, while it is open), as Enter does. Returns false when it was
+   * refused, the box still open.
+   */
   function submitLabel() {
     const target = labelling;
-    if (!target) return;
+    if (!target) return false;
     const label = input.value;
     const relabelled = label !== input.dataset.initial;
     // A node needs a label and a subgraph a title; an edge's label can be emptied, which removes it. One drawn with
     // none (a `bolt` node) can still change shape.
     if (target.kind !== 'edge' && !label.trim() && relabelled) {
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
-      return;
+      return false;
     }
     const picked = stripOpen ? strip.value() : null;
     const shape = picked && picked !== stripFrom ? picked : null;
@@ -581,13 +632,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     };
     // A shape the label cannot take is refused before the box closes, so what was typed is kept to try another.
     if (shape) {
-      try { renamed(source.snapshot().text ?? ''); } catch (err) { ui.notice('Not saved: ' + err.message, 'error'); return; }
+      try { renamed(source.snapshot().text ?? ''); } catch (err) { ui.notice('Not saved: ' + err.message, 'error'); return false; }
     }
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
     // selected, as after an edit: the two look alike.
-    if (!relabelled && !shape) { select(target); naming = null; return; }
-    if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) }); return; }
+    if (!relabelled && !shape) { select(target); naming = null; return true; }
+    if (target.kind === 'edge') {
+      editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) });
+      return true;
+    }
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
     if (target.kind === 'node') {
@@ -595,12 +649,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // A shape change is not seen by a screen reader, unlike a label it typed.
       const afterSave = shape && !relabelled ? () => ui.announce(`Changed ${names[0]} to ${names[1]}`) : undefined;
       edit(renamed, { into, afterSave, after: () => ({ item: target }) });
-      return;
+      return true;
     }
     const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
     /** @type {EditOptions} */
     const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };
     if (drawnOnly(target.id)) editDrawn(change, options); else edit(change, options);
+    return true;
   }
 
   // --- edges ---------------------------------------------------------------------------------------------------
@@ -657,6 +712,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function edit(change, { afterSave, into = null, after, keep = false } = {}) {
     return exclusively(async () => {
       ui.hideNotice();
+      clickedMeanwhile = null;
       const base = source.snapshot();
       if (base.text === null || !base.version) return;
       let result;
@@ -671,7 +727,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // The action is done: its menu closes, but a picker's stays for the next pick. What it acted on is selected again
       // once drawn (`after`), or nothing.
       if (!keep) deselect();
-      const next = after?.(result);
+      const next = clickedMeanwhile ?? after?.(result);
+      clickedMeanwhile = null;
       pending = next ? { text: result.text, ...next } : null;
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
@@ -788,8 +845,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const next = pending;
       pending = null;
       if (next && text === next.text && elsOf(next.item).length) {
-        // An edit's own text: what it acted on, its menu still open after a picker's pick.
-        select(next.item, { menu: Boolean(next.menu) && menu });
+        // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
+        // meanwhile, with its menu.
+        select(next.item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
         if (next.label) openLabelBox(next.item);
         return;
       }
