@@ -47,7 +47,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     return b;
   });
 
-  const applies = (item) => !item.applies || item.applies(state);
+  /** @typedef {import('./menu-items.mjs').MenuItem} MenuItem */
+  const applies = (/** @type {MenuItem} */ item) => !item.applies || item.applies(state);
 
   /** Draw the items for the current state: labels, keys, and which are greyed. */
   function render() {
@@ -66,17 +67,18 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     });
   }
 
-  function choose(item) {
-    if (!applies(item)) { onRefuse(item.why(state)); return; }
+  function choose(/** @type {MenuItem} */ item) {
+    if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
     if (item.submenu) { if (openSub === item) closeSub(); else openSubmenu(item); return; }
     close();
     onRun(item.action);
   }
 
-  function openSubmenu(item) {
+  /** Open the submenu of `item`, an item that has one. */
+  function openSubmenu(/** @type {MenuItem} */ item) {
     closeSub();
     openSub = item;
-    const host = submenus[item.submenu];
+    const host = submenus[/** @type {string} */ (item.submenu)];
     sub.replaceChildren(host.el);
     sub.showPopover();
     buttons[items.indexOf(item)].setAttribute('aria-expanded', 'true');
@@ -99,7 +101,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     put(sub, place(r, sub.getBoundingClientRect(), bounds(), { gap: 4 }));
   }
 
-  function put(box, at) {
+  function put(/** @type {HTMLElement} */ box, /** @type {{ left: number, top: number }} */ at) {
     box.style.left = at.left + 'px';
     box.style.top = at.top + 'px';
   }
@@ -162,6 +164,9 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     /**
      * Open beside `at` for `menuState`, focusing its first item that applies; `gap` is 0 to open at a point. When it is
      * open already, it is only redrawn and moved.
+     * @param {{ left: number, top: number, right: number, bottom: number }} at
+     * @param {import('./menu-items.mjs').MenuState} menuState
+     * @param {{ gap?: number }} [options]
      */
     open(at, menuState, { gap: g = 8 } = {}) {
       state = menuState;
@@ -177,11 +182,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     close,
     isOpen,
     /** Whether an element is part of this menu or its submenu. */
-    contains: (node) => el.contains(node) || sub.contains(node),
+    contains: (/** @type {Node} */ node) => el.contains(node) || sub.contains(node),
   };
 }
 
-function popover(className) {
+function popover(/** @type {string} */ className) {
   const box = document.createElement('div');
   box.className = className;
   box.popover = 'manual';
