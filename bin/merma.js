@@ -33,22 +33,22 @@ else {
   process.exit(help ? 0 : 2);
 }
 
-function serve(port, host) {
+function serve(/** @type {string} */ port, /** @type {string} */ host) {
   if (!existsSync(SCRATCH)) {
     mkdirSync(dirname(SCRATCH), { recursive: true });
     writeFileSync(SCRATCH, SCRATCH_TEXT);
   }
   start(parseRoots(process.env.MERMA_ROOTS || '/tmp/mermaid-diagrams/'), port, host,
-    (base) => console.log(`merma: serving .mmd files under ${process.env.MERMA_ROOTS || '/tmp/mermaid-diagrams/'} at ${base}/?f=<path>`));
+    (/** @type {string} */ base) => console.log(`merma: serving .mmd files under ${process.env.MERMA_ROOTS || '/tmp/mermaid-diagrams/'} at ${base}/?f=<path>`));
 }
 
 /** Serve one file, or point at the merma already serving it on `port`, and print the page's address. */
-async function open(file, port) {
+async function open(/** @type {string} */ file, /** @type {string} */ port) {
   if (!existsSync(file)) {
     console.error(`merma: no such file: ${file}`);
     process.exit(1);
   }
-  const page = (base) => `${base}/?f=${encodeURIComponent(realpathSync(file)).replaceAll('%2F', '/')}`;
+  const page = (/** @type {string} */ base) => `${base}/?f=${encodeURIComponent(realpathSync(file)).replaceAll('%2F', '/')}`;
   if (port !== '0') {
     const there = await mermaAt(port, file);
     if (there === true) {
@@ -61,14 +61,14 @@ async function open(file, port) {
       port = '0';
     }
   }
-  start([file], port, '127.0.0.1', (base) => show(page(base), 'serving'));
+  start([file], port, '127.0.0.1', (/** @type {string} */ base) => show(page(base), 'serving'));
 }
 
 /**
  * What answers on `port`: true for a merma that serves `file`, the first line of its refusal for a merma that does
  * not, null for anything else (or nothing).
  */
-async function mermaAt(port, file) {
+async function mermaAt(/** @type {string} */ port, /** @type {string} */ file) {
   const base = `http://localhost:${port}`;
   try {
     const health = await fetch(`${base}/health`, { signal: AbortSignal.timeout(2000) });
@@ -81,7 +81,7 @@ async function mermaAt(port, file) {
 }
 
 /** Print the page's address, and open it with $BROWSER (a command, with any arguments) when that is set. */
-function show(url, what) {
+function show(/** @type {string} */ url, /** @type {string} */ what) {
   console.log(`merma: ${what} at\n  ${url}`);
   const [browser, ...options] = (process.env.BROWSER || '').split(/\s+/).filter(Boolean);
   if (!browser) return;
@@ -90,7 +90,8 @@ function show(url, what) {
     .unref();
 }
 
-function start(roots, port, host, onListening) {
+function start(/** @type {string[]} */ roots, /** @type {string} */ port, /** @type {string} */ host,
+  /** @type {(base: string) => void} */ onListening) {
   const files = createFiles({ roots, pathMap: parsePathMap(process.env.MERMA_PATH_MAP || '') });
   // A server bound to one non-loopback address also answers to it; one bound to every address answers only to the
   // loopback names and MERMA_HOSTS, since nothing says which names reach it.

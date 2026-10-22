@@ -7,12 +7,12 @@ import { chmodSync, readFileSync, realpathSync, renameSync, statSync, unlinkSync
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 
 /** A file's version: a hash of its content, quoted as an HTTP ETag. */
-export function version(text) {
+export function version(/** @type {string} */ text) {
   return '"' + createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16) + '"';
 }
 
 /** The real path of `path`, or for a file that does not exist yet, its real folder joined to its name. */
-function real(path) {
+function real(/** @type {string} */ path) {
   try {
     return realpathSync(path);
   } catch {
@@ -35,14 +35,14 @@ export function createFiles({ roots, pathMap = [] }) {
   return {
     roots: realRoots,
 
-    allowed(path) {
+    allowed(/** @type {string} */ path) {
       if (typeof path !== 'string' || !isAbsolute(path)) return false;
       const p = real(path);
       return p.endsWith('.mmd') && realRoots.some((root) => (root.endsWith('/') ? p.startsWith(root) : p === root));
     },
 
     /** The file's text, or null when it does not exist. Call only with an allowed path. */
-    read(path) {
+    read(/** @type {string} */ path) {
       try {
         return readFileSync(path, 'utf8');
       } catch (e) {
@@ -57,7 +57,7 @@ export function createFiles({ roots, pathMap = [] }) {
      * The write goes to a temporary file that is renamed over the old one, so a reader never sees half a file, and it
      * keeps the file's permissions.
      */
-    writeIfVersion(path, base, text) {
+    writeIfVersion(/** @type {string} */ path, /** @type {string} */ base, /** @type {string} */ text) {
       let current;
       try {
         current = readFileSync(path, 'utf8');
@@ -79,7 +79,7 @@ export function createFiles({ roots, pathMap = [] }) {
       return 'saved';
     },
 
-    hostPath(path) {
+    hostPath(/** @type {string} */ path) {
       for (const [server, host] of pathMap) {
         if (path === server || path.startsWith(server + '/')) return host + path.slice(server.length);
       }
@@ -89,11 +89,15 @@ export function createFiles({ roots, pathMap = [] }) {
 }
 
 /** "a/,b/" (an environment variable's form) as a list of folders. */
-export function parseRoots(spec) {
+export function parseRoots(/** @type {string} */ spec) {
   return spec.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
-/** "server=host,server=host" as [server, host] pairs, trailing slashes dropped. */
+/**
+ * "server=host,server=host" as [server, host] pairs, trailing slashes dropped.
+ * @param {string} spec
+ * @returns {[string, string][]}
+ */
 export function parsePathMap(spec) {
   return spec.split(',').filter((entry) => entry.includes('=')).map((entry) => {
     const at = entry.indexOf('=');
