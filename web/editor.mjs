@@ -128,13 +128,28 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- the menus -----------------------------------------------------------------------------------------------
 
-  // What each menu item does (menu-items.mjs lists them). An item with a submenu does nothing itself.
+  // What each menu item does (menu-items.mjs lists them). An item with a submenu does nothing itself, unless it is split.
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
+  /** A change that adds a node, giving it shape `at` too, if any (Add node ▸), in the same edit. */
+  const shaped = (/** @type {(text: string) => { text: string, id: string }} */ add, /** @type {string | null} */ at) =>
+    (/** @type {string} */ text) => {
+      const added = add(text);
+      return at ? { text: setShape(added.text, added.id, at).text, id: added.id } : added;
+    };
+  const addConnectedNode = (/** @type {string | null} */ at = null) => {
+    const from = selection().id;
+    addAndName(shaped((text) => addConnected(text, from), at));
+  };
+  const addTopOrInSubgraph = (/** @type {string | null} */ at = null) => {
+    const subgraph = selectedSubgraph();
+    addAndName(shaped((text) => addNode(text, { subgraph }), at), subgraph);
+  };
+
   /** @type {Record<string, () => void>} */
   const handlers = {
-    'add-connected-node': () => addAndName((text) => addConnected(text, selection().id)),
+    'add-connected-node': () => addConnectedNode(),
     'connect': () => {
       connecting = true;
       ui.notice('Click the node or subgraph the edge goes to. Click away or press Escape to cancel.', 'info');
@@ -145,10 +160,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'delete-edge': () => deleteSelected(),
     'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, ''), { after: sameEdge(id) }); },
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
-    'add-node': () => {
-      const subgraph = selectedSubgraph();
-      addAndName((text) => addNode(text, { subgraph }), subgraph);
-    },
+    'add-node': () => addTopOrInSubgraph(),
     'add-subgraph': () => {
       const parent = selectedSubgraph();
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
@@ -156,7 +168,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
   // menu item that does nothing.
-  const actions = new Set(Object.values(MENUS).flat().filter((i) => !i.submenu).map((i) => i.action));
+  const actions = new Set(Object.values(MENUS).flat().filter((i) => !i.submenu || i.split).map((i) => i.action));
   for (const a of actions) if (!handlers[a]) throw new Error(`No handler for the menu action ${a}`);
   for (const a of Object.keys(handlers)) if (!actions.has(a)) throw new Error(`No menu item runs ${a}`);
 
@@ -188,11 +200,19 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
   });
 
+  // Add node ▸ and Add connected node ▸: a pick adds a node of that shape and opens its label box, as the item does.
+  const addPicker = (/** @type {(at: string) => void} */ add) => createPicker({ title: 'Shape', entries: NODE_SHAPES, onPick: add });
+
   const menuOptions = {
     parent: els.diagram,
     bounds: () => els.diagram.getBoundingClientRect(),
     returnFocus: els.diagram,
-    submenus: { 'arrow-types': arrowPicker, shapes: shapePicker },
+    submenus: {
+      'arrow-types': arrowPicker,
+      shapes: shapePicker,
+      'add-shapes': addPicker((at) => addTopOrInSubgraph(at)),
+      'add-connected-shapes': addPicker((at) => addConnectedNode(at)),
+    },
     onRun: (/** @type {string} */ action) => handlers[action](),
     onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
