@@ -38,9 +38,14 @@ export function createPicker({ title, entries, onPick }) {
     return b;
   });
 
+  /** @type {string | null} */
   let current = null;
 
-  /** Mark `key` as current; for one not in the list, `other` names it instead ("o--o"). */
+  /**
+   * Mark `key` as current; for one not in the list, `other` names it instead ("o--o").
+   * @param {string | null} key
+   * @param {string} [other]
+   */
   function setCurrent(key, other = '') {
     current = entries.find((e) => e.key === key) ? key : null;
     for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.key === current));

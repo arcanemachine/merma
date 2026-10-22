@@ -17,7 +17,7 @@ export function createHistory() {
      * Record a saved edit. With `into` (the newest entry), the edit completes that one instead, so a single undo takes
      * back both: naming a node is part of adding it.
      */
-    record(before, after, /** @type {Entry | null} */ into = null) {
+    record(/** @type {string} */ before, /** @type {string} */ after, /** @type {Entry | null} */ into = null) {
       undone.length = 0;
       if (into && entries.at(-1) === into) {
         into.after = after;
@@ -33,7 +33,7 @@ export function createHistory() {
      * edit, nothing older can be undone safely either, so the history is cleared.
      * @returns {{ ok: true, text: string } | { ok: false, reason: 'empty' | 'changed' }}
      */
-    peek(current) {
+    peek(/** @type {string} */ current) {
       const entry = entries.at(-1);
       if (!entry) return { ok: false, reason: 'empty' };
       if (entry.after !== current) {
@@ -53,7 +53,7 @@ export function createHistory() {
      * that undo, nothing can be redone safely, so the redo stack is cleared.
      * @returns {{ ok: true, text: string } | { ok: false, reason: 'empty' | 'changed' }}
      */
-    peekRedo(current) {
+    peekRedo(/** @type {string} */ current) {
       const entry = undone.at(-1);
       if (!entry) return { ok: false, reason: 'empty' };
       if (entry.before !== current) {

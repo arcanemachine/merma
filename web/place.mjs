@@ -27,4 +27,4 @@ export function place(anchor, size, bounds, { side = 'right', gap = 8 } = {}) {
 }
 
 // A box bigger than the bounds keeps its start edge inside them.
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(v, hi));
+const clamp = (/** @type {number} */ v, /** @type {number} */ lo, /** @type {number} */ hi) => Math.max(lo, Math.min(v, hi));
