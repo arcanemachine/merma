@@ -534,6 +534,7 @@ test('setShape to a shape with no brackets writes @{ shape, label }, quoting an 
   assert.equal(setShape(fixture('01-basic.mmd'), 'A', 'doc').text, fixture('01-basic.mmd').replace('A[Start]', 'A@{ shape: doc, label: "Start" }'));
   const quoted = fixture('07-tricky-labels.mmd');
   assert.equal(setShape(quoted, 'B', 'doc').text, quoted.replace('B["Ünïcödé — 東京"]', 'B@{ shape: doc, label: "Ünïcödé — 東京" }'));
+  assert.equal(setShape('flowchart TD\n  A[/ say "hi" /]\n', 'A', 'doc').text, 'flowchart TD\n  A@{ shape: doc, label: "say #quot;hi#quot;" }\n');
   const markup = 'flowchart TD\n  A[a #amp; <b>b</b>] --> B\n';
   assert.equal(setShape(markup, 'A', 'doc').text, 'flowchart TD\n  A@{ shape: doc, label: "a #amp; <b>b</b>" } --> B\n');
 });
