@@ -278,11 +278,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   /**
-   * An item clicked while an edit (a click away from the label box) saves: once the edit's text is drawn, select
-   * that item, not the edited one. Clicks on empty space leave the edited item to be selected.
+   * An item clicked while an edit saves (most often one a click away from the label box started): once the edit's
+   * text is drawn, select that item, not what the edit would select (the edited item, a new edge, a picker's item
+   * with its menu). Clicks on empty space leave the edit's own choice.
    */
   function clickedDuringEdit(/** @type {Item | null} */ item, menu = false) {
     if (!item) return;
+    // A node just added is then not named: its next label edit is not part of the add.
+    if (pending?.label) naming = null;
     if (pending) pending = { ...pending, item, menu, label: false, clicked: true };
     else if (busy) clickedMeanwhile = { item, menu, clicked: true };
   }
@@ -475,11 +478,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // A press anywhere on the strip, icon or not, leaves focus where it is: on the body, it would close the box.
   stripBox.addEventListener('mousedown', (e) => e.preventDefault());
   // Keys the picker leaves: Enter selects the focused shape and goes back to the box; Up from the top row and Escape go
-  // back to the box. None goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
+  // back to the box; Tab saves, as from the box. None goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
   stripBox.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
     if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); selectShape(on.dataset.key); input.focus(); }
+    else if (e.key === 'Tab') { e.preventDefault(); saveLabel(); }
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
     e.stopPropagation();
   });
@@ -573,6 +577,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    */
   function commit() {
     if (!labelling) return;
+    // Refused already by this press: its own focus move blurs the box a second time.
+    if (swallowClick) { input.focus(); return; }
     if (busy) { ui.notice('Not saved: another edit is still saving; try again.', 'error'); keepBox(); return; }
     if (!submitLabel()) keepBox();
   }
@@ -602,11 +608,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       strip.focus();
       return;
     }
-    if (e.key !== 'Enter' || e.shiftKey || !target) return;
+    if (!target || !(e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey))) return;
     e.preventDefault();
-    // Focus stays in the diagram, where what was edited is selected, rather than falling to the page.
-    if (submitLabel()) els.diagram.focus();
+    saveLabel();
   });
+
+  /**
+   * Enter, or Tab either way: save, and leave focus in the diagram, where what was edited is selected, rather than on
+   * the next control in the page, which is not where the user was working.
+   */
+  function saveLabel() {
+    if (submitLabel()) els.diagram.focus();
+  }
 
   /**
    * Save what the label box holds (and the strip's shape, while it is open), as Enter does. Returns false when it was
@@ -727,11 +740,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // The action is done: its menu closes, but a picker's stays for the next pick. What it acted on is selected again
       // once drawn (`after`), or nothing.
       if (!keep) deselect();
-      const next = clickedMeanwhile ?? after?.(result);
+      const clickedAway = clickedMeanwhile;
       clickedMeanwhile = null;
+      const next = clickedAway ?? after?.(result);
       pending = next ? { text: result.text, ...next } : null;
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
+      // An add's label box does not open on what was clicked instead, so what it added is not being named.
+      if (clickedAway) naming = null;
       await display(result.text);
     });
   }
