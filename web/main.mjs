@@ -6,7 +6,7 @@ import { createSource } from './source.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
 // Every id the page asks for is in index.html.
-const el = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
+const el = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
 // With no ?f=, show the scratch diagram (the server creates it if missing).
 const file = new URLSearchParams(location.search).get('f') || '/tmp/mermaid-diagrams/scratch.mmd';
@@ -21,7 +21,7 @@ function reloadWhenIdle() {
   location.reload();
 }
 let reloading = false;
-function noteBuild(id) {
+function noteBuild(/** @type {string} */ id) {
   if (id === loadedBuild || reloading) return;
   reloading = true;
   reloadWhenIdle();
@@ -42,8 +42,9 @@ function restoreView() {
 
 // A short status message that fades out. Short messages ("Copied!") start fading after 1 s; longer ones stay up
 // ~70 ms a character, capped at 8 s. Then a 0.6 s fade.
+/** @type {ReturnType<typeof setTimeout> | undefined} */
 let toastTimer;
-function toast(message) {
+function toast(/** @type {string} */ message) {
   el('toast').textContent = message;
   el('toast').classList.add('show');
   clearTimeout(toastTimer);
@@ -51,7 +52,7 @@ function toast(message) {
   toastTimer = setTimeout(() => el('toast').classList.remove('show'), ms);
 }
 
-function showError(message) {
+function showError(/** @type {string} */ message) {
   el('error').textContent = message;
   el('error').style.display = message ? 'block' : 'none';
 }
@@ -60,16 +61,16 @@ function showError(message) {
 // else when the screen reader is free (role="status"). Setting the role on #notice itself just before its text is not
 // announced reliably.
 const NOTICE_KINDS = ['info', 'warning', 'error'];
-let speakFrame;
+let speakFrame = 0;   // no frame: requestAnimationFrame's ids start at 1
 /** Read `message` out from the live region `id`, and empty the other one. */
-function speak(id, message) {
+function speak(/** @type {string} */ id, /** @type {string} */ message) {
   cancelAnimationFrame(speakFrame);
   for (const region of ['notice-status', 'notice-alert']) el(region).textContent = '';
   // Set on the next frame, after the clearing, so the same message twice in a row is announced again.
   speakFrame = requestAnimationFrame(() => { el(id).textContent = message; });
 }
 const ui = {
-  notice(message, kind) {
+  notice(/** @type {string} */ message, /** @type {'info' | 'warning' | 'error'} */ kind) {
     if (!NOTICE_KINDS.includes(kind)) throw new Error(`Unknown notice kind ${kind}`);
     el('notice').textContent = message;
     el('notice').classList.remove(...NOTICE_KINDS);
@@ -77,7 +78,7 @@ const ui = {
     speak(kind === 'error' ? 'notice-alert' : 'notice-status', message);
   },
   /** What an edit did, for screen readers only: on screen, the redrawn diagram shows it. */
-  announce: (message) => speak('notice-status', message),
+  announce: (/** @type {string} */ message) => speak('notice-status', message),
   hideNotice() {
     cancelAnimationFrame(speakFrame);
     el('notice').classList.remove('show');
@@ -97,7 +98,7 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
 });
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved.
-async function display(text) {
+async function display(/** @type {string} */ text) {
   const shown = await viewer.show(text);
   if (!shown.ok) {
     showError('Syntax error; showing the last good render.\n' + shown.error);
@@ -142,7 +143,7 @@ for (const id of ['path', 'host']) {
 // in this browser (localStorage: the browser's, never the file's).
 const osKey = 'merma:help-os';
 const osPicks = /** @type {NodeListOf<HTMLButtonElement>} */ (el('help').querySelectorAll('[data-os-pick]'));
-function showOs(os) {
+function showOs(/** @type {string} */ os) {
   el('help').dataset.os = os;
   for (const b of osPicks) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
 }
