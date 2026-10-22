@@ -28,16 +28,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Verb | Means | Examples |
   |---|---|---|
   | Add | makes a new thing | Add node, Add connected node |
-  | Edit | changes one property of a thing | Edit label, Edit title, Edit arrow type ▸ |
+  | Edit | changes one property of a thing, or opens its panel | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | Remove label |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
 
 - An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu.
-- A split item does its plain action on its label, and has a ▸ of its own for a submenu of variants (Add node ▸: add
-  it with a shape), so the common case stays one click or key. Its ▸ is a second button with a name of its own, a
-  listed verb first ("Add node with shape"), not in the Up and Down cycle: Right on the item opens it, as on any ▸
-  item. Not one item that opens on Enter: Enter must run the plain action.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
 ## Gestures and keys
@@ -45,7 +41,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
-  show as text: a picker's line names the entry under the pointer or the keys, else the current one. On touch, which
+  show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
+  one. On touch, which
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
 - Not every key needs a hint on the page (the user). A hint goes on the page only where it fits and is worth its
   space; the guide holds the rest. A little friction while learning is fine when what the page shows leads the way:
@@ -60,6 +57,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
+- Arrow keys in a picker wrap within their row or column, never on into the next: Right at a row's end goes to its
+  start, Down at the bottom to the top of the same column. So a key always moves along one line of the grid, and
+  Left does not close a picker in a submenu (Escape does). The strip's one exception: Up from its top row goes back to
+  the label box above it.
+- In the strip, selected and focused are apart (the user): the fill is the selected shape, moved only by a click, a
+  digit or Enter; the outline is keyboard focus, moved by the arrows. Enter in the grid selects and goes back to the
+  label; only Enter in the label saves, so each Enter has one meaning. Escape in the grid keeps what was selected
+  there. A picker in a menu saves on each pick, so there the item under the pointer takes focus, as in any menu.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
 
@@ -79,7 +84,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
   just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
   does the same: it looks no different. A delete selects nothing, since the item is gone.
-- A pick in a picker (a shape, an arrow type) is the one edit that keeps its menu open, on the new current entry, so
+- A pick in the arrow-type picker is the one edit that keeps its menu open, on the new current entry, so
   the next pick can follow; a click away or Escape closes it. Picking the current entry writes nothing.
 - Undo and redo select nothing: an undo can take back an add, and what it selects would depend on the edit it undid.
 

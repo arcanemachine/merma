@@ -3,9 +3,8 @@
 // it stays open until whoever opened it closes it: a pan of the diagram is not a click away.
 //
 // Keys while focus is in it (it takes focus when it opens): Up and Down move, an item's letter or Enter runs it, Right
-// opens the focused item's submenu and Left, Escape or the item's letter again closes it, Escape closes the menu.
-// A split item runs its action on its letter, Enter or a click, and opens its submenu on Right or a click on its own
-// ▸, a second button in its row that Up and Down pass over.
+// opens the focused item's submenu and Escape or the item's letter again closes it (Left too, from the menu's own
+// items; inside a picker Left moves), Escape closes the menu.
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
@@ -36,48 +35,22 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   /** @type {import('./menu-items.mjs').MenuItem | null} the item whose submenu is open */
   let openSub = null;
 
-  /** A split item's ▸, by the item. */
-  const opens = new Map();
   const buttons = items.map((item) => {
-    const b = menuButton();
-    b.dataset.action = item.action;
-    if (item.separated) b.classList.add('separated');
-    b.addEventListener('click', () => choose(item));
-    if (!item.split) {
-      if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
-      el.append(b);
-      return b;
-    }
-    // Its own name, since its text is only ▸; never in the Up and Down cycle, where Right on the item does the same.
-    const more = menuButton();
-    more.className = 'open-sub';
-    more.tabIndex = -1;
-    more.textContent = '▸';
-    more.title = item.split;
-    more.setAttribute('aria-label', item.split);
-    more.setAttribute('aria-haspopup', 'menu');
-    more.setAttribute('aria-expanded', 'false');
-    more.addEventListener('click', () => toggleSub(item));
-    opens.set(item, more);
-    const row = document.createElement('div');
-    row.className = 'split';
-    row.setAttribute('role', 'none');
-    row.append(b, more);
-    el.append(row);
-    return b;
-  });
-
-  function menuButton() {
     const b = document.createElement('button');
     b.type = 'button';
     b.setAttribute('role', 'menuitem');
+    b.dataset.action = item.action;
+    if (item.separated) b.classList.add('separated');
     // The item under the pointer is the focused one, so there is one highlight and Enter runs what it shows.
     b.addEventListener('pointerenter', () => b.focus());
+    b.addEventListener('click', () => choose(item));
+    if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
+    el.append(b);
     return b;
-  }
+  });
 
-  /** The button that shows whether `item`'s submenu is open, and that it opens beside: its ▸ when it is split. */
-  const opener = (/** @type {MenuItem} */ item) => opens.get(item) ?? buttons[items.indexOf(item)];
+  /** The button of `item`, which shows whether its submenu is open and which the submenu opens beside. */
+  const opener = (/** @type {MenuItem} */ item) => buttons[items.indexOf(item)];
 
   /** @typedef {import('./menu-items.mjs').MenuItem} MenuItem */
   const applies = (/** @type {MenuItem} */ item) => !item.applies || item.applies(state);
@@ -92,15 +65,15 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }),
         label.slice(at + 1));
       b.replaceChildren(text);
-      if (item.submenu && !item.split) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
+      if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
-      for (const x of [b, opens.get(item)].filter(Boolean)) x.setAttribute('aria-disabled', String(off));
+      b.setAttribute('aria-disabled', String(off));
       if (off) b.title = item.why?.(state) ?? ''; else b.removeAttribute('title');
     });
   }
 
   function choose(/** @type {MenuItem} */ item) {
-    if (item.submenu && !item.split) { toggleSub(item); return; }
+    if (item.submenu) { toggleSub(item); return; }
     if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
     close();
     onRun(item.action);
@@ -126,8 +99,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   function closeSub() {
     if (!openSub) return;
-    const b = buttons[items.indexOf(openSub)];
-    opener(openSub).setAttribute('aria-expanded', 'false');
+    const b = opener(openSub);
+    b.setAttribute('aria-expanded', 'false');
     openSub = null;
     if (sub.matches(':popover-open')) sub.hidePopover();
     if (sub.contains(document.activeElement) || document.activeElement === document.body) b.focus();
@@ -165,10 +138,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
 
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const active = document.activeElement;
-    // On a split item's ▸ (under the pointer), keys act as on its item.
-    let at = buttons.indexOf(/** @type {HTMLButtonElement} */ (active));
-    if (at < 0) at = items.findIndex((i) => opens.get(i) === active);
+    const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     const item = items[at];
     const key = e.key.toLowerCase();
     const byKey = items.find((i) => i.key === key);
@@ -193,11 +163,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     e.stopPropagation();
   });
 
-  // Keys the picker leaves (Escape, Left at the start of a row) close the submenu, back to its item; so does the item's
-  // letter, as a second click on the item does.
+  // Escape, which the picker leaves, closes the submenu, back to its item; so does the item's letter, as a second click
+  // on the item does. Left does not: in a picker it wraps within the row.
   sub.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape' || e.key === 'ArrowLeft' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
+    if (e.key === 'Escape' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
     e.stopPropagation();
   });
 

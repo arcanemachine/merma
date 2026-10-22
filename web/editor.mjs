@@ -130,39 +130,28 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- the menus -----------------------------------------------------------------------------------------------
 
-  // What each menu item does (menu-items.mjs lists them). An item with a submenu does nothing itself, unless it is split.
+  // What each menu item does (menu-items.mjs lists them). An item with a submenu does nothing itself.
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
-  /** A change that adds a node, giving it shape `at` too, if any (Add node ▸), in the same edit. */
-  const shaped = (/** @type {(text: string) => { text: string, id: string }} */ add, /** @type {string | null} */ at) =>
-    (/** @type {string} */ text) => {
-      const added = add(text);
-      return at ? { text: setShape(added.text, added.id, at).text, id: added.id } : added;
-    };
-  const addConnectedNode = (/** @type {string | null} */ at = null) => {
-    const from = selection().id;
-    addAndName(shaped((text) => addConnected(text, from), at));
-  };
-  const addTopOrInSubgraph = (/** @type {string | null} */ at = null) => {
-    const subgraph = selectedSubgraph();
-    addAndName(shaped((text) => addNode(text, { subgraph }), at), subgraph);
-  };
-
   /** @type {Record<string, () => void>} */
   const handlers = {
-    'add-connected-node': () => addConnectedNode(),
+    'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => {
       connecting = true;
       ui.notice('Click the node or subgraph the edge goes to. Click away or press Escape to cancel.', 'info');
     },
+    'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
     'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, ''), { after: sameEdge(id) }); },
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
-    'add-node': () => addTopOrInSubgraph(),
+    'add-node': () => {
+      const subgraph = selectedSubgraph();
+      addAndName((text) => addNode(text, { subgraph }), subgraph);
+    },
     'add-subgraph': () => {
       const parent = selectedSubgraph();
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
@@ -170,7 +159,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
   // menu item that does nothing.
-  const actions = new Set(Object.values(MENUS).flat().filter((i) => !i.submenu || i.split).map((i) => i.action));
+  const actions = new Set(Object.values(MENUS).flat().filter((i) => !i.submenu).map((i) => i.action));
   for (const a of actions) if (!handlers[a]) throw new Error(`No handler for the menu action ${a}`);
   for (const a of Object.keys(handlers)) if (!actions.has(a)) throw new Error(`No menu item runs ${a}`);
 
@@ -191,34 +180,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
   });
 
-  const shapePicker = createPicker({
-    title: 'Shape',
-    entries: NODE_SHAPES,
-    onPick: (at) => {
-      const node = selection();
-      // The shape it has already: nothing to write, and the picker stays, as after any pick.
-      if (shownShape(node.id) === at) return;
-      const names = [named(node), NODE_SHAPES.find((e) => e.key === at)?.name];
-      edit((text) => setShape(text, node.id, at), {
-        keep: true,
-        after: () => ({ item: node, menu: true }),
-        afterSave: () => ui.announce(`Changed ${names[0]} to ${names[1]}`),
-      });
-    },
-  });
-
-  // Add node ▸ and Add connected node ▸: a pick adds a node of that shape and opens its label box, as the item does.
-  const addPicker = (/** @type {(at: string) => void} */ add) => createPicker({ title: 'Shape', entries: NODE_SHAPES, onPick: add });
-
   const menuOptions = {
     parent: els.diagram,
     bounds: () => els.diagram.getBoundingClientRect(),
     returnFocus: els.diagram,
     submenus: {
       'arrow-types': arrowPicker,
-      shapes: shapePicker,
-      'add-shapes': addPicker((at) => addTopOrInSubgraph(at)),
-      'add-connected-shapes': addPicker((at) => addConnectedNode(at)),
     },
     onRun: (/** @type {string} */ action) => handlers[action](),
     onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
@@ -257,10 +224,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (sel.kind === 'edge') {
       const arrow = shownEdge(sel.id)?.arrow ?? '';
       arrowPicker.current(arrowType(arrow), arrow);
-    }
-    if (sel.kind === 'node') {
-      const at = shownShape(sel.id);
-      shapePicker.current(at, at ?? '');
     }
     menus[sel.kind].open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
   }
@@ -380,7 +343,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
   // opens its History with it); N adds a node (connected to the selected node, or in the selected subgraph); Enter or F2
-  // edits the selected item's label or title; Delete or Backspace deletes the selection; M opens the selection's menu,
+  // opens the selected node's panel, or edits the selected edge's label or subgraph's title; Delete or Backspace deletes the selection; M opens the selection's menu,
   // or with nothing selected the empty-space menu at the middle of the diagram; Escape backs out of whatever is open.
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
   /** @type {Record<string, () => unknown>} what each key does; truthy when it was used */
@@ -464,30 +427,33 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  // While a node just added is named, a strip of shapes lies under the box: Down from the box's last line goes into it,
-  // where the arrows move, a digit or a click picks, Up from the top row or Escape goes back to the box, and Enter, from
-  // either, writes the shape with the label. Nothing is drawn until then (docs/ux.md, the preview rule).
+  // The node panel: on a node, a strip of shapes lies under the box. Down from the box's last line goes into it, where
+  // the arrows move focus; a digit, a click, or Enter on the focused shape selects it (Enter also goes back to the box);
+  // Up from the top row or Escape goes back to the box, keeping what was selected. Enter in the box writes the label
+  // and the shape as one change. Nothing is drawn until then (docs/ux.md, the preview rule).
   const strip = createPicker({
     title: 'Shape',
     entries: NODE_SHAPES,
     columns: 10,
     strip: true,
-    onPick: (at) => {
-      strip.current(at);
-      const entry = NODE_SHAPES.find((e) => e.key === at);
-      ui.announce(`${entry?.name}${entry?.meaning && entry.meaning !== entry.name ? `, ${entry.meaning}` : ''}`);
-    },
+    onPick: (at) => selectShape(at),
   });
+  /** Select shape `at` in the strip, and say so: nothing else shows it to a screen reader. */
+  function selectShape(/** @type {string} */ at) {
+    strip.current(at);
+    const entry = NODE_SHAPES.find((e) => e.key === at);
+    ui.announce(`${entry?.name}${entry?.meaning && entry.meaning !== entry.name ? `, ${entry.meaning}` : ''} selected`);
+  }
   const stripBox = Object.assign(document.createElement('div'), { className: 'menu strip', popover: 'manual' });
   stripBox.dataset.overlay = '';
   // A press anywhere on the strip, icon or not, leaves focus where it is: on the body, it would close the box.
   stripBox.addEventListener('mousedown', (e) => e.preventDefault());
-  // Keys the picker leaves: Enter saves with the focused shape, Up from the top row and Escape go back to the box. None
-  // goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
+  // Keys the picker leaves: Enter selects the focused shape and goes back to the box; Up from the top row and Escape go
+  // back to the box. None goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
   stripBox.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
-    if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); strip.current(on.dataset.key); submitLabel(); }
+    if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); selectShape(on.dataset.key); input.focus(); }
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
     e.stopPropagation();
   });
@@ -501,11 +467,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   });
   stripBox.append(strip.el, stripHint);
   els.diagram.append(stripBox);
-  /** @type {string | null} the shape the node had when the strip opened, while it is open */
+  let stripOpen = false;
+  /** @type {string | null} the shape the node had when the strip opened, or null for one these edits cannot read */
   let stripFrom = null;
 
   function placeStrip() {
-    if (stripFrom === null) return;
+    if (!stripOpen) return;
     const r = input.getBoundingClientRect(), s = stripBox.getBoundingClientRect();
     const centre = (r.left + r.right) / 2 - s.width / 2;
     const at = place({ left: centre, top: r.top, right: centre + s.width, bottom: r.bottom }, s,
@@ -514,15 +481,19 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     stripBox.style.top = at.top + 'px';
   }
 
-  function openStrip(/** @type {string} */ id) {
-    stripFrom = shownShape(id) ?? 'rect';
-    strip.current(stripFrom);
+  /** Open the strip for node `id`; `added`: the node was just added, so it is a rectangle whatever it reads as. */
+  function openStrip(/** @type {string} */ id, /** @type {boolean} */ added) {
+    stripOpen = true;
+    stripFrom = shownShape(id) ?? (added ? 'rect' : null);
+    // A shape not in the list is named, with none pressed; one that cannot be read shows nothing as current.
+    strip.current(stripFrom, stripFrom ?? '');
     stripBox.showPopover();
     input.setAttribute('aria-describedby', stripHint.id);
     placeStrip();
   }
 
   function closeStrip() {
+    stripOpen = false;
     stripFrom = null;
     if (stripBox.matches(':popover-open')) stripBox.hidePopover();
     input.removeAttribute('aria-describedby');
@@ -543,7 +514,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.setAttribute('aria-label', { node: 'Node label', edge: 'Edge label', subgraph: 'Subgraph title' }[target.kind]);
     input.style.display = 'block';
     sizeLabelBox();
-    if (target.kind === 'node' && naming && same(naming, target)) openStrip(target.id);
+    if (target.kind === 'node') openStrip(target.id, same(naming, target));
     input.focus();
     input.select();
   }
@@ -578,7 +549,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.key === 'Escape') { e.stopPropagation(); closeLabelBox(); naming = null; if (target) select(target); return; }
     // Down goes into the strip only from the last line, where it would not move the caret. The line is the text's:
     // the box widens to its text (sizeLabelBox), so a line never wraps.
-    if (e.key === 'ArrowDown' && stripFrom !== null && !input.value.slice(input.selectionEnd).includes('\n')) {
+    if (e.key === 'ArrowDown' && stripOpen && !input.value.slice(input.selectionEnd).includes('\n')) {
       e.preventDefault();
       strip.focus();
       return;
@@ -593,13 +564,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const target = labelling;
     if (!target) return;
     const label = input.value;
-    // A node needs a label and a subgraph a title; an edge's label can be emptied, which removes it.
-    if (target.kind !== 'edge' && !label.trim()) {
+    const relabelled = label !== input.dataset.initial;
+    // A node needs a label and a subgraph a title; an edge's label can be emptied, which removes it. One drawn with
+    // none (a `bolt` node) can still change shape.
+    if (target.kind !== 'edge' && !label.trim() && relabelled) {
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
       return;
     }
-    const relabelled = label !== input.dataset.initial;
-    const shape = stripFrom !== null && strip.value() !== stripFrom ? strip.value() : null;
+    const picked = stripOpen ? strip.value() : null;
+    const shape = picked && picked !== stripFrom ? picked : null;
     /** A node's new label and shape, as one change. */
     const renamed = (/** @type {string} */ text) => {
       const named = relabelled ? relabel(text, target.id, label).text : text;
@@ -616,7 +589,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) }); return; }
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
-    if (target.kind === 'node') { edit(renamed, { into, after: () => ({ item: target }) }); return; }
+    if (target.kind === 'node') {
+      const names = [named(target), NODE_SHAPES.find((e) => e.key === shape)?.name];
+      // A shape change is not seen by a screen reader, unlike a label it typed.
+      const afterSave = shape && !relabelled ? () => ui.announce(`Changed ${names[0]} to ${names[1]}`) : undefined;
+      edit(renamed, { into, afterSave, after: () => ({ item: target }) });
+      return;
+    }
     const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
     /** @type {EditOptions} */
     const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };
@@ -768,7 +747,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clicked,
     contextMenu,
 
-    /** Double-click on a node, an edge or a subgraph edits its label or title. Returns whether it was one. */
+    /**
+     * Double-click on a node opens its panel; on an edge or a subgraph, edits its label or title. Returns whether it
+     * was one.
+     */
     doubleClicked(/** @type {Element} */ target) {
       if (!editable) return false;
       const sel = itemAt(target);

@@ -10,8 +10,8 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
 /** Keys the page answers outside menus (KeyboardEvent.key, lower-cased), and the actions each one runs. */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
-  enter: ['edit-label', 'edit-title'],
-  f2: ['edit-label', 'edit-title'],
+  enter: ['edit-node', 'edit-label', 'edit-title'],
+  f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
   backspace: ['delete-node', 'delete-edge'],
   m: [],
@@ -37,8 +37,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * @property {string} key its shortcut letter
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is greyed
  * @property {(state: MenuState) => string | null} [why] what a greyed item says
- * @property {string} [submenu] the name of what opens beside it: the item's only action, unless it is `split`
- * @property {string} [split] a split item runs its action and has a ▸ of its own for the submenu; this names the ▸
+ * @property {string} [submenu] the name of what opens beside it: the item's only action
  * @property {boolean} [mode] it waits for a further click
  * @property {boolean} [separated] set apart from the items above it
  */
@@ -46,13 +45,9 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
 /** @type {Record<'node' | 'edge' | 'subgraph' | 'space', MenuItem[]>} */
 export const MENUS = {
   node: [
-    {
-      action: 'add-connected-node', label: 'Add connected node', key: 'n',
-      submenu: 'add-connected-shapes', split: 'Add connected node with shape',
-    },
+    { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
-    { action: 'edit-label', label: 'Edit label', key: 'l' },
-    { action: 'edit-shape', label: 'Edit shape', key: 'p', submenu: 'shapes' },
+    { action: 'edit-node', label: 'Edit node', key: 'e' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
   ],
   edge: [
@@ -63,13 +58,13 @@ export const MENUS = {
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
   ],
   subgraph: [
-    { action: 'add-node', label: 'Add node', key: 'n', submenu: 'add-shapes', split: 'Add node with shape' },
+    { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
   ],
   space: [
-    { action: 'add-node', label: 'Add node', key: 'n', submenu: 'add-shapes', split: 'Add node with shape' },
+    { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
   ],
 };
