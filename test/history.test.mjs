@@ -66,3 +66,21 @@ test('after an outside change nothing is redone, and the redo stack is cleared',
   assert.deepEqual(h.peekRedo('v0 plus an agent edit'), { ok: false, reason: 'changed' });
   assert.equal(h.redoSize, 0);
 });
+
+test('a discarded entry is gone, with nothing to redo, and the one before it is next to undo', () => {
+  const h = createHistory();
+  h.record('v0', 'v1');
+  const added = h.record('v1', 'v2');
+  assert.equal(h.discard(added), true);
+  assert.equal(h.size, 1);
+  assert.equal(h.redoSize, 0);
+  assert.deepEqual(h.peek('v1'), { ok: true, text: 'v0' });
+});
+
+test('only the newest entry can be discarded', () => {
+  const h = createHistory();
+  const older = h.record('v0', 'v1');
+  h.record('v1', 'v2');
+  assert.equal(h.discard(older), false);
+  assert.equal(h.size, 2);
+});

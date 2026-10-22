@@ -595,6 +595,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const target = labelling;
     if (e.key === 'Escape') {
       e.stopPropagation();
+      if (naming && same(naming, target)) { cancelAdd(naming); return; }
       closeLabelBox();
       naming = null;
       ui.hideNotice();   // a refused save's error is about the box, which is gone
@@ -612,6 +613,32 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     e.preventDefault();
     saveLabel();
   });
+
+  /**
+   * Escape in the box an add opened: take the add back, as if it never was, with nothing left to redo. Only while the
+   * file is still as the add left it; otherwise the item stays, named as it was added.
+   */
+  function cancelAdd(/** @type {NonNullable<typeof naming>} */ added) {
+    if (busy) { ui.notice('Not cancelled: another edit is still saving; try again.', 'error'); return; }
+    const what = added.kind === 'node' ? 'Node' : 'Subgraph';
+    closeLabelBox();
+    naming = null;
+    els.diagram.focus();
+    exclusively(async () => {
+      ui.hideNotice();
+      const base = source.snapshot();
+      if (base.text !== added.entry.after) {
+        ui.notice(`${what} kept: the file has changed since it was added.`, 'warning');
+        select(added);
+        return;
+      }
+      if (!(await save(added.entry.before, base.version))) return;
+      history.discard(added.entry);
+      deselect();
+      await display(added.entry.before);
+      ui.announce('Add cancelled');
+    });
+  }
 
   /**
    * Enter, or Tab either way: save, and leave focus in the diagram, where what was edited is selected, rather than on
