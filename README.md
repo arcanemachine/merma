@@ -59,7 +59,7 @@ there is no login.
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |
-| `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types) |
+| `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types, shapes), in a menu or as a strip |
 | `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
 | `web/icons.mjs` | The frame every icon shares |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
