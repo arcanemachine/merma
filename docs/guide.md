@@ -56,8 +56,10 @@ added with one). With that submenu open, its key closes it rather than running t
 - **Edit label** edits the label in place (the label box): Enter saves, Shift+Enter starts a new line (written as
   `<br>`), Escape cancels. Only the label changes, where the node is first given a shape; a node that only appears
   bare gets brackets at its first appearance.
-- **Edit shape ▸** opens the shapes, each named with what it means in a flowchart (Diamond — Decision); click one, or
-  press its digit for the first ten. The shape changes where Mermaid takes it from, the node's last mention with one,
+- **Edit shape ▸** opens the shapes, each named with what it means in a flowchart: the line under them names the
+  current one ("Current: Rectangle (Process)"), and the one under the pointer or the arrow keys ("Diamond (Decision)").
+  Click one, or press its digit for the first ten. The picker stays open on the new shape for another pick, until a
+  click away or Escape; each pick is its own change and undo step. The shape changes where Mermaid takes it from, the node's last mention with one,
   and the label stays as written. Shapes with brackets keep that form (`B{OK?}`); the others are written
   `B@{ shape: doc, label: "OK?" }`, after any `:::class`. A label with a `}`, or a Markdown label, cannot move into
   that form: the page says so, and the file keeps its shape. A shape merma does not offer (`bolt`) shows as "Other".
@@ -92,8 +94,8 @@ added with one). With that submenu open, its key closes it rather than running t
 
 - **Edit label** edits the edge's label in place; it is written as `-->|"label"|`.
 - **Remove label** removes it. Greyed when the edge has none.
-- **Edit arrow type ▸** opens the arrow types; click one or press its digit. The arrow changes and keeps its label and
-  its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
+- **Edit arrow type ▸** opens the arrow types; click one or press its digit, and the picker stays open for another, as
+  for shapes. The arrow changes and keeps its label and its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
   "Other".
 
   | Digit | Arrow type | Syntax |
@@ -134,11 +136,12 @@ top level, at the end of the file. Mermaid lays the diagram out, so what you add
 ## Naming a new node
 
 Whenever a node is added (Add connected node, Add node, N), the label box opens on it with a strip of the shapes under
-it, its shape (Rectangle) marked. Type the name; Tab and Shift+Tab step through the shapes, or click one, and the box
-keeps the keyboard. Nothing is drawn until Enter, which writes the label and the shape as one change, undone together
-with the add. A shape the label cannot take (a `}` or Markdown with a shape that has no brackets) is refused on Enter,
-and the box stays open with what you typed. Escape keeps the node as it was added. Editing an existing node's label shows no strip: Edit shape ▸
-changes its shape.
+it, its shape (Rectangle) marked. Type the name, and click a shape; or press Down (from the label's last line) to go
+into the shapes, where the arrows move, a digit picks, and Up from the top row or Escape goes back to the name. Nothing
+is drawn until Enter, from either, which writes the label and the shape as one change, undone together with the add. A
+shape the label cannot take (a `}` or Markdown with a shape that has no brackets) is refused on Enter, and the box
+stays open with what you typed. Escape in the name keeps the node as it was added. Editing an existing node's label
+shows no strip: Edit shape ▸ changes its shape.
 
 ## Keys
 

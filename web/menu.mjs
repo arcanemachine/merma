@@ -205,7 +205,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     el,
     /**
      * Open beside `at` for `menuState`, focusing its first item that applies; `gap` is 0 to open at a point. When it is
-     * open already, it is only redrawn and moved.
+     * open already, it is only redrawn: it stays where it is, so a pick that resizes the node moves nothing under the
+     * pointer.
      * @param {{ left: number, top: number, right: number, bottom: number }} at
      * @param {import('./menu-items.mjs').MenuState} menuState
      * @param {{ gap?: number }} [options]
@@ -214,11 +215,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       state = menuState;
       gap = g;
       render();
-      // Already open (the file changed under it): keep its submenu and its focus.
-      const fresh = !isOpen();
-      if (fresh) el.showPopover();
+      // Already open (the file changed under it): keep its place, its submenu and its focus.
+      if (isOpen()) return;
+      el.showPopover();
       reposition(at);
-      if (fresh) (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
+      (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
     },
     reposition,
     close,

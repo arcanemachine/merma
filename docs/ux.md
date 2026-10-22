@@ -22,6 +22,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - Mermaid's word wherever it has one: node, edge, label, shape, subgraph, title, direction, arrow type, length. A word
   of merma's own needs a reason, given in `GLOSSARY.md`. Readers who know Mermaid should not have to translate.
+- No em dashes in the page's text (the user): a colon or parentheses instead ("Current: Diamond (Decision)").
 - Menu labels are in sentence case and read verb + noun, from a fixed set of verbs, so one label predicts the next:
 
   | Verb | Means | Examples |
@@ -44,7 +45,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
-  show on hover and also as text, since touch has no hover.
+  show as text: a picker's line names the entry under the pointer or the keys, else the current one. On touch, which
+  has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
+- Not every key needs a hint on the page (the user). A hint goes on the page only where it fits and is worth its
+  space; the guide holds the rest. A little friction while learning is fine when what the page shows leads the way:
+  the strip's digits say there is a way in, and Down from the label box is it.
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open, and a notice lies over
   the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
   that moved as Connect to… asked for a click would put another node under the click aimed at.
@@ -57,10 +62,6 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
-- Tab in a text field is the browser's, with one deliberate exception: while a new node is named, Tab and Shift+Tab
-  step through the shapes under the label box. There is nothing else to tab to there, Enter and Escape still leave,
-  and a hint under the box says so ("Tab changes the shape"). The strip's shapes take no focus, under the pointer or
-  on a click, so the box keeps the keyboard and its text.
 
 ## Greyed out or left out
 
@@ -78,6 +79,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
   just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
   does the same: it looks no different. A delete selects nothing, since the item is gone.
+- A pick in a picker (a shape, an arrow type) is the one edit that keeps its menu open, on the new current entry, so
+  the next pick can follow; a click away or Escape closes it. Picking the current entry writes nothing.
 - Undo and redo select nothing: an undo can take back an add, and what it selects would depend on the edit it undid.
 
 ## Messages
