@@ -22,7 +22,7 @@ Mermaid syntax.
 | **node** | A box in the diagram (Mermaid's term). |
 | **node id** | The name a node has in the file (`charge` in `charge[Charge card]`). Never shown on the page, except as the text of a node drawn with no label. |
 | **label** | The text shown on a node or an edge. |
-| **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. Each has a name and a **meaning**, Mermaid's "Shape Name" and "Semantic Name": Diamond — Decision. |
+| **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. Each has a name and a **meaning**, Mermaid's "Shape Name" and "Semantic Name": Diamond (Decision). |
 | **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
 | **arrow** | An edge's connector syntax without its label: `-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~`… |
 | **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`): Arrow, Line, Dotted arrow, Dotted line, Thick arrow, Thick line, Circle, Cross, Two-way arrow (Mermaid: "multi directional"), Invisible. |
@@ -58,7 +58,7 @@ note where merma had to make one up.
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit label, Edit title). merma's own. |
 | **split item** | A menu item that runs its own action and has a ▸ of its own at the row's end for a submenu of variants: Add node ▸. merma's own. |
-| **strip** | The shape picker laid under the label box while a new node is named: Tab steps through it, and the box keeps the keyboard. merma's own. |
+| **strip** | The shape picker laid under the label box while a new node is named: click a shape, or Down from the label goes into it. merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |

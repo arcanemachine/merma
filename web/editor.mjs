@@ -20,11 +20,13 @@ import { NODE_SHAPES } from './shapes.mjs';
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
  * named); `into`: the history entry the edit completes; `after(result)`: the item to select once its text is drawn,
- * with `label` to open the label box on it, or null for nothing.
+ * with `label` to open the label box on it, or `menu` to keep its menu open, or null for nothing; `keep`: the menu the
+ * edit was made from stays open meanwhile (a picker's pick).
  * @typedef {object} EditOptions
  * @property {(result: any, entry: import('./history.mjs').Entry) => void} [afterSave]
  * @property {import('./history.mjs').Entry | null} [into]
- * @property {(result: any) => ({ item: Item, label?: boolean } | null)} [after]
+ * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean } | null)} [after]
+ * @property {boolean} [keep]
  */
 
 /**
@@ -52,7 +54,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it.
-   * @type {{ text: string, item: Item, label?: boolean } | null}
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean } | null}
    */
   let pending = null;
   const history = createHistory();
@@ -177,9 +179,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     entries: ARROW_TYPES,
     onPick: (arrow) => {
       const id = selection().id;
+      // The arrow type it has already: nothing to write, and the picker stays, as after any pick.
+      if (arrowType(shownEdge(id)?.arrow ?? '') === arrow) return;
       const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
+      const again = sameEdge(id);
       editDrawn((text) => setEdgeArrow(text, id, arrow), {
-        after: sameEdge(id),
+        keep: true,
+        after: (result) => { const next = again(result); return next && { ...next, menu: true }; },
         afterSave: () => ui.announce(`Changed the edge to ${name}`),
       });
     },
@@ -190,11 +196,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     entries: NODE_SHAPES,
     onPick: (at) => {
       const node = selection();
-      // The shape it has already: nothing to write; the menu closes as after an edit.
-      if (shownShape(node.id) === at) { select(node); return; }
+      // The shape it has already: nothing to write, and the picker stays, as after any pick.
+      if (shownShape(node.id) === at) return;
       const names = [named(node), NODE_SHAPES.find((e) => e.key === at)?.name];
       edit((text) => setShape(text, node.id, at), {
-        after: () => ({ item: node }),
+        keep: true,
+        after: () => ({ item: node, menu: true }),
         afterSave: () => ui.announce(`Changed ${names[0]} to ${names[1]}`),
       });
     },
@@ -457,9 +464,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  // While a node just added is named, a strip of shapes lies under the box: Tab and Shift+Tab step through them, a
-  // click picks one, and Enter writes the shape with the label. Nothing is drawn until then (docs/ux.md, the preview
-  // rule), and the box keeps the keyboard throughout.
+  // While a node just added is named, a strip of shapes lies under the box: Down from the box's last line goes into it,
+  // where the arrows move, a digit or a click picks, Up from the top row or Escape goes back to the box, and Enter, from
+  // either, writes the shape with the label. Nothing is drawn until then (docs/ux.md, the preview rule).
   const strip = createPicker({
     title: 'Shape',
     entries: NODE_SHAPES,
@@ -473,9 +480,24 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   });
   const stripBox = Object.assign(document.createElement('div'), { className: 'menu strip', popover: 'manual' });
   stripBox.dataset.overlay = '';
-  // A press anywhere on the strip, icon or not, leaves focus in the box: moving it would close the box.
+  // A press anywhere on the strip, icon or not, leaves focus where it is: on the body, it would close the box.
   stripBox.addEventListener('mousedown', (e) => e.preventDefault());
-  const stripHint = Object.assign(document.createElement('div'), { className: 'strip-hint', id: 'strip-hint', textContent: 'Tab changes the shape' });
+  // Keys the picker leaves: Enter saves with the focused shape, Up from the top row and Escape go back to the box. None
+  // goes on to the page's own keys.
+  stripBox.addEventListener('keydown', (e) => {
+    const on = /** @type {HTMLElement} */ (document.activeElement);
+    if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); strip.current(on.dataset.key); submitLabel(); }
+    else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
+    e.stopPropagation();
+  });
+  // The box closes when focus leaves both it and the strip.
+  stripBox.addEventListener('focusout', (e) => {
+    const to = /** @type {Node | null} */ (e.relatedTarget);
+    if (labelling && to !== input && !stripBox.contains(to)) closeLabelBox();
+  });
+  const stripHint = Object.assign(document.createElement('div'), {
+    className: 'visually-hidden', id: 'strip-hint', textContent: 'Down arrow chooses a shape',
+  });
   stripBox.append(strip.el, stripHint);
   els.diagram.append(stripBox);
   /** @type {string | null} the shape the node had when the strip opened, while it is open */
@@ -547,14 +569,28 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   input.addEventListener('input', sizeLabelBox);
-  input.addEventListener('blur', () => { if (labelling) closeLabelBox(); });
+  input.addEventListener('blur', (e) => {
+    if (labelling && !stripBox.contains(/** @type {Node | null} */ (e.relatedTarget))) closeLabelBox();
+  });
   input.addEventListener('keydown', (e) => {
     const target = labelling;
     if (e.key === 'Escape') { e.stopPropagation(); closeLabelBox(); naming = null; if (target) select(target); return; }
-    // Tab is the browser's key in a text field; here there is nothing else to tab to (docs/ux.md).
-    if (e.key === 'Tab' && stripFrom !== null) { e.preventDefault(); strip.step(e.shiftKey ? -1 : 1); return; }
+    // Down goes into the strip only from the last line, where it would not move the caret. The line is the text's:
+    // the box widens to its text (sizeLabelBox), so a line never wraps.
+    if (e.key === 'ArrowDown' && stripFrom !== null && !input.value.slice(input.selectionEnd).includes('\n')) {
+      e.preventDefault();
+      strip.focus();
+      return;
+    }
     if (e.key !== 'Enter' || e.shiftKey || !target) return;
     e.preventDefault();
+    submitLabel();
+  });
+
+  /** Save what the label box holds (and the strip's shape, while it is open), as Enter does. */
+  function submitLabel() {
+    const target = labelling;
+    if (!target) return;
     const label = input.value;
     // A node needs a label and a subgraph a title; an edge's label can be emptied, which removes it.
     if (target.kind !== 'edge' && !label.trim()) {
@@ -584,7 +620,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     /** @type {EditOptions} */
     const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };
     if (drawnOnly(target.id)) editDrawn(change, options); else edit(change, options);
-  });
+  }
 
   // --- edges ---------------------------------------------------------------------------------------------------
 
@@ -637,7 +673,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @param {(text: string) => { text: string }} change
    * @param {EditOptions} [options]
    */
-  function edit(change, { afterSave, into = null, after } = {}) {
+  function edit(change, { afterSave, into = null, after, keep = false } = {}) {
     return exclusively(async () => {
       ui.hideNotice();
       const base = source.snapshot();
@@ -651,8 +687,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       if (!(await save(result.text, base.version))) return;
       const entry = history.record(base.text, result.text, into);
-      // The action is done: its menu closes. What it acted on is selected again once drawn (`after`), or nothing.
-      deselect();
+      // The action is done: its menu closes, but a picker's stays for the next pick. What it acted on is selected again
+      // once drawn (`after`), or nothing.
+      if (!keep) deselect();
       const next = after?.(result);
       pending = next ? { text: result.text, ...next } : null;
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
@@ -764,16 +801,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       tagEdges(text);
       const menu = menuOpen();
       const sel = selected;
+      const next = pending;
+      pending = null;
+      if (next && text === next.text && elsOf(next.item).length) {
+        // An edit's own text: what it acted on, its menu still open after a picker's pick.
+        select(next.item, { menu: Boolean(next.menu) && menu });
+        if (next.label) openLabelBox(next.item);
+        return;
+      }
       const kept = sel && elsOf(sel).length
         && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
       if (kept) select(sel, { keepMode: sel.kind !== 'edge', menu });
       else deselect();
-      const next = pending;
-      pending = null;
-      if (next && text === next.text && elsOf(next.item).length) {
-        select(next.item);
-        if (next.label) openLabelBox(next.item);
-      }
     },
 
     /** The file no longer renders: what is on screen is an older version, so editing it would edit something else. */

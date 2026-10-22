@@ -132,16 +132,13 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
 .menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
 .menu .picker-grid button:focus { outline: 2px solid #0969da; outline-offset: -2px; }
-.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; }
+.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; text-align: center; }
 /* The label box: laid exactly over the label being edited, so it is edited in place. */
 #label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid #0969da; border-radius: 4px;
           background: #fff; resize: none; overflow: hidden; user-select: text; cursor: text; }
 /* The strip of shapes under the label box while a new node is named: a menu's look, placed by the editor. */
 .menu.strip { padding: 4px 6px 6px; }
-.strip-hint { font-size: 12px; color: #555; padding: 2px 4px 0; }
-/* Focus stays in the label box, so the current shape is marked as strongly as a focused one. */
-.strip .picker-grid button[aria-pressed="true"] { outline: 2px solid #0969da; outline-offset: -2px; }
-/* On a narrow screen the strip's ten columns would not fit: five, in four rows. Its keys step through the list, not
-   the grid, so the layout is free to change. */
+/* On a narrow screen the strip's ten columns would not fit: five, in four rows. The picker's arrow keys follow the grid
+   as drawn. */
 @media (max-width: 480px) { .strip .picker-grid { --columns: 5 !important; } }
