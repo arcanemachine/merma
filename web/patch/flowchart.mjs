@@ -32,6 +32,9 @@
  * @property {Span & { form: 'bracket' | 'bare' }} title
  */
 /** @typedef {{ from: string, to: string, arrow: string, label: { text: string } | null }} EdgeSig what an edge reads as */
+/** @typedef {{ drop?: boolean, body?: string, reverse?: boolean }} PairChange what to do to one pair of a statement */
+/** @typedef {{ text: string, ids?: string[] }} Part a statement written in place of another, and the nodes it names */
+/** @typedef {{ s: Statement, parts: Part[] }} Change a statement and what replaces it (nothing: it goes) */
 
 const ID = String.raw`[\p{L}\p{N}_]+`;
 const ID_CHAR = /[\p{L}\p{N}_]/u;
@@ -40,18 +43,22 @@ const ID_CHAR = /[\p{L}\p{N}_]/u;
 const NOT_A_STATEMENT = /^\s*(style|classDef|class|click|linkStyle|subgraph|direction|end)\b/;
 
 // Shape openers and their closers, longest first so `((` wins over `(`. Trapezoids close with either slash.
+/** @type {[string, string[]][]} */
 const SHAPES = [
   ['(((', [')))']], ['([', ['])']], ['[[', [']]']], ['[(', [')]']], ['((', ['))']], ['{{', ['}}']],
   ['[/', ['/]', '\\]']], ['[\\', ['\\]', '/]']], ['[', [']']], ['(', [')']], ['{', ['}']], ['>', [']']],
 ];
 
+/** A line's indentation. */
+const indentOf = (/** @type {string} */ line) => /^[ \t]*/.exec(line)?.[0] ?? '';
+
 /** Split into lines, each keeping its own line ending, so joining them gives back the exact text. */
-function lines(text) {
+function lines(/** @type {string} */ text) {
   return text.match(/[^\n]*\n|[^\n]+$/g) || [];
 }
 
 /** Index of the first line after any frontmatter, init directives, comments and blank lines: the header line. */
-function headerIndex(ls) {
+function headerIndex(/** @type {string[]} */ ls) {
   let i = 0;
   if (ls[0] && ls[0].trim() === '---') {
     i = 1;
@@ -63,7 +70,7 @@ function headerIndex(ls) {
 }
 
 /** True for `flowchart` and `graph` diagrams, the only types these edits understand. */
-export function isFlowchart(text) {
+export function isFlowchart(/** @type {string} */ text) {
   const ls = lines(text);
   const header = ls[headerIndex(ls)] || '';
   return /^\s*(flowchart|graph)\b/.test(header);
@@ -73,10 +80,10 @@ export function isFlowchart(text) {
  * The line with everything that is not syntax blanked out: quoted strings, shape and edge labels, `@{…}` blocks and
  * comments become spaces. Positions are kept, so an index into the mask is an index into the line.
  */
-function mask(line) {
+function mask(/** @type {string} */ line) {
   if (/^\s*%%/.test(line)) return line.replace(/[^\n]/g, ' ');
   const out = line.split('');
-  const blank = (from, to) => { for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' '; };
+  const blank = (/** @type {number} */ from, /** @type {number} */ to) => { for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' '; };
   let i = 0;
   while (i < line.length) {
     const c = line[i];
@@ -107,14 +114,14 @@ function mask(line) {
 }
 
 /** For an edge label at `at` (`|text|`, or `|"text"|`, which may itself hold a pipe), the index just past it. */
-function pipeEnd(line, at) {
+function pipeEnd(/** @type {string} */ line, /** @type {number} */ at) {
   const q = line[at + 1] === '"' ? line.indexOf('"', at + 2) : at;
   const end = line.indexOf('|', q < 0 ? at + 1 : q + 1);
   return end < 0 ? line.length : end + 1;
 }
 
 /** For a shape opener at `at`, where its label starts and ends and where the whole shape ends. */
-function shapeSpan(line, at) {
+function shapeSpan(/** @type {string} */ line, /** @type {number} */ at) {
   for (const [open, closers] of SHAPES) {
     if (!line.startsWith(open, at)) continue;
     const start = at + open.length;
@@ -137,7 +144,7 @@ function shapeSpan(line, at) {
 }
 
 /** Each place `id` appears as a node reference in the diagram body: [{ line, col }]. */
-function mentions(text, id) {
+function mentions(/** @type {string} */ text, /** @type {string} */ id) {
   const ls = lines(text);
   const found = [];
   const re = new RegExp(String.raw`(?<![\p{L}\p{N}_])${escapeRe(id)}(?![\p{L}\p{N}_])`, 'gu');
@@ -148,15 +155,15 @@ function mentions(text, id) {
   return found;
 }
 
-function escapeRe(s) {
+function escapeRe(/** @type {string} */ s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function assertId(id) {
+function assertId(/** @type {string} */ id) {
   if (!new RegExp(`^${ID}$`, 'u').test(id)) throw new Error(`Not a node id this editor can change: ${id}`);
 }
 
-function assertNode(text, id) {
+function assertNode(/** @type {string} */ text, /** @type {string} */ id) {
   assertId(id);
   if (!mentions(text, id).length) throw new Error(`Node ${id} is not in the file.`);
 }
@@ -166,13 +173,14 @@ function assertNode(text, id) {
  * entity codes, so the node shows exactly what was typed. A line break becomes `<br>`, the one tag left as markup:
  * it is how Mermaid breaks a label's line.
  */
-export function quoteLabel(label) {
+export function quoteLabel(/** @type {string} */ label) {
+  /** @type {Record<string, string>} */
   const codes = { '#': '#35;', '"': '#quot;', '<': '#lt;', '>': '#gt;', '&': '#amp;' };
   return '"' + label.split(/\r?\n/).map((part) => part.replace(/[#"<>&]/g, (c) => codes[c])).join('<br>') + '"';
 }
 
 /** The first of `n1`, `n2`, … (or of another prefix) that appears nowhere in the text, labels and comments included. */
-export function freeId(text, prefix = 'n') {
+export function freeId(/** @type {string} */ text, prefix = 'n') {
   for (let k = 1; ; k++) {
     const id = prefix + k;
     if (!new RegExp(String.raw`(?<![\p{L}\p{N}_])${id}(?![\p{L}\p{N}_])`, 'u').test(text)) return id;
@@ -180,29 +188,29 @@ export function freeId(text, prefix = 'n') {
 }
 
 /** Insert a line after line `n`, with the indentation of line `n` (or `indent`). */
-function insertAfter(text, n, body, indent = null) {
+function insertAfter(/** @type {string} */ text, /** @type {number} */ n, /** @type {string} */ body, /** @type {string | null} */ indent = null) {
   const ls = lines(text);
   const ref = ls[n];
-  indent ??= ref.match(/^[ \t]*/)[0];
+  indent ??= indentOf(ref);
   const newline = ref.endsWith('\n') ? '' : '\n';
   ls.splice(n + 1, 0, newline + indent + body + (newline ? '' : '\n'));
   return ls.join('');
 }
 
 /** Append a line after the last line with content, indented like the header's first statement. */
-function appendLine(text, body) {
+function appendLine(/** @type {string} */ text, /** @type {string} */ body) {
   return insertAfter(text, lastContentLine(text), body, statementIndent(text));
 }
 
 /** The indentation of the first statement after the header, used for lines appended at the top level. */
-function statementIndent(text) {
+function statementIndent(/** @type {string} */ text) {
   const ls = lines(text);
-  for (let k = headerIndex(ls) + 1; k < ls.length; k++) if (ls[k].trim()) return ls[k].match(/^[ \t]*/)[0];
+  for (let k = headerIndex(ls) + 1; k < ls.length; k++) if (ls[k].trim()) return indentOf(ls[k]);
   return '  ';
 }
 
 /** Index of the last line with any content. */
-function lastContentLine(text) {
+function lastContentLine(/** @type {string} */ text) {
   const ls = lines(text);
   for (let n = ls.length - 1; n >= 0; n--) if (ls[n].trim()) return n;
   return -1;
@@ -215,7 +223,7 @@ function lastContentLine(text) {
  * good for the text it was drawn from. `title`: the bracket's contents, or the bare title.
  * @returns {Subgraph[]}
  */
-export function subgraphs(text) {
+export function subgraphs(/** @type {string} */ text) {
   const ls = lines(text);
   /** @type {Subgraph[]} */
   const out = [];
@@ -260,12 +268,12 @@ export function subgraphs(text) {
 }
 
 /** The subgraphs open at line `n` (its `subgraph` line included, its `end` not), innermost last. */
-function subgraphsAt(text, n, all = subgraphs(text)) {
+function subgraphsAt(/** @type {string} */ text, /** @type {number} */ n, all = subgraphs(text)) {
   return all.filter((s) => s.start <= n && (s.end === null || s.end > n));
 }
 
 /** The closed subgraph Mermaid calls `id`, or null. */
-function subgraphBlock(text, id) {
+function subgraphBlock(/** @type {string} */ text, /** @type {string} */ id) {
   return subgraphs(text).find((s) => s.id === id && s.end !== null) ?? null;
 }
 
@@ -275,7 +283,7 @@ function subgraphBlock(text, id) {
  * at the end, outside any subgraph (an edge there moves nobody). When `fromId`'s last statement is inside a subgraph,
  * the new node is declared after that line, so it joins the same subgraph. Returns { text, id }.
  */
-export function addConnected(text, fromId, label = 'New node') {
+export function addConnected(/** @type {string} */ text, /** @type {string} */ fromId, label = 'New node') {
   assertNode(text, fromId);
   const id = freeId(text);
   const node = `${id}[${quoteLabel(label)}]`;
@@ -283,7 +291,8 @@ export function addConnected(text, fromId, label = 'New node') {
   // bottom of the file, outside every subgraph.
   const ls = lines(text);
   const all = mentions(text, fromId);
-  const last = (all.filter(({ line }) => !NOT_A_STATEMENT.test(ls[line])).at(-1) ?? all.at(-1)).line;
+  // assertNode found a mention.
+  const last = /** @type {{ line: number }} */ (all.filter(({ line }) => !NOT_A_STATEMENT.test(ls[line])).at(-1) ?? all.at(-1)).line;
   if (!subgraphsAt(text, last).length) return { text: appendLine(text, `${fromId} --> ${node}`), id };
   const declared = insertAfter(text, last, node);
   return { text: appendLine(declared, `${fromId} --> ${id}`), id };
@@ -303,14 +312,14 @@ export function addNode(text, { subgraph = null, label = 'New node' } = {}) {
 }
 
 /** Insert `body` lines as the last lines of subgraph `id`, before its `end`. */
-function insideSubgraph(text, id, body) {
+function insideSubgraph(/** @type {string} */ text, /** @type {string} */ id, /** @type {string[]} */ body) {
   const block = subgraphBlock(text, id);
   if (!block) throw new Error('That subgraph is not in the file.');
   const end = /** @type {number} */ (block.end);   // subgraphBlock finds closed subgraphs only
   const ls = lines(text);
   // Indented like the subgraph's own lines: the line above `end`, or one step deeper than `end` for an empty one.
   const above = end - 1 > block.start ? ls[end - 1] : null;
-  const indent = (above ?? ls[end]).match(/^[ \t]*/)?.[0] + (above ? '' : '  ');
+  const indent = above ? indentOf(above) : indentOf(ls[end]) + '  ';
   ls.splice(end, 0, ...body.map((l) => indent + l + '\n'));
   return ls.join('');
 }
@@ -319,7 +328,7 @@ function insideSubgraph(text, id, body) {
  * Connect two existing nodes: `a --> b`, appended after the last line of the file. That is at the top level, outside
  * any subgraph, so neither node changes subgraph.
  */
-export function connect(text, a, b) {
+export function connect(/** @type {string} */ text, /** @type {string} */ a, /** @type {string} */ b) {
   const from = endpoint(text, a);
   const to = endpoint(from.text, b);
   return { text: appendLine(to.text, `${from.id} --> ${to.id}`) };
@@ -329,7 +338,7 @@ export function connect(text, a, b) {
  * A node or a subgraph an edge can name: { text, id }. A subgraph with no id in the file is given one first, since an
  * edge can only name it by an id.
  */
-function endpoint(text, id) {
+function endpoint(/** @type {string} */ text, /** @type {string} */ id) {
   const sg = subgraphBlock(text, id);
   if (!sg) { assertNode(text, id); return { text, id }; }
   if (sg.written) { assertId(id); return { text, id }; }
@@ -341,15 +350,15 @@ function endpoint(text, id) {
  * only by Mermaid's `subGraph<k>`, in a `style` or `class` line or an edge; giving it an id of its own would break
  * them.
  */
-export function subgraphRefusal(text, id) {
+export function subgraphRefusal(/** @type {string} */ text, /** @type {string} */ id) {
   const sg = subgraphBlock(text, id);
   if (!sg || sg.written || !mentions(text, id).length) return null;
   return `This subgraph has no id in the file, and lines there name it ${id}. Give it an id in the file first.`;
 }
 
 /** Give id-less subgraph `sg` an id of its own (`subgraph "A b"` → `subgraph s1 ["A b"]`), with `title` if given. */
-function nameSubgraph(text, sg, /** @type {string | null} */ title = null) {
-  const why = subgraphRefusal(text, sg.id);
+function nameSubgraph(/** @type {string} */ text, /** @type {Subgraph} */ sg, /** @type {string | null} */ title = null) {
+  const why = subgraphRefusal(text, /** @type {string} */ (sg.id));   // a closed subgraph has one
   if (why) throw new Error(why);
   const id = freeId(text, 's');
   const raw = text.slice(sg.title.start, sg.title.end);
@@ -362,7 +371,7 @@ function nameSubgraph(text, sg, /** @type {string | null} */ title = null) {
  * title that is also the id gets a bracket after it, keeping the id (`subgraph Payment ["New"]`); a subgraph with no
  * id is given one, since a new title with no whitespace in it would otherwise become its id.
  */
-export function setSubgraphTitle(text, id, title) {
+export function setSubgraphTitle(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ title) {
   const sg = subgraphBlock(text, id);
   if (!sg) throw new Error('That subgraph is not in the file.');
   const quoted = quoteLabel(title);
@@ -392,7 +401,7 @@ export function addSubgraph(text, { parent = null, title = 'New subgraph' } = {}
  * Change a node's label where it is first given a shape (`A[old]` → `A["new"]`, `A@{ … label: "new" }`), keeping the
  * shape. A node that only ever appears bare gets `["new"]` at its first appearance in an edge or node statement.
  */
-export function relabel(text, id, label) {
+export function relabel(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ label) {
   assertNode(text, id);
   const ls = lines(text);
   const quoted = quoteLabel(label);
@@ -406,7 +415,7 @@ export function relabel(text, id, label) {
       const block = s.slice(after, end + 1);
       const labelRe = /(label\s*:\s*)("(?:[^"\\]|\\.)*"|[^,}]*)/;
       const next = labelRe.test(block)
-        ? block.replace(labelRe, (_, key) => key + quoted)
+        ? block.replace(labelRe, (_, /** @type {string} */ key) => key + quoted)
         : block.replace(/^@\{\s*/, (open) => open + `label: ${quoted}, `);
       ls[line] = s.slice(0, after) + next + s.slice(end + 1);
       return { text: ls.join('') };
@@ -435,7 +444,22 @@ const OPENER = /^[xo<]?(?:--|==|-\.)/;
 const CLOSERS = { '-': /\s*-{2,}[-xo>]/y, '=': /\s*={2,}[=xo>]/y, '.': /\s*\.+-[xo>]?/y };
 const ID_AT = new RegExp(`^${ID}`, 'u');
 
-/** @typedef {ReturnType<typeof edges>[number]} Edge an edge, as edges() reads it */
+/**
+ * An edge, as edges() reads it.
+ * @typedef {object} Edge
+ * @property {number} index its number for `linkStyle`
+ * @property {string} from
+ * @property {string} to
+ * @property {string | null} userId its edge id, if the file gives it one (`A e1@--> B`)
+ * @property {Span} link its connector, from any edge id through any label
+ * @property {string} arrow the connector without its label
+ * @property {Label | null} label
+ * @property {Span} fromRef the two node references as written
+ * @property {Span} toRef
+ * @property {Span} statement
+ * @property {number} step which connector of the statement it is from
+ * @property {string} svgId the `data-id` Mermaid gives its path
+ */
 
 /**
  * Every edge in the file, in Mermaid's order: statements in text order, a chain left to right, `A & B --> C & D` as
@@ -452,8 +476,9 @@ const ID_AT = new RegExp(`^${ID}`, 'u');
  * drew before relying on it. Not a flowchart: []. Each call returns new objects: compare edges by `index`, never by
  * identity.
  */
-export function edges(text) {
+export function edges(/** @type {string} */ text) {
   if (!isFlowchart(text)) return [];
+  /** @type {Omit<Edge, 'index'>[]} */
   const found = [];
   for (const s of statements(text)) {
     s.links.forEach((link, step) => {
@@ -465,13 +490,16 @@ export function edges(text) {
             from: a.id, to: b.id, userId: named ? link.userId : null,
             link: { start: link.start, end: link.end }, arrow: link.arrow, label: link.label,
             fromRef: { start: a.start, end: a.end }, toRef: { start: b.start, end: b.end },
-            statement: { start: s.start, end: s.end }, step,
+            statement: { start: s.start, end: s.end }, step, svgId: '',
           });
         }
       }
     });
   }
-  const pairs = new Map(), taken = new Set();
+  /** @type {Map<string, number>} */
+  const pairs = new Map();
+  /** @type {Set<string>} */
+  const taken = new Set();
   for (const e of found) {
     const k = `${e.from}\0${e.to}`;
     const count = pairs.get(k) ?? 0;
@@ -483,7 +511,7 @@ export function edges(text) {
 }
 
 /** The edge Mermaid drew with `data-id` `svgId`, or null. */
-export function edgeBySvgId(text, svgId) {
+export function edgeBySvgId(/** @type {string} */ text, /** @type {string} */ svgId) {
   return edges(text).find((e) => e.svgId === svgId) ?? null;
 }
 
@@ -491,7 +519,7 @@ export function edgeBySvgId(text, svgId) {
  * The diagram body's statements in text order, split at line ends and `;`.
  * @returns {Statement[]}
  */
-function statements(text) {
+function statements(/** @type {string} */ text) {
   const ls = lines(text);
   const header = headerIndex(ls);
   /** @type {Statement[]} */
@@ -522,7 +550,7 @@ function statements(text) {
 }
 
 /** Read one statement, `m.slice(st, end)` of line `n`, which starts at `offset` in the text. */
-function readStatement(line, m, st, end, offset, n) {
+function readStatement(/** @type {string} */ line, /** @type {string} */ m, /** @type {number} */ st, /** @type {number} */ end, /** @type {number} */ offset, /** @type {number} */ n) {
   /** @type {Statement} */
   const s = { start: offset + st, end: offset + end, line: n, keyword: null, groups: [], links: [], complete: false };
   const keyword = m.slice(st, end).match(NOT_A_STATEMENT);
@@ -557,8 +585,14 @@ function readStatement(line, m, st, end, offset, n) {
     i = link.end;
     const next = group();
     if (!next.length) return s;
+    /**
+     * A span moved from the line to the text.
+     * @template {Span} T
+     * @param {T | null} span
+     * @returns {T | null}
+     */
     const at = (span) => span && { ...span, start: offset + span.start, end: offset + span.end };
-    s.links.push({ ...at(link), label: at(link.label) });
+    s.links.push({ .../** @type {Link} */ (at(link)), label: at(link.label) });
     s.groups.push(next);
   }
   s.complete = true;
@@ -568,6 +602,7 @@ function readStatement(line, m, st, end, offset, n) {
 // --- changing and deleting edges and nodes ---------------------------------------------------------------------
 
 /** The arrow types an edge can be given. Each takes the extra body length to keep (`---->` is `-->` plus 2). */
+/** @type {Record<string, (n: number) => string>} */
 export const ARROWS = {
   '-->': (n) => '--' + '-'.repeat(n) + '>',
   '---': (n) => '---' + '-'.repeat(n),
@@ -582,14 +617,14 @@ export const ARROWS = {
 };
 
 /** The ARROWS key an arrow is, at any length (`---->` is `-->`), or null for one not offered there (`o--o`). */
-export function arrowType(arrow) {
+export function arrowType(/** @type {string} */ arrow) {
   const n = extraLength(arrow);
   return Object.keys(ARROWS).find((k) => ARROWS[k](n) === arrow) ?? null;
 }
 
 /** How much longer than its shortest form an arrow is. A longer arrow asks Mermaid for a longer edge. */
-function extraLength(arrow) {
-  const count = (c) => arrow.split(c).length - 1;
+function extraLength(/** @type {string} */ arrow) {
+  const count = (/** @type {string} */ c) => arrow.split(c).length - 1;
   if (arrow.includes('.')) return count('.') - 1;
   if (arrow.includes('~')) return count('~') - 3;
   if (arrow.includes('=')) return count('=') - (/^=+$/.test(arrow) ? 3 : 2);
@@ -597,7 +632,7 @@ function extraLength(arrow) {
 }
 
 /** The edge Mermaid drew as `svgId`, its statement, and its pair's key there (`"step i j"`). */
-function locate(text, svgId) {
+function locate(/** @type {string} */ text, /** @type {string} */ svgId) {
   const e = edges(text).find((x) => x.svgId === svgId);
   if (!e) throw new Error('That edge is not in the file.');
   // An edge is read from a statement, so its statement is there.
@@ -612,7 +647,7 @@ function locate(text, svgId) {
  * group, one statement per start node keeps every other edge in place), `linkStyle` numbers after it move down by
  * one, and its `id@{ … }` line goes if it had an edge id. Its two nodes stay, with their shapes and subgraphs.
  */
-export function deleteEdge(text, svgId) {
+export function deleteEdge(/** @type {string} */ text, /** @type {string} */ svgId) {
   const { e, s, key } = locate(text, svgId);
   return { text: transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), removed: [e] }) };
 }
@@ -622,20 +657,20 @@ export function deleteEdge(text, svgId) {
  * its `style` and `click` lines, and its name in `class` lines. `linkStyle` numbers follow the edges that are left.
  * Its neighbours stay, with their shapes and subgraphs. Returns { text, edges }: how many edges went with it.
  */
-export function deleteNode(text, id) {
+export function deleteNode(/** @type {string} */ text, /** @type {string} */ id) {
   assertNode(text, id);
   const gone = edges(text).filter((e) => e.from === id || e.to === id);
   return { text: transform(text, { gone: id, removed: gone }), edges: gone.length };
 }
 
 /** Give an edge the label `label` (`-->|"label"|`), or none when it is blank. Its arrow stays. */
-export function setEdgeLabel(text, svgId, label) {
+export function setEdgeLabel(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {string} */ label) {
   const quoted = label.trim() ? quoteLabel(label) : null;
   return { text: reconnect(text, svgId, (e) => ({ arrow: e.arrow, label: quoted })) };
 }
 
 /** Give an edge another arrow type (a key of ARROWS), keeping its label and its length. */
-export function setEdgeArrow(text, svgId, arrow) {
+export function setEdgeArrow(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {string} */ arrow) {
   if (!ARROWS[arrow]) throw new Error(`Not an arrow type: ${arrow}`);
   return {
     text: reconnect(text, svgId, (e) => ({
@@ -650,7 +685,7 @@ export function setEdgeArrow(text, svgId, arrow) {
  * quoted, since between pipes `(`, `[`, `{` and the like need quotes; only its `"` is escaped, leaving any entity code
  * (`#quot;`) in it as it was.
  */
-function pipeLabel(label) {
+function pipeLabel(/** @type {Label} */ label) {
   if (label.form !== 'text' || /^".*"$/.test(label.text)) return label.text;
   return `"${label.text.replace(/"/g, '#quot;')}"`;
 }
@@ -659,11 +694,11 @@ function pipeLabel(label) {
  * Give the edge `svgId` the connector `next(edge)` returns ({ arrow, label }). A connector that joins one node to one
  * node is replaced where it is; one shared with other edges (`A --> B & C`) gives this edge its own statement.
  */
-function reconnect(text, svgId, next) {
+function reconnect(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {(e: Edge) => { arrow: string, label: string | null }} */ next) {
   const { e, s, key } = locate(text, svgId);
   const { arrow, label } = next(e);
   const body = arrow + (label ? `|${label}|` : '');
-  const expect = (x) => (x.index === e.index ? { ...x, arrow, label: label && { text: label } } : x);
+  const expect = (/** @type {Edge} */ x) => (x.index === e.index ? { ...x, arrow, label: label ? { text: label } : null } : x);
   if (s.groups[e.step].length === 1 && s.groups[e.step + 1].length === 1) {
     const id = s.links[e.step].userId;
     const out = text.slice(0, e.link.start) + (id ? id + '@' : '') + body + text.slice(e.link.end);
@@ -674,9 +709,9 @@ function reconnect(text, svgId, next) {
 }
 
 /** Turn an edge around: `A --> B` becomes `B --> A`, with the same connector. In a chain, it gets its own statement. */
-export function reverseEdge(text, svgId) {
+export function reverseEdge(/** @type {string} */ text, /** @type {string} */ svgId) {
   const { e, s, key } = locate(text, svgId);
-  const expect = (x) => (x.index === e.index ? { ...x, from: x.to, to: x.from } : x);
+  const expect = (/** @type {Edge} */ x) => (x.index === e.index ? { ...x, from: x.to, to: x.from } : x);
   return { text: transform(text, { at: s.start, pairs: new Map([[key, { reverse: true }]]), expect }) };
 }
 
@@ -694,6 +729,7 @@ export function reverseEdge(text, svgId) {
  */
 function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], expect = null }) {
   const all = statements(text);
+  /** @type {Change[]} */
   const changes = [];
   const touched = all.filter((s) => s.start === at || (gone && !s.keyword && s.groups.flat().some((r) => r.id === gone)));
   for (const s of touched) {
@@ -705,15 +741,15 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
   // A subgraph named in an edge is defined by its block: dropping the edge never leaves its id behind.
   const sgs = subgraphs(text);
   const blocks = new Set(sgs.filter((sg) => sg.written).map((sg) => sg.id));
-  const scopeOf = (s) => subgraphsAt(text, s.line, sgs).at(-1)?.start ?? null;
-  const named = (s) => new Set(s.groups.flat().map((r) => r.id));
+  const scopeOf = (/** @type {Statement} */ s) => subgraphsAt(text, s.line, sgs).at(-1)?.start ?? null;
+  const named = (/** @type {Statement} */ s) => new Set(s.groups.flat().map((r) => r.id));
   const elsewhere = all.filter((s) => !s.keyword && !touched.includes(s)).map((s) => ({ scope: scopeOf(s), ids: named(s) }));
   for (const s of touched) {
     const scope = scopeOf(s);
-    const stays = (nodeId) => blocks.has(nodeId) || elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
+    const stays = (/** @type {string} */ nodeId) => blocks.has(nodeId) || elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
     const parts = rewrite(text, s, { pairs: s.start === at ? pairs : new Map(), gone, stays });
     changes.push({ s, parts });
-    elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids)) });
+    elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids ?? [])) });
   }
 
   const indexes = new Set(removed.map((e) => e.index));
@@ -752,11 +788,11 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
  * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No
  * test reaches the throw: it catches a bug in the rewriting, not an input.
  */
-function check(text, out, /** @type {(e: Edge) => EdgeSig | null} */ expect, /** @type {string | null} */ gone = null,
+function check(/** @type {string} */ text, /** @type {string} */ out, /** @type {(e: Edge) => EdgeSig | null} */ expect, /** @type {string | null} */ gone = null,
   skip = new Set()) {
-  const sig = (e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
-  const want = edges(text).map(expect).filter(Boolean).map(sig);
-  const nodes = (t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
+  const sig = (/** @type {EdgeSig} */ e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
+  const want = edges(text).map(expect).filter((e) => e !== null).map(sig);
+  const nodes = (/** @type {string} */ t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
   const after = nodes(out);
   const lost = [...nodes(text)].some((n) => n !== gone && !skip.has(n) && !after.has(n));
   if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
@@ -772,15 +808,22 @@ function check(text, out, /** @type {(e: Edge) => EdgeSig | null} */ expect, /**
  * each is a single plain statement with the same ends, since anything more would reorder their edges. A node written
  * more than once keeps its shape and label at its first appearance only.
  */
+/**
+ * @param {string} text
+ * @param {Statement} s
+ * @param {{ pairs: Map<string, PairChange>, gone: string | null, stays: (id: string) => boolean }} options
+ * @returns {Part[]}
+ */
 function rewrite(text, s, { pairs, gone, stays }) {
   const G = s.groups, L = s.links;
-  const alive = (g, i) => G[g][i].id !== gone;
-  const indexes = (g) => G[g].map((_, i) => i).filter((i) => alive(g, i));
-  const bodyOf = (step) => {
+  const alive = (/** @type {number} */ g, /** @type {number} */ i) => G[g][i].id !== gone;
+  const indexes = (/** @type {number} */ g) => G[g].map((_, i) => i).filter((i) => alive(g, i));
+  const bodyOf = (/** @type {number} */ step) => {
     const l = L[step], t = text.slice(l.start, l.end);
     return l.userId ? t.slice(l.userId.length + 1) : t;
   };
-  const pair = (step, i, j) => {
+  const pair = (/** @type {number} */ step, /** @type {number} */ i, /** @type {number} */ j) => {
+    /** @type {PairChange} */
     const c = pairs.get(`${step} ${i} ${j}`) ?? {};
     if (!alive(step, i) || !alive(step + 1, j) || c.drop) return null;
     return { body: c.body ?? bodyOf(step), reverse: Boolean(c.reverse) };
@@ -789,12 +832,16 @@ function rewrite(text, s, { pairs, gone, stays }) {
   const blocks = L.map((_, step) => {
     const S = indexes(step), E = indexes(step + 1);
     const every = S.flatMap((i) => E.map((j) => pair(step, i, j)));
-    if (every.length && every.every((p) => p && !p.reverse && p.body === every[0].body)) {
-      return { whole: true, rows: [{ starts: S, segs: [{ ends: E, body: every[0].body, reverse: false }] }] };
+    const first = every[0];
+    if (first && every.every((p) => p && !p.reverse && p.body === first.body)) {
+      return { whole: true, rows: [{ starts: S, segs: [{ ends: E, body: first.body, reverse: false }] }] };
     }
+    /** @typedef {{ ends: number[], body: string, reverse: boolean }} Seg a connector from one start to some ends */
+    /** @type {{ starts: number[], segs: Seg[] }[]} */
     const rows = [];
-    const plain = (segs) => segs.length === 1 && !segs[0].reverse;
+    const plain = (/** @type {Seg[]} */ segs) => segs.length === 1 && !segs[0].reverse;
     for (const i of S) {
+      /** @type {Seg[]} */
       const segs = [];
       for (const j of E) {
         const p = pair(step, i, j);
@@ -812,29 +859,33 @@ function rewrite(text, s, { pairs, gone, stays }) {
     return { whole: false, rows };
   });
 
+  /** @type {Set<string>} */
   const covered = new Set();
   blocks.forEach((b, step) => b.rows.forEach((r) => {
     for (const i of r.starts) covered.add(`${step} ${i}`);
     for (const seg of r.segs) for (const j of seg.ends) covered.add(`${step + 1} ${j}`);
   }));
-  const ref = (g, i) => text.slice(G[g][i].start, G[g][i].end);
+  const ref = (/** @type {number} */ g, /** @type {number} */ i) => text.slice(G[g][i].start, G[g][i].end);
   const loose = G.map((_, g) => indexes(g).filter((i) => !covered.has(`${g} ${i}`))
     .filter((i) => ref(g, i) !== G[g][i].id || !stays(G[g][i].id)));
 
+  /** @type {Set<string>} */
   const written = new Set();
+  /** @type {string[]} */
   const ids = [];
-  const group = (g, list) => list.map((i) => {
+  const group = (/** @type {number} */ g, /** @type {number[]} */ list) => list.map((i) => {
     ids.push(G[g][i].id);
     if (written.has(`${g} ${i}`)) return G[g][i].id;
     written.add(`${g} ${i}`);
     return ref(g, i);
   }).join(' & ');
   // The edge id (`e1@`) names the last start × first end of its step; it stays on that pair only.
-  const link = (step, starts, seg) => {
+  const link = (/** @type {number} */ step, /** @type {number[]} */ starts, /** @type {{ ends: number[], body: string }} */ seg) => {
     const named = L[step].userId && starts.at(-1) === G[step].length - 1 && seg.ends[0] === 0;
     return (named ? L[step].userId + '@' : '') + seg.body;
   };
 
+  /** @type {string[]} */
   const parts = [];
   /** @type {{ text: string } | null} */
   let chain = null;
@@ -867,13 +918,13 @@ function rewrite(text, s, { pairs, gone, stays }) {
  * their own, at its indentation; one that shares its line is joined with `; `. No parts removes the statement, and
  * its line when nothing else is left on it.
  */
-function apply(text, changes) {
-  const lineAt = (t, at) => {
+function apply(/** @type {string} */ text, /** @type {Change[]} */ changes) {
+  const lineAt = (/** @type {string} */ t, /** @type {number} */ at) => {
     const start = t.lastIndexOf('\n', at - 1) + 1;
     const nl = t.indexOf('\n', at);
     return { start, end: nl < 0 ? t.length : nl + 1 };
   };
-  const dropLine = (t, at) => {
+  const dropLine = (/** @type {string} */ t, /** @type {number} */ at) => {
     const { start, end } = lineAt(t, at);
     // The last line, with no newline of its own: take the one before it instead, so the file still ends as it did.
     if (end === t.length && !t.endsWith('\n') && start > 0) return t.slice(0, start - 1);
@@ -882,7 +933,7 @@ function apply(text, changes) {
   let out = text;
   for (const { s, parts } of [...changes].sort((a, b) => b.s.start - a.s.start)) {
     if (parts.length) {
-      const indent = out.slice(lineAt(out, s.start).start, s.start).match(/^[ \t]*/)[0];
+      const indent = indentOf(out.slice(lineAt(out, s.start).start, s.start));
       out = out.slice(0, s.start) + parts.map((p) => p.text).join(s.alone ? '\n' + indent : '; ') + out.slice(s.end);
     } else if (s.alone) {
       out = dropLine(out, s.start);
@@ -902,8 +953,10 @@ function apply(text, changes) {
 }
 
 /** The connector at `i`: { start, end, arrow, label, userId }, or null. */
-function connector(line, m, i, end) {
+/** @returns {Link | null} */
+function connector(/** @type {string} */ line, /** @type {string} */ m, /** @type {number} */ i, /** @type {number} */ end) {
   const start = i;
+  /** @type {string | null} */
   let userId = null;
   const named = m.slice(i, end).match(new RegExp(`^(${ID})@`, 'u'));
   if (named) { userId = named[1]; i += named[0].length; }
@@ -924,7 +977,7 @@ function connector(line, m, i, end) {
   }
   const open = rest.match(OPENER);
   if (!open) return null;
-  const closer = CLOSERS[open[0].at(-1)];
+  const closer = CLOSERS[/** @type {'-' | '=' | '.'} */ (open[0].at(-1))];
   for (let k = i + open[0].length; k < end; k++) {
     closer.lastIndex = k;
     const c = closer.exec(m);
@@ -933,6 +986,7 @@ function connector(line, m, i, end) {
     if (line.slice(k, k + c[0].length - c[0].trimStart().length).trim()) continue;
     const textStart = i + open[0].length, raw = line.slice(textStart, k);
     const lead = raw.length - raw.trimStart().length;
+    /** @type {Label} */
     const label = { text: raw.trim(), start: textStart + lead, end: textStart + lead + raw.trim().length, form: 'text' };
     const tail = c[0].trimStart();
     const arrow = open[0].slice(0, -2) + (tail[0] === '.' ? '-' : '') + tail;
@@ -942,12 +996,12 @@ function connector(line, m, i, end) {
 }
 
 /** The subgraph id behind an SVG cluster element's id: `<render id>-<subgraph id>`. */
-export function subgraphIdFromSvgId(svgId, renderId) {
+export function subgraphIdFromSvgId(/** @type {string} */ svgId, /** @type {string} */ renderId) {
   return svgId.startsWith(renderId + '-') ? svgId.slice(renderId.length + 1) : null;
 }
 
 /** The Mermaid node id behind an SVG node element's id: `<render id>-flowchart-<node id>-<n>`. */
-export function nodeIdFromSvgId(svgId, renderId) {
+export function nodeIdFromSvgId(/** @type {string} */ svgId, /** @type {string} */ renderId) {
   const prefix = `${renderId}-flowchart-`;
   if (!svgId.startsWith(prefix)) return null;
   const m = svgId.slice(prefix.length).match(/^(.+)-\d+$/);
