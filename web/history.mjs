@@ -2,10 +2,12 @@
 // only while the file is still exactly `after`; redoing puts `after` back, only while the file is exactly `before`. If
 // anyone has changed the file since, either would throw their change away.
 
+/** @typedef {{ before: string, after: string }} Entry an edit: the file's text before and after it */
+
 export function createHistory() {
-  /** @type {{ before: string, after: string }[]} */
+  /** @type {Entry[]} */
   const entries = [];
-  /** @type {{ before: string, after: string }[]} undone entries, the latest last */
+  /** @type {Entry[]} undone entries, the latest last */
   const undone = [];
 
   return {
@@ -15,7 +17,7 @@ export function createHistory() {
      * Record a saved edit. With `into` (the newest entry), the edit completes that one instead, so a single undo takes
      * back both: naming a node is part of adding it.
      */
-    record(before, after, into = null) {
+    record(before, after, /** @type {Entry | null} */ into = null) {
       undone.length = 0;
       if (into && entries.at(-1) === into) {
         into.after = after;
@@ -42,7 +44,7 @@ export function createHistory() {
     },
 
     /** Move the newest entry to the redo stack, once its undo is saved. */
-    pop() { undone.push(entries.pop()); },
+    pop() { undone.push(/** @type {Entry} */ (entries.pop())); },
 
     get redoSize() { return undone.length; },
 
@@ -62,6 +64,6 @@ export function createHistory() {
     },
 
     /** Move the last undone entry back onto the undo stack, once its redo is saved. */
-    redone() { entries.push(undone.pop()); },
+    redone() { entries.push(/** @type {Entry} */ (undone.pop())); },
   };
 }

@@ -5,7 +5,8 @@ import { createEditor } from './editor.mjs';
 import { createSource } from './source.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
-const el = (id) => document.getElementById(id);
+// Every id the page asks for is in index.html.
+const el = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
 // With no ?f=, show the scratch diagram (the server creates it if missing).
 const file = new URLSearchParams(location.search).get('f') || '/tmp/mermaid-diagrams/scratch.mmd';
@@ -34,7 +35,7 @@ function keepView() {
 }
 function restoreView() {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(viewKey));
+    const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? 'null');
     if (saved) viewer.setView(saved);
   } catch { /* nothing kept, or unreadable */ }
 }
@@ -145,14 +146,16 @@ function showOs(os) {
   el('help').dataset.os = os;
   for (const b of osPicks) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
 }
+/** @type {string | null} */
 let savedOs = null;
 try { savedOs = localStorage.getItem(osKey); } catch { /* storage unavailable: use the browser's system */ }
 const platform = navigator.userAgentData?.platform || navigator.platform || '';
-showOs(['pc', 'mac'].includes(savedOs) ? savedOs : (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
+showOs(savedOs === 'pc' || savedOs === 'mac' ? savedOs : (/mac|iphone|ipad/i.test(platform) ? 'mac' : 'pc'));
 for (const b of osPicks) {
   b.addEventListener('click', () => {
-    showOs(b.dataset.osPick);
-    try { localStorage.setItem(osKey, b.dataset.osPick); } catch { /* not remembered */ }
+    const os = /** @type {string} */ (b.dataset.osPick);
+    showOs(os);
+    try { localStorage.setItem(osKey, os); } catch { /* not remembered */ }
   });
 }
 
@@ -170,7 +173,7 @@ el('download-svg').addEventListener('click', () => {
   if (!markup) return;
   const link = document.createElement('a');
   link.href = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
-  link.download = file.split('/').pop().replace(/\.mmd$/, '') + '.svg';
+  link.download = /** @type {string} */ (file.split('/').pop()).replace(/\.mmd$/, '') + '.svg';
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   toast('SVG downloaded');

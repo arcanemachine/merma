@@ -45,6 +45,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   let size = { w: 0, h: 0 };
   let touched = false;
   let n = 0;
+  /** @type {string | null} */
   let renderId = null;
 
   function apply() {
@@ -83,9 +84,22 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   // the browser's own click events target the diagram itself, so a click is reported with the element pressed.
   // A press is one gesture, `drag`, however many fingers it has: a second finger on a touch screen makes it a pinch
   // (zoom about the point between the fingers, and move with it), and is never a click or a long-press.
+  /**
+   * @typedef {object} Drag
+   * @property {number} x @property {number} y where the pointer was at the last move
+   * @property {number} startX @property {number} startY where the press started
+   * @property {boolean} moving it moved past the click slop
+   * @property {Element} target the element pressed
+   * @property {boolean} [handled] already reported (a long-press, or a pinch): its release is not a click
+   * @property {ReturnType<typeof setTimeout>} [timer] the long-press timer
+   * @property {{ dist: number, x: number, y: number } | null} [pinch] two fingers' spread and middle, while pinching
+   */
+  /** @type {Drag | null} */
   let drag = null;
-  let clicked = null;   // the element the last click pressed, for the double-click that follows it
-  const pointers = new Map();   // pointerId → { x, y }: the fingers (or the mouse) down in this gesture
+  /** @type {Element | null} the element the last click pressed, for the double-click that follows it */
+  let clicked = null;
+  /** @type {Map<number, { x: number, y: number }>} pointerId → the fingers (or the mouse) down in this gesture */
+  const pointers = new Map();
   const spread = () => {
     const [a, b] = pointers.values();
     const box = diagram.getBoundingClientRect();
@@ -93,11 +107,12 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   };
   /** Carry on with the fingers still down, from where they are now, so the view does not jump. */
   function reanchor() {
-    if (pointers.size >= 2) { drag.pinch = spread(); return; }
+    const d = /** @type {Drag} */ (drag);   // only called during a gesture
+    if (pointers.size >= 2) { d.pinch = spread(); return; }
     const [rest] = pointers.values();
-    drag.pinch = null;
-    drag.x = drag.startX = rest.x;
-    drag.y = drag.startY = rest.y;
+    d.pinch = null;
+    d.x = d.startX = rest.x;
+    d.y = d.startY = rest.y;
   }
   diagram.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || /** @type {Element} */ (e.target).closest('[data-overlay]')) return;
@@ -112,7 +127,8 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     }
     pointers.clear();
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moving: false, target: e.target };
+    const target = /** @type {Element} */ (e.target);
+    drag = { x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY, moving: false, target };
     diagram.setPointerCapture(e.pointerId);
     if (e.pointerType === 'touch') {
       const press = drag;
@@ -128,7 +144,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     // On Android this is the long-press itself: whichever of it and the timer above comes first reports it, once.
     if (drag?.handled) { e.preventDefault(); return; }
     if (drag) { clearTimeout(drag.timer); drag.handled = true; }
-    if (onContextMenu(drag?.target ?? e.target, e.clientX, e.clientY)) e.preventDefault();
+    if (onContextMenu(drag?.target ?? /** @type {Element} */ (e.target), e.clientX, e.clientY)) e.preventDefault();
   });
   diagram.addEventListener('pointermove', (e) => {
     if (!drag || !pointers.has(e.pointerId)) return;
@@ -200,7 +216,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
         const { svg } = await mermaid.render(id, text);
         stage.innerHTML = svg;
         renderId = id;
-        const rect = stage.querySelector('svg').getBoundingClientRect();
+        const rect = /** @type {SVGSVGElement} */ (stage.querySelector('svg')).getBoundingClientRect();
         size = { w: rect.width / view.k, h: rect.height / view.k };
         if (!touched) fit();
         return { ok: true };

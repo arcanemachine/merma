@@ -28,7 +28,9 @@ function hashFiles(paths) {
  */
 export function createBuild({ web, fixed }) {
   const serverHash = hashFiles(fixed.flatMap(filesUnder));
-  let signature = null;   // the web files' paths, sizes and times when `id` was last computed
+  /** @type {string | null} the web files' paths, sizes and times when `id` was last computed */
+  let signature = null;
+  /** @type {string | null} */
   let id = null;
 
   return {
