@@ -20,4 +20,13 @@ hooks = [
     entry = "npx --no-install eslint",
     files = "\\.(?:js|mjs)$",
   },
+  # About a second for the whole suite, so every commit runs it rather than any one file's tests.
+  {
+    id = "tests",
+    name = "npm test",
+    language = "system",
+    entry = "npm test",
+    pass_filenames = false,
+    files = "\\.(?:js|mjs|mmd|md)$",
+  },
 ]
