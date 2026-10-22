@@ -56,8 +56,8 @@ another click on it closes it.
 
 ### Edge menu
 
-- **Edit label** edits the edge's label in place, in the label box: Enter saves, Shift+Enter starts a new line,
-  Escape cancels. It is written as `-->|"label"|`.
+- **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
+  Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`.
 - **Remove label** removes it. Greyed when the edge has none.
 - **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the strip names shapes; click one
   or press its digit, and the picker stays open on the new arrow type for another pick, until a click away or Escape;
@@ -87,7 +87,7 @@ another click on it closes it.
 - **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
   the label box on its title. Mermaid draws an empty subgraph as its title alone, until it has nodes.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
-- **Edit title** edits the title in place, in the label box: `subgraph pay [Payment]` becomes
+- **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`.
 
@@ -102,12 +102,13 @@ top level, at the end of the file. Mermaid lays the diagram out, so what you add
 
 Edit node, Enter, F2 or a double-click on a node, and adding one (Add connected node, Add node, N), open its panel:
 the label box over the node, and a strip of the shapes under it, the node's shape selected (a new node's is
-Rectangle). Nothing is drawn until Enter in the label box, which writes the label and the shape as one change (only
-what changed); for a node just added, it is undone together with the add.
+Rectangle). Nothing is drawn until Enter in the label box, or a click or tap away, or Tab, which writes the label
+and the shape as one change (only what changed); for a node just added, it is undone together with the add. Only
+Escape closes the panel without writing (a node just added stays as it was added).
 
 - **The label:** Shift+Enter starts a new line (written as `<br>`). A label you empty is refused; a node drawn with
-  none (a shape such as `bolt`) can still change shape with its label left empty. Escape, Tab or a click away closes the panel and
-  writes nothing (a node just added stays as it was added). Only the label changes, where the node is first given a
+  none (a shape such as `bolt`) can still change shape with its label left empty: the panel stays open with the error, even after a
+  click away. Only the label changes, where the node is first given a
   shape; a node that only appears bare gets brackets at its first appearance.
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
   (wrapping within their row or column), a digit selects one of the first ten, Enter selects the one with the outline
