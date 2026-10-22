@@ -2,8 +2,8 @@
 
 What the page does, control by control. What goes here: what each gesture, key and menu item does. What does not: why
 the page works the way it does (`docs/ux.md`), what the words mean (`GLOSSARY.md`), how to start merma (`README.md`).
-The page's Help panel is a short subset of this guide: the gestures, the keys that work outside menus, and the shapes
-with what each means. Menu letters are shown in the menus, and digits in the pickers, so Help does not list them.
+The page's Help panel is a short subset of this guide: the gestures and the keys that work outside menus. Menu letters
+are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Viewing
 

@@ -18,8 +18,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   When a gesture or key does different things depending on what it is on or what is selected, it gets a row per case,
   and the case is named on the left ("Double-click empty space", "N with a node selected"). One action whatever the
   target ("Open menu": the target's own menu) is one row, and so is a key that backs out of whatever is open ("Cancel
-  or deselect"). The Shapes section is the one legend, not rows of actions: a shape's icon and name on the left, what it
-  means on the right.
+  or deselect").
 
 - Mermaid's word wherever it has one: node, edge, label, shape, subgraph, title, direction, arrow type, length. A word
   of merma's own needs a reason, given in `GLOSSARY.md`. Readers who know Mermaid should not have to translate.

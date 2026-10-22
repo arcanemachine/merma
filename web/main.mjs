@@ -2,7 +2,6 @@
 // and footer. The three never reach into each other; everything they share passes through here.
 
 import { createEditor } from './editor.mjs';
-import { NODE_SHAPES } from './shapes.mjs';
 import { createSource } from './source.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
@@ -139,17 +138,6 @@ for (const id of ['path', 'host']) {
     toast('Copied!');
   });
 }
-
-// Help's legend of the shapes, a row each under its heading, drawn from the list itself so it always matches the
-// pickers.
-el('shapes-heading').after(...NODE_SHAPES.map((shape) => {
-  const row = document.createElement('tr');
-  const th = Object.assign(document.createElement('th'), { scope: 'row', className: 'shape' });
-  th.innerHTML = shape.icon();
-  th.append(shape.name);
-  row.append(th, Object.assign(document.createElement('td'), { textContent: shape.meaning ?? '' }));
-  return row;
-}));
 
 // Help shows the keys of one system, Windows and Linux or macOS: the browser's own at first, then the one last chosen
 // in this browser (localStorage: the browser's, never the file's).

@@ -59,8 +59,6 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 /* Its description sits level with the middle of the keys it spans. */
 #help th.wrap + td { vertical-align: middle; }
 #help th.wrap .combo { white-space: nowrap; }
-/* A shape's row: its icon beside its name. */
-#help th.shape svg { vertical-align: middle; margin-right: 8px; }
 /* The foot: which system's keys the rows show, and where the rest is. Only the chosen system's keys are shown. */
 #help .help-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
                    margin-top: 10px;
