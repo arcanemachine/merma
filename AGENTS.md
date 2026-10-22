@@ -48,7 +48,8 @@ rather than repeating it, and write down only what someone will read again.
 ## Checks
 
 - `prek install` once per clone: the pre-commit hook runs end-of-file and whitespace fixes, JSON and merge-conflict
-  checks, and ESLint on the staged files (`prek.toml`). It does not run the tests.
+  checks, ESLint on the staged files, and `npm test` (about a second) when code, fixtures or docs change
+  (`prek.toml`).
 - `npm run lint`, `npm run typecheck` and `npm test` before calling work done; `npm publish` runs all three first
   (`prepublishOnly`). Types are JSDoc in the plain JavaScript, checked by `tsc` with no build step: the page
   (`web/tsconfig.json`) gets the DOM and no Node types, the server and command line (`tsconfig.json`) the reverse.
