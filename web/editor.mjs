@@ -14,6 +14,7 @@ import {
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { createPicker } from './picker.mjs';
+import { place } from './place.mjs';
 import { NODE_SHAPES } from './shapes.mjs';
 
 /**
@@ -436,6 +437,52 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
+  // While a node just added is named, a strip of shapes lies under the box: Tab and Shift+Tab step through them, a
+  // click picks one, and Enter writes the shape with the label. Nothing is drawn until then (docs/ux.md, the preview
+  // rule), and the box keeps the keyboard throughout.
+  const strip = createPicker({
+    title: 'Shape',
+    entries: NODE_SHAPES,
+    columns: 10,
+    strip: true,
+    onPick: (at) => {
+      strip.current(at);
+      const entry = NODE_SHAPES.find((e) => e.key === at);
+      ui.announce(`${entry?.name}${entry?.meaning && entry.meaning !== entry.name ? `, ${entry.meaning}` : ''}`);
+    },
+  });
+  const stripBox = Object.assign(document.createElement('div'), { className: 'menu strip', popover: 'manual' });
+  stripBox.dataset.overlay = '';
+  const stripHint = Object.assign(document.createElement('div'), { className: 'strip-hint', id: 'strip-hint', textContent: 'Tab changes the shape' });
+  stripBox.append(strip.el, stripHint);
+  els.diagram.append(stripBox);
+  /** @type {string | null} the shape the node had when the strip opened, while it is open */
+  let stripFrom = null;
+
+  function placeStrip() {
+    if (stripFrom === null) return;
+    const r = input.getBoundingClientRect(), s = stripBox.getBoundingClientRect();
+    const centre = (r.left + r.right) / 2 - s.width / 2;
+    const at = place({ left: centre, top: r.top, right: centre + s.width, bottom: r.bottom }, s,
+      els.diagram.getBoundingClientRect(), { side: 'below', gap: 6 });
+    stripBox.style.left = at.left + 'px';
+    stripBox.style.top = at.top + 'px';
+  }
+
+  function openStrip(/** @type {string} */ id) {
+    stripFrom = shownShape(id) ?? 'rect';
+    strip.current(stripFrom);
+    stripBox.showPopover();
+    input.setAttribute('aria-describedby', stripHint.id);
+    placeStrip();
+  }
+
+  function closeStrip() {
+    stripFrom = null;
+    if (stripBox.matches(':popover-open')) stripBox.hidePopover();
+    input.removeAttribute('aria-describedby');
+  }
+
   function openLabelBox(/** @type {Item} */ target) {
     const r = labelBoxRect(target);
     if (!r) return;
@@ -451,6 +498,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.setAttribute('aria-label', { node: 'Node label', edge: 'Edge label', subgraph: 'Subgraph title' }[target.kind]);
     input.style.display = 'block';
     sizeLabelBox();
+    if (target.kind === 'node' && naming && same(naming, target)) openStrip(target.id);
     input.focus();
     input.select();
   }
@@ -467,11 +515,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.style.height = h + 'px';
     input.style.left = (r.left - box.left + r.width / 2 - w / 2) + 'px';
     input.style.top = (r.top - box.top + r.height / 2 - h / 2) + 'px';
+    placeStrip();
   }
 
   function closeLabelBox() {
     input.style.display = 'none';
     labelling = null;
+    closeStrip();
   }
 
   input.addEventListener('input', sizeLabelBox);
@@ -479,6 +529,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   input.addEventListener('keydown', (e) => {
     const target = labelling;
     if (e.key === 'Escape') { e.stopPropagation(); closeLabelBox(); naming = null; if (target) select(target); return; }
+    // Tab is the browser's key in a text field; here there is nothing else to tab to (docs/ux.md).
+    if (e.key === 'Tab' && stripFrom !== null) { e.preventDefault(); strip.step(e.shiftKey ? -1 : 1); return; }
     if (e.key !== 'Enter' || e.shiftKey || !target) return;
     e.preventDefault();
     const label = input.value;
@@ -487,15 +539,22 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
       return;
     }
-    const unchanged = label === input.dataset.initial;
+    const relabelled = label !== input.dataset.initial;
+    const shape = stripFrom !== null && strip.value() !== stripFrom ? strip.value() : null;
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
     // selected, as after an edit: the two look alike.
-    if (unchanged) { select(target); naming = null; return; }
+    if (!relabelled && !shape) { select(target); naming = null; return; }
     if (target.kind === 'edge') { editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) }); return; }
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
-    if (target.kind === 'node') { edit((text) => relabel(text, target.id, label), { into, after: () => ({ item: target }) }); return; }
+    if (target.kind === 'node') {
+      edit((text) => {
+        const named = relabelled ? relabel(text, target.id, label).text : text;
+        return shape ? setShape(named, target.id, shape) : { text: named };
+      }, { into, after: () => ({ item: target }) });
+      return;
+    }
     const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
     /** @type {EditOptions} */
     const options = { into, after: (result) => ({ item: { kind: 'subgraph', id: result.id } }) };

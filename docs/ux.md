@@ -53,6 +53,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
+- Tab in a text field is the browser's, with one deliberate exception: while a new node is named, Tab and Shift+Tab
+  step through the shapes under the label box. There is nothing else to tab to there, Enter and Escape still leave,
+  and a hint under the box says so ("Tab changes the shape"). The strip's shapes take no focus, under the pointer or
+  on a click, so the box keeps the keyboard and its text.
 
 ## Greyed out or left out
 
