@@ -194,6 +194,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
   function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean }} */ { keepMode = false, menu = false } = {}) {
     unmark();
+    // An item no longer drawn (the file changed under an open label box) cannot be selected.
+    if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
@@ -241,9 +243,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** After an edit to the edge drawn as `id`: that edge again, found by its place, which no edit changes. */
   const sameEdge = (/** @type {string} */ id) => {
     const index = shownEdge(id)?.index;
+    /** @returns {{ item: Item } | null} */
     return (/** @type {{ text: string }} */ result) => {
       const e = index === undefined ? undefined : edges(result.text)[index];
-      return e ? { item: /** @type {Item} */ ({ kind: 'edge', id: e.svgId }) } : null;
+      return e ? { item: { kind: 'edge', id: e.svgId } } : null;
     };
   };
 
