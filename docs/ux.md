@@ -64,6 +64,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   last and set apart. Within a group, the most used first.
 - This is a balance, not a fixed rule: hide what would only be noise.
 
+## After an edit
+
+- An edit leaves what it acted on selected, its menu closed, so the next action can follow at once: the node or
+  subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
+  just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
+  does the same: it looks no different. A delete selects nothing, since the item is gone.
+- Undo and redo select nothing: an undo can take back an add, and what it selects would depend on the edit it undid.
+
 ## Messages
 
 - An edit that worked shows no message: the redrawn diagram shows what it did. Screen readers, which cannot see the

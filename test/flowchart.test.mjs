@@ -198,6 +198,9 @@ test('setSubgraphTitle rewrites only the title, keeping the id, in every form', 
   assert.equal(title('subGraph1', 5), '  subgraph s1 ["New #35;1"]');
   assert.equal(title('subGraph6', 19), '  subgraph s1 ["New #35;1"]');
   for (const id of ['pay', 'subGraph1']) assert.equal(lineDiff(src, setSubgraphTitle(src, id, 'X').text).added.length, 1);
+  // The id it has after, for the page to select it again.
+  assert.deepEqual(['pay', 'Shipping', 'Single', 'subGraph1'].map((id) => setSubgraphTitle(src, id, 'X').id),
+    ['pay', 'Shipping', 'Single', 's1']);
   assert.throws(() => setSubgraphTitle(src, 'nope', 'X'), /not in the file/);
 });
 
