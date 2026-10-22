@@ -2,8 +2,9 @@
 // is current and reports a pick; what a pick does is up to whoever shows it (a menu makes the edit at once, the label
 // box keeps it until Enter). Keys while focus is in it: a digit picks, the arrow keys move, Enter picks the focused one.
 // Keys it does not use (Escape, Left at the start of a row) go on to whoever holds it.
-
-const COLUMNS = 5;
+//
+// As a strip (beside a text field that keeps the keyboard), its buttons never take focus: a click picks without
+// taking focus from the field, and the field steps through the entries with `step`.
 
 /**
  * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
@@ -24,8 +25,10 @@ const label = (/** @type {PickerEntry} */ entry) => entry.name
  * @param {string} options.title the noun for what is picked ("Arrow type")
  * @param {PickerEntry[]} options.entries
  * @param {(key: string) => void} options.onPick
+ * @param {number} [options.columns]
+ * @param {boolean} [options.strip] its buttons never take focus
  */
-export function createPicker({ title, entries, onPick }) {
+export function createPicker({ title, entries, onPick, columns = 5, strip = false }) {
   const el = document.createElement('div');
   el.className = 'picker';
   el.setAttribute('role', 'group');
@@ -35,6 +38,7 @@ export function createPicker({ title, entries, onPick }) {
   heading.textContent = title;
   const grid = document.createElement('div');
   grid.className = 'picker-grid';
+  grid.style.setProperty('--columns', String(columns));
   const name = document.createElement('div');
   name.className = 'picker-name';
   el.append(heading, grid, name);
@@ -48,7 +52,12 @@ export function createPicker({ title, entries, onPick }) {
     b.setAttribute('aria-label', (entry.digit ? `${entry.digit} ` : '') + label(entry));
     b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit">${entry.digit}</span>` : '');
     b.addEventListener('click', () => onPick(entry.key));
-    b.addEventListener('pointerenter', () => b.focus());
+    if (strip) {
+      b.tabIndex = -1;
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+    } else {
+      b.addEventListener('pointerenter', () => b.focus());
+    }
     grid.append(b);
     return b;
   });
@@ -77,9 +86,9 @@ export function createPicker({ title, entries, onPick }) {
     let to = null;
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); onPick(entries[digit].key); return; }
     if (e.key === 'ArrowRight') to = at + 1;
-    else if (e.key === 'ArrowLeft' && at % COLUMNS > 0) to = at - 1;
-    else if (e.key === 'ArrowDown') to = at + COLUMNS;
-    else if (e.key === 'ArrowUp' && at >= COLUMNS) to = at - COLUMNS;
+    else if (e.key === 'ArrowLeft' && at % columns > 0) to = at - 1;
+    else if (e.key === 'ArrowDown') to = at + columns;
+    else if (e.key === 'ArrowUp' && at >= columns) to = at - columns;
     if (to === null) return;
     e.preventDefault();
     e.stopPropagation();
@@ -91,5 +100,12 @@ export function createPicker({ title, entries, onPick }) {
     current: setCurrent,
     /** Focus the current entry, or the first. */
     focus: () => (buttons.find((b) => b.dataset.key === current) ?? buttons[0]).focus(),
+    /** The current entry's key, or null. */
+    value: () => current,
+    /** Pick the entry `by` places after the current one (before, when negative), wrapping around the list. */
+    step(/** @type {number} */ by) {
+      const at = entries.findIndex((e) => e.key === current);
+      onPick(entries[(((at < 0 ? 0 : at + by) % entries.length) + entries.length) % entries.length].key);
+    },
   };
 }

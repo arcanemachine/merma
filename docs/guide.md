@@ -103,6 +103,14 @@ Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Ed
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 
+## Naming a new node
+
+Whenever a node is added (Add connected node, Add node, N), the label box opens on it with a strip of the shapes under
+it, its shape (Rectangle) marked. Type the name; Tab and Shift+Tab step through the shapes, or click one, and the box
+keeps the keyboard. Nothing is drawn until Enter, which writes the label and the shape as one change, undone together
+with the add. Escape keeps the node as it was added. Editing an existing node's label shows no strip: Edit shape ▸
+changes its shape.
+
 ## Keys
 
 Outside menus, and not while typing in the label box. Keys are case-insensitive, here and in menus:
