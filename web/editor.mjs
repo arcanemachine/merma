@@ -47,56 +47,57 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let refused = false;        // the notice shows why a menu item does not apply
 
   /** The drawing's elements that match `selector`: SVG, apart from labels' HTML. */
-  const drawn = (selector) => /** @type {SVGElement[]} */ ([...els.stage.querySelectorAll(selector)]);
-  const nodeEl = (id) => drawn('g.node[data-page-node]').find((g) => g.dataset.pageNode === id);
-  const edgeEls = (id) => drawn('[data-page-edge]').filter((e) => e.dataset.pageEdge === id);
-  const clusterEl = (id) => drawn('g.cluster[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
+  const drawn = (/** @type {string} */ selector) => /** @type {SVGElement[]} */ ([...els.stage.querySelectorAll(selector)]);
+  const nodeEl = (/** @type {string} */ id) => drawn('g.node[data-page-node]').find((g) => g.dataset.pageNode === id);
+  const edgeEls = (/** @type {string} */ id) => drawn('[data-page-edge]').filter((e) => e.dataset.pageEdge === id);
+  const clusterEl = (/** @type {string} */ id) => drawn('g.cluster[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
   /** What is drawn for an item: a node's or a subgraph's group, or an edge's line, hit path and label. */
   /** @returns {SVGElement[]} */
-  const elsOf = (sel) => {
+  const elsOf = (/** @type {Item} */ sel) => {
     if (sel.kind === 'edge') return edgeEls(sel.id);
     const el = sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id);
     return el ? [el] : [];
   };
   const selectedEl = () => selected && elsOf(selected)[0];
   /** The node, edge or subgraph a click on `target` is on, or null. Nodes and edges are drawn over subgraphs. */
-  function itemAt(target) {
-    const node = target.closest('g.node[data-page-node]')?.dataset.pageNode;
+  /** @returns {Item | null} */
+  function itemAt(/** @type {Element} */ target) {
+    const node = (/** @type {SVGElement | null} */ (target.closest('g.node[data-page-node]')))?.dataset.pageNode;
     if (node) return { kind: 'node', id: node };
-    const edge = edgesOk && target.closest('[data-page-edge]')?.dataset.pageEdge;
+    const edge = edgesOk && (/** @type {SVGElement | null} */ (target.closest('[data-page-edge]')))?.dataset.pageEdge;
     if (edge) return { kind: 'edge', id: edge };
-    const subgraph = target.closest('g.cluster[data-page-subgraph]')?.dataset.pageSubgraph;
+    const subgraph = (/** @type {SVGElement | null} */ (target.closest('g.cluster[data-page-subgraph]')))?.dataset.pageSubgraph;
     return subgraph ? { kind: 'subgraph', id: subgraph } : null;
   }
-  const same = (a, b) => a?.kind === b?.kind && a?.id === b?.id;
+  const same = (/** @type {Item | null} */ a, /** @type {Item | null} */ b) => a?.kind === b?.kind && a?.id === b?.id;
   const selectedNode = () => (selected?.kind === 'node' ? selected.id : null);
   const selectedSubgraph = () => (selected?.kind === 'subgraph' ? selected.id : null);
   /** The label element of a node, or the title element of a subgraph. */
-  const labelEl = (sel) => /** @type {HTMLElement | null} */ (
+  const labelEl = (/** @type {Item} */ sel) => /** @type {HTMLElement | null} */ (
     (sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id))?.querySelector('.nodeLabel'));
   /**
    * A node or a subgraph as messages name it: its label or title as drawn, in quotes, on one line; one drawn with
    * none shows its id.
    */
-  const named = (sel) => `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`;
+  const named = (/** @type {Item} */ sel) => `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`;
   /**
    * Whether an edit naming subgraph `id` is good only for the text it was drawn from: one with no id in the file is
    * known by Mermaid's `subGraph<k>`, which renumbers when subgraphs come and go.
    */
-  const drawnOnly = (id) => !subgraphs(shownText).find((s) => s.id === id)?.written;
+  const drawnOnly = (/** @type {string} */ id) => !subgraphs(shownText).find((s) => s.id === id)?.written;
   /**
    * Refuse, with a warning, an edit that would need an id written for a subgraph the file already names otherwise: for
    * the ways in that pass no menu, which greys its items instead.
    */
-  function refuseUnnamed(id) {
+  function refuseUnnamed(/** @type {string} */ id) {
     const why = subgraphRefusal(shownText, id);
     if (why) ui.notice(why, 'warning');
     return Boolean(why);
   }
-  const shownEdge = (id) => edges(shownText).find((e) => e.svgId === id);
+  const shownEdge = (/** @type {string} */ id) => edges(shownText).find((e) => e.svgId === id);
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
-  function setEditable(on) {
+  function setEditable(/** @type {boolean} */ on) {
     editable = on;
     els.stage.classList.toggle('editable', on);
     if (!on) { deselect(); closeLabelBox(); }
@@ -108,14 +109,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
+  /** @type {Record<string, () => void>} */
   const handlers = {
     'add-connected-node': () => addAndName((text) => addConnected(text, selection().id)),
     'connect': () => {
       connecting = true;
       ui.notice('Click the node or subgraph the edge goes to. Click away or press Escape to cancel.', 'info');
     },
-    'edit-label': () => openLabelBox(selected),
-    'edit-title': () => openLabelBox(selected),
+    'edit-label': () => openLabelBox(selection()),
+    'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
     'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, '')); },
@@ -149,8 +151,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     bounds: () => els.diagram.getBoundingClientRect(),
     returnFocus: els.diagram,
     submenus: { 'arrow-types': arrowPicker },
-    onRun: (action) => handlers[action](),
-    onRefuse: (why) => { refused = true; ui.notice(why, 'warning'); },
+    onRun: (/** @type {string} */ action) => handlers[action](),
+    onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
   };
@@ -172,7 +174,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const unmark = () => { for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
 
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
-  function select(sel, { keepMode = false, menu = false } = {}) {
+  function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean }} */ { keepMode = false, menu = false } = {}) {
     unmark();
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
@@ -197,7 +199,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // The empty-space menu, at the pointer: it adds a node or a subgraph at the top level. Mermaid lays the diagram out,
   // so what is added lands where the layout puts it, not where the menu was opened.
-  function openSpaceMenu(x, y) {
+  function openSpaceMenu(/** @type {number} */ x, /** @type {number} */ y) {
     deselect();
     menus.space.open({ left: x, top: y, right: x, bottom: y }, menuState(), { gap: 0 });
   }
@@ -210,7 +212,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @param {'node' | 'subgraph'} [kind]
    */
   function addAndName(change, into = null, kind = 'node') {
-    const done = (result, entry) => {
+    const done = (/** @type {{ id: string }} */ result, /** @type {import('./history.mjs').Entry} */ entry) => {
       pendingLabel = { kind, id: result.id };
       naming = { kind, id: result.id, entry };
     };
@@ -218,11 +220,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   /** Open the label box on a subgraph's title, unless writing it would need an id the file cannot take. */
-  function editTitle(sel) {
+  function editTitle(/** @type {Item} */ sel) {
     if (!refuseUnnamed(sel.id)) openLabelBox(sel);
   }
 
-  function clicked(target) {
+  function clicked(/** @type {Element} */ target) {
     if (!editable) return;
     const item = itemAt(target);
     if (connecting) {
@@ -231,11 +233,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const to = item?.kind === 'edge' ? null : item;
       if (!to) { deselect(); return; }
-      if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(selected); return; }
-      if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(selected); return; }
+      if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(from); return; }
+      if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
       deselect();
       const names = [named(from), named(to)];
-      const change = (text) => connect(text, from.id, to.id);
+      const change = (/** @type {string} */ text) => connect(text, from.id, to.id);
       const announce = () => ui.announce(`Connected ${names[0]} to ${names[1]}`);
       const drawn = [from, to].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
       if (drawn) editDrawn(change, announce); else edit(change, announce);
@@ -245,7 +247,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     else { deselect(); ui.hideNotice(); }
   }
 
-  function contextMenu(target, x, y) {
+  function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
     if (!editable) return false;
     if (connecting) return true;
     const item = itemAt(target);
@@ -290,6 +292,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // edits the selected item's label or title; Delete or Backspace deletes the selection; M opens the selection's menu,
   // or with nothing selected the empty-space menu at the middle of the diagram; Escape backs out of whatever is open.
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
+  /** @type {Record<string, () => unknown>} what each key does; truthy when it was used */
   const keys = {
     n: () => {
       if (connecting) return false;
@@ -312,7 +315,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
     // goes ahead.
     escape: () => {
-      if (connecting) { connecting = false; ui.hideNotice(); select(selected); return true; }
+      if (connecting) { connecting = false; ui.hideNotice(); select(selection()); return true; }
       const had = Boolean(selected);
       deselect();
       ui.hideNotice();
@@ -320,13 +323,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
   };
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
-  const editLabelOrTitle = (sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
+  const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
 
   // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
   // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
   document.addEventListener('pointerdown', (e) => {
     if (els.diagram.contains(/** @type {Node} */ (e.target))) return;
-    if (connecting) { connecting = false; ui.hideNotice(); select(selected); }
+    if (connecting) { connecting = false; ui.hideNotice(); select(selection()); }
     closeMenus();
   });
   document.addEventListener('keydown', (e) => {
@@ -355,7 +358,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const LINE_HEIGHT = 18;
 
   /** What the label box covers: the node, the subgraph's title, the edge's label, or the middle of the edge's line. */
-  function labelBoxRect(target) {
+  function labelBoxRect(/** @type {Item} */ target) {
     if (target.kind === 'node') return nodeEl(target.id)?.getBoundingClientRect();
     if (target.kind === 'subgraph') return clusterEl(target.id)?.querySelector('.cluster-label')?.getBoundingClientRect();
     const parts = edgeEls(target.id);
@@ -370,7 +373,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  function openLabelBox(target) {
+  function openLabelBox(/** @type {Item} */ target) {
     const r = labelBoxRect(target);
     if (!r) return;
     closeMenus();
@@ -429,7 +432,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const into = naming && same(naming, target) ? naming.entry : null;
     naming = null;
     if (target.kind === 'node') { edit((text) => relabel(text, target.id, label), null, into); return; }
-    const change = (text) => setSubgraphTitle(text, target.id, label);
+    const change = (/** @type {string} */ text) => setSubgraphTitle(text, target.id, label);
     if (drawnOnly(target.id)) editDrawn(change, null, into); else edit(change, null, into);
   });
 
@@ -438,7 +441,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // Edges can be selected only when the text's edges are exactly the ones drawn, in order: then an edge's SVG id says
   // which text it is. Each gets a wide invisible path over it, since a line is hard to hit, and its label selects it
   // too. Nodes are drawn after edges, so a click near a node still picks the node.
-  function tagEdges(text) {
+  function tagEdges(/** @type {string} */ text) {
     const lines = drawn('path[data-edge="true"]');
     const ids = edges(text).map((e) => e.svgId);
     edgesOk = ids.length === lines.length && lines.every((p, k) => p.dataset.id === ids[k]);
@@ -466,7 +469,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // One edit or undo at a time: a second one started while the first is saving (a held Ctrl+Z, a double-clicked menu
   // item) would be based on the text from before the first.
-  async function exclusively(work) {
+  async function exclusively(/** @type {() => Promise<void>} */ work) {
     if (busy) return;
     busy = true;
     try {
@@ -551,7 +554,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * Save text for the file over version `base` (default: the version the page has now), after checking it parses.
    * Returns true when saved.
    */
-  async function save(text, base = source.version) {
+  async function save(/** @type {string} */ text, base = source.version) {
     try {
       await parse(text);
     } catch (e) {
@@ -577,7 +580,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     contextMenu,
 
     /** Double-click on a node, an edge or a subgraph edits its label or title. Returns whether it was one. */
-    doubleClicked(target) {
+    doubleClicked(/** @type {Element} */ target) {
       if (!editable) return false;
       const sel = itemAt(target);
       if (!sel) return false;
@@ -591,7 +594,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * there (an edge's, or an id-less subgraph's, only while the text is the same: their ids are renumbered when edges
      * or subgraphs come and go).
      */
-    rendered(text) {
+    rendered(/** @type {string} */ text) {
       setEditable(isFlowchart(text));
       if (!editable) return;
       const changed = text !== shownText;
