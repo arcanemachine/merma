@@ -48,6 +48,7 @@ export const MENUS = {
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'edit-label', label: 'Edit label', key: 'l' },
+    { action: 'edit-shape', label: 'Edit shape', key: 'p', submenu: 'shapes' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
   ],
   edge: [

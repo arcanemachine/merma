@@ -433,6 +433,110 @@ export function relabel(/** @type {string} */ text, /** @type {string} */ id, /*
   return { text: ls.join('') };
 }
 
+// --- shapes --------------------------------------------------------------------------------------------------
+
+/**
+ * The shapes Mermaid also writes with brackets, by their `@{ shape }` name: [opener, closer]. Every other shape is
+ * written `A@{ shape: doc }`.
+ * @type {Record<string, [string, string]>}
+ */
+export const BRACKETS = {
+  rect: ['[', ']'], rounded: ['(', ')'], diam: ['{', '}'], stadium: ['([', '])'], cyl: ['[(', ')]'],
+  'fr-rect': ['[[', ']]'], hex: ['{{', '}}'], circle: ['((', '))'], 'dbl-circ': ['(((', ')))'], odd: ['>', ']'],
+  'lean-r': ['[/', '/]'], 'lean-l': ['[\\', '\\]'], 'trap-b': ['[/', '\\]'], 'trap-t': ['[\\', '/]'],
+};
+
+const SHAPE_KEY = /(shape\s*:\s*)("[^"]*"|[^,}\s]+)/;
+// A class on a node, `A:::hot`. Mermaid 12.2.0 takes it before an `@{ … }` (`A:::hot@{ shape: doc }`), not after.
+const CLASS_AT = new RegExp(`^:::${ID}`, 'u');
+
+/**
+ * Where a node's shape is written: its last mention with brackets or an `@{ shape }` (Mermaid takes the shape from
+ * the last), else its last `@{ … }` with no shape, else null: a node only ever written bare.
+ */
+function shapedMention(/** @type {string} */ text, /** @type {string} */ id) {
+  const ls = lines(text);
+  /** @type {{ line: number, at: number, span: NonNullable<ReturnType<typeof shapeSpan>> | null, block: string | null } | null} */
+  let shaped = null, block = null;
+  for (const { line, col } of mentions(text, id)) {
+    const s = ls[line];
+    let at = col + id.length;
+    const cls = CLASS_AT.exec(s.slice(at))?.[0] ?? '';
+    if (s.startsWith('@{', at + cls.length)) at += cls.length;
+    if (s.startsWith('@{', at)) {
+      const b = s.slice(at, s.indexOf('}', at) + 1);
+      if (SHAPE_KEY.test(b)) shaped = { line, at, span: null, block: b };
+      else block = { line, at, span: null, block: b };
+    } else {
+      const span = SHAPES.some(([open]) => s.startsWith(open, at)) ? shapeSpan(s, at) : null;
+      if (span) shaped = { line, at, span, block: null };
+    }
+  }
+  return shaped ?? block;
+}
+
+/**
+ * A node's shape as written: its `@{ shape }` name (an alias or a name Mermaid lacks is returned as written), or
+ * `rect` for a node written bare.
+ */
+export function shapeOf(/** @type {string} */ text, /** @type {string} */ id) {
+  assertNode(text, id);
+  const m = shapedMention(text, id);
+  if (m?.span) {
+    const s = lines(text)[m.line];
+    const pair = [m.span.open, s.slice(m.span.labelEnd, m.span.end)];
+    return Object.keys(BRACKETS).find((at) => BRACKETS[at][0] === pair[0] && BRACKETS[at][1] === pair[1]) ?? pair.join('');
+  }
+  const v = m?.block?.match(SHAPE_KEY)?.[2];
+  return v ? v.replace(/^"|"$/g, '') : 'rect';
+}
+
+/**
+ * Give a node another shape where its shape is written (shapedMention): an `@{ … }` gets its `shape:` changed or
+ * added; brackets become the new shape's brackets around the same label, or `@{ shape: doc, label: "…" }` for a shape
+ * with none (after any `:::class`). A node written only bare gets the shape at its first appearance in a node or edge
+ * statement, labelled with its id as Mermaid draws it: `A{A}`, or `A@{ shape: doc }`.
+ */
+export function setShape(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ at) {
+  assertNode(text, id);
+  if (!/^[a-z][a-z-]*$/.test(at)) throw new Error(`Not a shape name: ${at}`);
+  const ls = lines(text);
+  const to = BRACKETS[at];
+  const m = shapedMention(text, id);
+  if (m) {
+    const s = ls[m.line];
+    if (m.block !== null) {
+      const b = m.block;
+      const next = SHAPE_KEY.test(b) ? b.replace(SHAPE_KEY, (_, /** @type {string} */ key) => key + at)
+        : /^@\{\s*\}$/.test(b) ? `@{ shape: ${at} }`
+          : b.replace(/^@\{\s*/, (open) => open + `shape: ${at}, `);
+      ls[m.line] = s.slice(0, m.at) + next + s.slice(m.at + b.length);
+      return { text: ls.join('') };
+    }
+    const span = /** @type {NonNullable<typeof m.span>} */ (m.span);
+    const label = s.slice(span.labelStart, span.labelEnd);
+    if (to) {
+      ls[m.line] = s.slice(0, m.at) + to[0] + label + to[1] + s.slice(span.end);
+      return { text: ls.join('') };
+    }
+    // These edits read `@{ … }` as ending at its first `}`, quoted or not; and Mermaid 12.2.0 draws a Markdown string
+    // in `label:` as plain text, backticks and all.
+    if (label.includes('}')) throw new Error('its label has a } in it, which a shape with no brackets cannot hold here. Change the shape in the file.');
+    if (/^"`/.test(label.trim())) throw new Error('its label is Markdown, which Mermaid does not draw in a shape with no brackets. Change the shape in the file.');
+    const quoted = /^".*"$/s.test(label.trim()) ? label.trim() : `"${label}"`;
+    const cls = CLASS_AT.exec(s.slice(span.end))?.[0] ?? '';
+    ls[m.line] = s.slice(0, m.at) + cls + `@{ shape: ${at}, label: ${quoted} }` + s.slice(span.end + cls.length);
+    return { text: ls.join('') };
+  }
+  const bare = mentions(text, id).find(({ line }) => !NOT_A_STATEMENT.test(ls[line]));
+  if (!bare) throw new Error(`Node ${id} appears only in style or class lines; there is no place to give it a shape.`);
+  const s = ls[bare.line];
+  let after = bare.col + id.length;
+  if (!to) after += CLASS_AT.exec(s.slice(after))?.[0].length ?? 0;
+  ls[bare.line] = s.slice(0, after) + (to ? to[0] + id + to[1] : `@{ shape: ${at} }`) + s.slice(after);
+  return { text: ls.join('') };
+}
+
 // Connectors, as Mermaid 12.2.0's lexer reads them. A link: optional head (`<`, `o`, `x`), then a solid, thick, dotted
 // or invisible body, then an optional tail. A text-form opener (`--`, `==`, `-.` with a head) starts a label that runs
 // to the next closer: `A -- yes --> B` is `A -->|yes| B`.

@@ -47,6 +47,19 @@
           const expected = await drawnTitle(`flowchart LR\n  subgraph x [${c.title.text}]\n    a\n  end\n`, 'x');
           if (got !== expected) fails.push(`${c.name}: title drawn as ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
         }
+        if (c.kind === 'shape') {
+          /* The node has the shape asked for, its label and its classes; every other node is as it was. */
+          const want = await Promise.all(c.shape.refs.map(async (r) => (await db(r)).getVertices().get('X')?.type));
+          const now = after.getVertices();
+          for (const [id, v] of before.getVertices()) {
+            const w = now.get(id);
+            const types = id === c.shape.id ? want : [v.type];
+            if (!types.includes(w?.type) || w?.text !== v.text || String(w?.classes) !== String(v.classes)) {
+              fails.push(`${c.name}: ${id} is ${w?.type} ${JSON.stringify(w?.text)} ${w?.classes}, expected ${types} ${JSON.stringify(v.text)} ${v.classes}`);
+            }
+          }
+          continue;
+        }
         if (c.kind !== 'delete' && c.kind !== 'change') continue;
         /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
         const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));

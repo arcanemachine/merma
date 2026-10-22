@@ -5,7 +5,7 @@ anything under `web/`).
 
 ## Every edit parses
 
-`gen-cases.mjs` applies the node edits (add connected, connect, edit label, delete) to every node, the edge edits
+`gen-cases.mjs` applies the node edits (add connected, connect, edit label, every shape, delete) to every node, the edge edits
 (delete, label, unlabel, reverse, every arrow type) to every edge, and the subgraph edits (edit title, add a node or a
 subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
 and a subgraph at the top level.
@@ -14,7 +14,8 @@ subgraph (an edge line inside a subgraph pulls its nodes into that subgraph), th
 in it, and that a new subgraph title is drawn as asked. For a delete, it also checks with
 Mermaid that every other node is still there, and that the edges left are the old ones in the old order, each with
 its old `linkStyle` style; for an edge edit, that every edge is in its place with its style, and that the changed one
-has the arrow type and drawn label asked for.
+has the arrow type and drawn label asked for; for a shape, that the node has it, with its label and classes, and that
+no other node changed.
 
 1. Start merma with a root you can write to, and open any diagram in that root in a browser.
 2. Write the cases next to it, as a `.mmd` file so the server will hand it to the page:
@@ -23,6 +24,13 @@ has the arrow type and drawn label asked for.
    one `eval` may (15 s), so it starts in the background and returns `started`; repeat
    `pw-repl send eval --all "window.__check"` until it is not null.
 4. It gives `{ cases, fails }`. `fails` must be empty. Delete `_cases.json.mmd` afterwards.
+
+## Every shape draws
+
+After changing `web/shapes.mjs` or an icon: `checks/shapes.js` draws a node of every shape with Mermaid (12.2.0 parses
+a shape name it lacks, then fails to draw it), and every picker icon in the page, checking that each has a size and
+stays inside its frame. `pw-repl send eval --timeout=60s --file=checks/shapes.js` in any merma page; it returns the
+failures, `[]` to pass.
 
 ## Mermaid's own ids for the fixtures
 

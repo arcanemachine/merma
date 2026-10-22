@@ -22,7 +22,7 @@ Mermaid syntax.
 | **node** | A box in the diagram (Mermaid's term). |
 | **node id** | The name a node has in the file (`charge` in `charge[Charge card]`). Never shown on the page, except as the text of a node drawn with no label. |
 | **label** | The text shown on a node or an edge. |
-| **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. |
+| **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. Each has a name and a **meaning**, Mermaid's "Shape Name" and "Semantic Name": Diamond — Decision. |
 | **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
 | **arrow** | An edge's connector syntax without its label: `-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~`… |
 | **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`): Arrow, Line, Dotted arrow, Dotted line, Thick arrow, Thick line, Circle, Cross, Two-way arrow (Mermaid: "multi directional"), Invisible. |
@@ -54,7 +54,7 @@ note where merma had to make one up.
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
-| **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types (later the shapes). Shows the current one. |
+| **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types and the shapes. Shows the current one. |
 | **greyed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit label, Edit title). merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
