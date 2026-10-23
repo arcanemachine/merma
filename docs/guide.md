@@ -53,7 +53,8 @@ another click on it closes it.
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click anywhere else, or Escape,
-  cancels.
+  cancels. By keyboard, the arrows reach the node to connect to, along the edges from this one (outlined dashed, and
+  read out), and Enter connects to it; only nodes are reached this way, not subgraphs.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
@@ -91,7 +92,8 @@ another click on it closes it.
 - **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
   the label box on its title (Escape there takes the add back, as for a node). Mermaid draws an empty subgraph as its
   title alone, until it has nodes.
-- **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
+- **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node. By
+  keyboard, the first arrow reaches the node nearest the middle of the view.
 - **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
