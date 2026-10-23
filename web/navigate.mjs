@@ -191,8 +191,10 @@ export function nest(/** @type {Box[]} */ boxes) {
 /**
  * The next thing that way from box `at`, by place, for an arrow with no edge that way and for Ctrl's jump: the nearest
  * node or subgraph box lying wholly that way (going right, its left edge past `at`'s right edge), at any depth,
- * measured box to box; the topmost wins a tie going sideways, the leftmost going up or down. The subgraphs `at` is
- * drawn in count by their border on that side, so with nothing nearer inside it, the arrow reaches its subgraph's box.
+ * measured box to box, straight ahead first (overlapping `at` across the arrow: straight below, going down), then off
+ * to the side; the topmost wins a tie going sideways, the leftmost going up or down. The subgraphs `at` is drawn in
+ * count by their border on that side, which is always straight ahead, so with nothing nearer straight ahead inside it,
+ * the arrow reaches its subgraph's box.
  * Nothing that way: null; nothing wraps. To go from something with no box (an edge), pass a box of no size at its
  * middle through nest().
  * @param {Box[]} boxes from nest()
@@ -214,7 +216,7 @@ export function byPlace(boxes, at, key) {
   const ancestors = new Set();
   for (let p = from.parent ?? null; p; p = parents.get(p) ?? null) ancestors.add(p);
   const [lo, hi] = across(from);
-  /** @type {{ b: Box, d: number }[]} */
+  /** @type {{ b: Box, d: number, straight: boolean }[]} */
   const found = [];
   for (const b of boxes) {
     // What is inside `at` never lies wholly beyond it, so needs no test of its own.
@@ -222,16 +224,17 @@ export function byPlace(boxes, at, key) {
     if (ancestors.has(b.id)) {
       // A subgraph around it, by its border on that side.
       const gap = behind(b) - behind(from);
-      if (gap > 1) found.push({ b, d: gap });
+      if (gap > 1) found.push({ b, d: gap, straight: true });
       continue;
     }
     const along = ahead(b) - behind(from);
     if (along < -1) continue;
     const [blo, bhi] = across(b);
-    found.push({ b, d: Math.hypot(Math.max(0, along), Math.max(0, blo - hi, lo - bhi)) });
+    const aside = Math.max(0, blo - hi, lo - bhi);
+    found.push({ b, d: Math.hypot(Math.max(0, along), aside), straight: aside <= 1 });
   }
   const first = (/** @type {Box} */ b) => (horizontal ? b.y - b.h / 2 : b.x - b.w / 2);
-  found.sort((p, q) => p.d - q.d || first(p.b) - first(q.b));
+  found.sort((p, q) => Number(q.straight) - Number(p.straight) || p.d - q.d || first(p.b) - first(q.b));
   const next = found[0]?.b;
   return next ? { kind: next.kind, id: next.id } : null;
 }

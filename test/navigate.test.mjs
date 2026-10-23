@@ -168,6 +168,22 @@ test('by place: the subgraph around it counts by its border, when nothing inside
   assert.deepEqual(byPlace(placed, 'pay', 'ArrowUp'), at('node', 'check'));
 });
 
+test('by place: straight ahead first, however far, then the nearest off to the side', () => {
+  // The demo's Boxing, inside Shipping: Send is nearer, below and to the left; Shipping's border is straight below.
+  const nested = nest([sub('ship', 100, 100, 200, 160), sub('box', 150, 80, 60, 60), node('send', 70, 130, 40, 10)]);
+  assert.deepEqual(byPlace(nested, 'box', 'ArrowDown'), at('subgraph', 'ship'));
+  // A far node straight right beats a near one up and to the right.
+  const row = nest([node('here', 0, 0, 40, 20), node('near', 60, -40, 40, 20), node('far', 400, 0, 40, 20)]);
+  assert.deepEqual(byPlace(row, 'here', 'ArrowRight'), at('node', 'far'));
+  // Nothing straight ahead: the nearest to the side.
+  const off = nest([node('here', 0, 0, 40, 20), node('near', 60, -40, 40, 20), node('far', 400, 60, 40, 20)]);
+  assert.deepEqual(byPlace(off, 'here', 'ArrowRight'), at('node', 'near'));
+  // Weigh parcel, Left: its own subgraph's border is straight ahead and nearer than Print label outside it.
+  const weigh = nest([sub('ship', 100, 100, 240, 160), node('label', 20, 100, 40, 20), sub('box', 150, 100, 60, 60),
+    node('weigh', 155, 110, 40, 10)]);
+  assert.deepEqual(byPlace(weigh, 'weigh', 'ArrowLeft'), at('subgraph', 'box'));
+});
+
 test('by place: nothing that way, nowhere (no wrap)', () => {
   const two = nest([node('a', 0, 0), node('b', 200, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));
