@@ -176,6 +176,8 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with a node selected | Select the next node along the edges (below) |
 | Shift+Arrows with a node selected | Select the nearest node that way on screen, connected or not |
+| Ctrl+Arrows (Option on a Mac) with a node or edge selected | Select its edges, and step between them (below) |
+| Arrows with an edge selected | Down and Up to the nodes at its ends; Left and Right to the edges beside it |
 | 1–9, 0 with a node selected | Give it that shape, by its digit in the node panel's shapes; the shape it has writes nothing |
 | 1–9, 0 with an edge selected | Give it that arrow type, by its digit in Edit arrow type ▸ |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
@@ -208,6 +210,13 @@ the diagram.
 
 Up from a node where Up has nowhere else to go, along the edges or on screen, selects the diagram's title, when there
 is one; Down from the title goes to the node nearest below it. Shift+Arrows never reach the title.
+
+Ctrl+Arrows (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows) select edges: from a node,
+Ctrl+Down selects the first edge leaving it and Ctrl+Up the first edge coming into it ("first" is leftmost on screen,
+by the node at the other end). With an edge selected, Down goes to the node it points to and Up to the node it comes
+from, and Left and Right, with or without Ctrl, step through the edges it was reached among (else the edges leaving
+the same node), without wrapping. They turn with the diagram's direction, as the plain arrows do. Each edge reached is
+read out by its two ends.
 
 Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
 arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to
