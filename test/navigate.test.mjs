@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { byPlace, heading, leaving, nearest, nest, retrace, skip, walk, within } from '../web/navigate.mjs';
+import { beside, byPlace, heading, leaving, nearest, nest, retrace, skip, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -86,10 +86,12 @@ test('on an edge, the arrow along it goes to the end that way', () => {
   assert.deepEqual(run(at('node', 'retry'), ['ArrowUp', 'ArrowUp']), ['edge paid-retry', 'node paid']);
 });
 
-test("across an edge reached from a node: only that node's edges going that way, without wrapping", () => {
-  // order-wait is wait's only upward edge: nothing beside it, though order has others going down.
-  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
-    ['edge order-wait', null, null, 'node order']);
+test("across an edge reached from a node: that node's edges going that way; alone there, those at its other end", () => {
+  // order-wait is wait's only upward edge: order's downward edges, as from Receipt up to Paid's.
+  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
+    ['edge order-wait', 'edge order-note', null, 'edge order-wait', 'node order']);
+  assert.deepEqual(run(at('node', 'receipt'), ['ArrowUp', 'ArrowLeft', 'ArrowLeft']),
+    ['edge paid-receipt', 'edge paid-mail', 'edge paid-ship']);
   assert.deepEqual(run(at('node', 'order'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowLeft']),
     ['edge order-check', 'edge order-wait', 'edge order-note', null, 'edge order-wait']);
 });
@@ -97,6 +99,7 @@ test("across an edge reached from a node: only that node's edges going that way,
 test("across an edge reached any other way (a click): its source's edges going its way", () => {
   // order-wait's source is order: its downward edges, whichever way they point.
   assert.deepEqual(walk(graph, at('edge', 'order-wait'), 'ArrowRight'), at('edge', 'order-note'));
+  // Alone at both ends: nothing.
   assert.equal(walk(graph, at('edge', 'wait-paid'), 'ArrowRight'), null);
 });
 
@@ -237,4 +240,12 @@ test("a subgraph's box also owns the edges crossing its border from inside, at a
   assert.deepEqual(walk(g, at('subgraph', 'box'), 'ArrowUp'), at('edge', 'log-tape'));
   assert.deepEqual(walk(g, at('subgraph', 'ship'), 'ArrowUp'), at('edge', 'paid-ship'));
   assert.deepEqual(leaving(g.edges, 'ship', 'ArrowUp', within(g.boxes, 'ship')), ['paid-ship', 'log-tape']);
+});
+
+test('beside: the end reached from when it has others there, else the other end, which then counts as reached from', () => {
+  assert.deepEqual(beside(graph, 'paid-receipt', { id: 'receipt', key: 'ArrowUp' }), { id: 'paid', key: 'ArrowDown' });
+  assert.deepEqual(beside(graph, 'order-wait', { id: 'order', key: 'ArrowDown' }), { id: 'order', key: 'ArrowDown' });
+  // Clicked: its source.
+  assert.deepEqual(beside(graph, 'order-wait'), { id: 'order', key: 'ArrowDown' });
+  assert.equal(beside(graph, 'wait-paid'), null);
 });

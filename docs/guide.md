@@ -210,9 +210,10 @@ subgraph's box selected, an arrow selects an edge leaving it that way: Down an e
 down), Right one that heads right, and so on; the leftmost first (for Left and Right, the topmost). A box's edges
 include those crossing its border from a node inside it: from Payment's box, Down takes the "yes" edges out of it. On
 an edge, the arrow along it goes to the end you arrive at that way, and the other two go to the edge beside it among
-the edges of the node you came from, going the same way (for an edge you clicked, its source's, the node written first
-in the file): from "Paid?", Down, then Right, Right, Right, steps through all four of its edges. They stop at the last
-one. An edge to a subgraph lands on its box.
+the edges at the end you last came from, going the same way (for an edge you clicked, its source, the node written
+first in the file); when it is the only one there, among those at its other end: from "Paid?", Down, then Right,
+Right, Right, steps through all four of its edges, and from Receipt, Up, then Left steps back through them. They stop
+at the last one. An edge to a subgraph lands on its box.
 
 With no edge leaving that way, an arrow goes to the next thing that way: the nearest node or subgraph lying wholly that
 way, nested or not, the topmost (or leftmost) on a tie. The subgraph you are in counts by its border, so when nothing
