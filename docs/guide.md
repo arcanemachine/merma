@@ -162,6 +162,8 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's title |
+| Enter with nothing selected | Select the node nearest the middle of the view |
+| Arrows with a node selected | Select the next node along the edges (below) |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
@@ -173,6 +175,18 @@ Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS. Help shows the keys
 switches between Windows and Linux, and macOS.
 
 A double-click on a node or an edge edits its label too, and one on a subgraph its title.
+
+### Moving along the edges
+
+The diagram is one stop for Tab. With a node selected, the arrows follow the edges, as the diagram is drawn top to
+bottom: Down goes to the node this one points to (the leftmost, when there are several), Left and Right step through
+the other nodes the same node points to, and Up goes back the way you came, or else to the leftmost node pointing to
+this one. Where several nodes point to one, Up picks one of them and Left and Right step through the rest. Left and
+Right stop at the last one; they do not wrap. "Leftmost" and "next" are where the nodes are drawn, not their order in
+the file. In a diagram drawn left to right (`flowchart LR`) the arrows turn with it: Right goes forward, Up and Down
+step through, and likewise for `BT` and `RL`. A subgraph's own `direction` is not followed. Each node reached is read
+out to screen readers, and brought into view when it is off screen; one already in view moves nothing. The arrows are
+the diagram's wherever the keyboard is, except in the label box, a menu or Help.
 
 ## Undo and redo
 

@@ -233,6 +233,25 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
+    /**
+     * Move the view the least it takes to bring `rect` (client coordinates) inside the diagram area, a margin in from
+     * its edges and clear of its top padding, where the notice lies; nothing moves when it is inside already. A rect
+     * too big to fit is aligned at its top left.
+     */
+    reveal(/** @type {DOMRect} */ rect) {
+      const box = diagram.getBoundingClientRect();
+      const top = box.top + (parseFloat(getComputedStyle(diagram).paddingTop) || 0) + PAD;
+      const shift = (/** @type {number} */ lo, /** @type {number} */ hi, /** @type {number} */ min, /** @type {number} */ max) =>
+        (lo < min || hi - lo > max - min ? min - lo : hi > max ? max - hi : 0);
+      const dx = shift(rect.left, rect.right, box.left + PAD, box.right - PAD);
+      const dy = shift(rect.top, rect.bottom, top, box.bottom - PAD);
+      if (!dx && !dy) return;
+      view.x += dx;
+      view.y += dy;
+      touched = true;
+      apply();
+    },
+
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 

@@ -17,9 +17,11 @@
   <div id="notice"></div>
   <div id="notice-status" class="visually-hidden" role="status"></div>
   <div id="notice-alert" class="visually-hidden" role="alert"></div>
-  <main id="diagram" tabindex="-1">
-    <div id="stage"></div>
-    <textarea id="label-box" rows="1" aria-label="Node label" title="Enter saves, Shift+Enter starts a new line, Escape cancels" data-overlay></textarea>
+  <main>
+    <div id="diagram" tabindex="0" role="application" aria-label="Diagram">
+      <div id="stage"></div>
+      <textarea id="label-box" rows="1" aria-label="Node label" title="Enter saves, Shift+Enter starts a new line, Escape cancels" data-overlay></textarea>
+    </div>
   </main>
   <footer>
     <div class="buttons">
@@ -48,6 +50,8 @@
       <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> with a node selected</th><td>Edit node</td></tr>
       <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> with an edge selected</th><td>Edit label</td></tr>
       <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> with a subgraph selected</th><td>Edit title</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> with nothing selected</th><td>Select middle node</td></tr>
+      <tr><th scope="row">Arrows with a node selected</th><td>Select next node along edges</td></tr>
       <tr><th scope="row"><kbd>Delete</kbd> or <kbd>Backspace</kbd></th><td>Delete node or edge</td></tr>
       <tr><th scope="row"><kbd>Down</kbd> in a node's label</th><td>Edit shape</td></tr>
       <tr><th scope="row"><kbd>M</kbd></th><td>Open menu</td></tr>

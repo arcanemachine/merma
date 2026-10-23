@@ -7,7 +7,10 @@
  * removes the thing. */
 export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Fit', 'Copy', 'Download'];
 
-/** Keys the page answers outside menus (KeyboardEvent.key, lower-cased), and the actions each one runs. */
+/**
+ * Keys the page answers outside menus, and the menu actions each one runs. A key is named by KeyboardEvent.key,
+ * lower-cased, after its modifiers: `ctrl+` (Ctrl or Alt), then `shift+`.
+ */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
@@ -15,6 +18,10 @@ export const GLOBAL_KEYS = {
   delete: ['delete-node', 'delete-edge'],
   backspace: ['delete-node', 'delete-edge'],
   f: ['fit-view'],
+  arrowup: [],
+  arrowdown: [],
+  arrowleft: [],
+  arrowright: [],
   m: [],
   escape: [],
 };

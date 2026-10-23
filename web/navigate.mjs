@@ -1,0 +1,87 @@
+// Where an arrow key moves the selection along a flowchart's edges, from the nodes as drawn: no DOM. The diagram's
+// direction says which arrow goes forward (to the nodes this one points to) and which goes back; the other two step
+// through a group of siblings in screen order, without wrapping. A subgraph's own direction is not read.
+
+/**
+ * A drawn node: its middle and size, in screen coordinates.
+ * @typedef {{ id: string, x: number, y: number, w: number, h: number }} Box
+ */
+/** @typedef {{ from: string, to: string }} Link */
+/** @typedef {'TB' | 'BT' | 'LR' | 'RL'} Direction */
+/**
+ * What a run of arrow keys remembers: `path`, the nodes it came forward through (the last one is the node it came
+ * from), and `group`, the siblings the cross arrows step through.
+ * @typedef {{ path: string[], group: string[] }} Trail
+ */
+
+/** Each direction's arrows: forward, back, previous sibling, next sibling. */
+const ARROWS = {
+  TB: { ArrowDown: 'forward', ArrowUp: 'back', ArrowLeft: 'prev', ArrowRight: 'next' },
+  BT: { ArrowUp: 'forward', ArrowDown: 'back', ArrowLeft: 'prev', ArrowRight: 'next' },
+  LR: { ArrowRight: 'forward', ArrowLeft: 'back', ArrowUp: 'prev', ArrowDown: 'next' },
+  RL: { ArrowLeft: 'forward', ArrowRight: 'back', ArrowUp: 'prev', ArrowDown: 'next' },
+};
+
+/**
+ * The next node for `key` (KeyboardEvent.key) from node `at`, and the trail to carry on with; null when there is
+ * nowhere to go. Edges to anything not in `boxes` (a subgraph) are left out.
+ * @param {{ boxes: Box[], links: Link[], direction: Direction }} graph
+ * @param {string} at
+ * @param {string} key
+ * @param {Trail | null} trail from the last arrow of this run, or null
+ * @returns {{ id: string, trail: Trail } | null}
+ */
+export function step({ boxes, links, direction }, at, key, trail) {
+  const move = /** @type {Record<string, string>} */ (ARROWS[direction])[key];
+  const byId = new Map(boxes.map((b) => [b.id, b]));
+  if (!move || !byId.has(at)) return null;
+  // Siblings run across the flow: left to right in TB and BT, top to bottom in LR and RL.
+  const across = direction === 'TB' || direction === 'BT' ? 'x' : 'y';
+  const along = across === 'x' ? 'y' : 'x';
+  const order = (/** @type {Iterable<string>} */ ids) => [...new Set(ids)].filter((id) => byId.has(id))
+    .sort((a, b) => {
+      const p = /** @type {Box} */ (byId.get(a)), q = /** @type {Box} */ (byId.get(b));
+      return p[across] - q[across] || p[along] - q[along];
+    });
+  const real = links.filter((l) => l.from !== l.to && byId.has(l.from) && byId.has(l.to));
+  const children = (/** @type {string} */ id) => order(real.filter((l) => l.from === id).map((l) => l.to));
+  const parents = (/** @type {string} */ id) => order(real.filter((l) => l.to === id).map((l) => l.from));
+  const path = trail?.path ?? [];
+
+  if (move === 'forward') {
+    const next = children(at);
+    return next.length ? { id: next[0], trail: { path: [...path, at], group: next } } : null;
+  }
+  if (move === 'back') {
+    const up = parents(at);
+    if (!up.length) return null;
+    const came = path.at(-1);
+    const id = came && up.includes(came) ? came : up[0];
+    // At a merge the cross arrows step through its parents; otherwise through the siblings of where Up went.
+    const rest = came === id ? path.slice(0, -1) : [];
+    return { id, trail: { path: rest, group: up.length > 1 ? up : groupOf(id, rest) } };
+  }
+  const group = trail?.group.includes(at) ? trail.group : groupOf(at, path);
+  const k = group.indexOf(at) + (move === 'next' ? 1 : -1);
+  return k >= 0 && k < group.length ? { id: group[k], trail: { path, group } } : null;
+
+  /** The siblings of `id`: the nodes its parent points to (the one it was reached from, else its first), or the
+   * nodes nothing points to when it has no parent. */
+  function groupOf(/** @type {string} */ id, /** @type {string[]} */ from) {
+    const up = parents(id);
+    const came = from.at(-1);
+    const parent = came && up.includes(came) ? came : up[0];
+    if (parent) return children(parent);
+    return order(boxes.map((b) => b.id).filter((b) => !parents(b).length));
+  }
+}
+
+/** The node whose middle is nearest the point (`x`, `y`), or null when there are none. */
+export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /** @type {number} */ y) {
+  let best = null, bestD = Infinity;
+  for (const b of boxes) {
+    const d = Math.hypot(b.x - x, b.y - y);
+    if (d < bestD) { best = b.id; bestD = d; }
+  }
+  return best;
+}
