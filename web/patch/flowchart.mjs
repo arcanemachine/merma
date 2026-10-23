@@ -78,8 +78,8 @@ export function isFlowchart(/** @type {string} */ text) {
 
 /**
  * Give the diagram the title `title`: the frontmatter's `title:` line gets the new value, plain when YAML reads it as
- * written, else double-quoted; the rest of the line's indentation and every other line stay. A file with no title in
- * its frontmatter, or one written over several lines, is refused.
+ * written and as a string, else double-quoted; every other line stays. The old value goes to the end of its line, a
+ * trailing `# comment` with it. A file with no title in its frontmatter, or one written over several lines, is refused.
  */
 export function setTitle(/** @type {string} */ text, /** @type {string} */ title) {
   const ls = lines(text);
@@ -88,8 +88,10 @@ export function setTitle(/** @type {string} */ text, /** @type {string} */ title
   if (k < 0) throw new Error('This diagram has no title in its frontmatter.');
   const m = /^title:[ \t]*(.*?)(\r?\n)?$/.exec(ls[k]);
   if (!m || /^[|>]/.test(m[1])) throw new Error('This title is written over several lines; edit it in the file.');
-  // Plain when it cannot be read as anything else: no leading or trailing space, no quote, indicator or comment.
-  const plain = /^[^\s'"#|>&*!%@`{}[\],?:-][^#]*$/.test(title) && !/:\s|:$|\s$/.test(title);
+  // Plain when it cannot be read as anything else: no leading or trailing space, no quote, indicator or comment, and
+  // not a number, a boolean or null (a null title is not drawn at all).
+  const plain = /^[^\s'"#|>&*!%@`{}[\],?:-][^#]*$/.test(title) && !/:\s|:$|\s$/.test(title)
+    && !/^(true|false|null|~|[-+]?(\.inf|\.nan|\d[\d_]*(\.\d*)?([eE][-+]?\d+)?|\.\d+([eE][-+]?\d+)?|0x[\da-f]+|0o[0-7]+))$/i.test(title);
   ls[k] = `title: ${plain ? title : JSON.stringify(title)}${m[2] ?? ''}`;
   return { text: ls.join('') };
 }

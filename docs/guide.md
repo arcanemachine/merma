@@ -206,8 +206,8 @@ out to screen readers, and brought into view when it is off screen; one already 
 the diagram's wherever the keyboard is, except in the label box, a menu or Help; while Help is open, no key acts on
 the diagram.
 
-Up from a node with nothing above it, along the edges or on screen, selects the diagram's title, when there is one;
-Down from the title goes to the node nearest below it. Shift+Arrows never reach the title.
+Up from a node where Up has nowhere else to go, along the edges or on screen, selects the diagram's title, when there
+is one; Down from the title goes to the node nearest below it. Shift+Arrows never reach the title.
 
 Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
 arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to
