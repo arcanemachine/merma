@@ -48,7 +48,7 @@ note where merma had to make one up.
 | Word | Meaning |
 |---|---|
 | **page** | merma in the browser, showing one file. |
-| **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Reset view, double-click). |
+| **view** | Where the diagram sits on screen: **zoom** (wheel), **move** (drag), **fit** (Fit to window, F, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
 | **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in the code means a DOM element. |
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |

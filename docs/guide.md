@@ -8,11 +8,12 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 ## Viewing
 
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
-- A double-click on empty space (not on a subgraph), or **Reset view**, fits the diagram to the window. Once you have zoomed or moved it,
-  edits keep your view, and so does a reload of the tab.
+- A double-click on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F fits the diagram
+  to the window. Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
-- **Copy SVG** and **Download SVG** export the diagram as the browser drew it.
+- **Export ▾** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
+  it.
 - Click the file's path in the header to copy it.
 
 ## Selecting
@@ -98,6 +99,7 @@ Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Ed
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
+**Fit to window**, last, fits the diagram to the window, as F does anywhere.
 
 ## The node panel
 
@@ -157,6 +159,7 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's title |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts) |
 | Escape | Cancel Connect to…, or deselect |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
@@ -170,7 +173,9 @@ A double-click on a node or an edge edits its label too, and one on a subgraph i
 
 Undo takes back the page's last edit (adding a node or a subgraph and naming it count as one), as long as the file has not changed
 since; it is refused otherwise, so it never throws away someone else's change. Redo puts an undone edit back, on the
-same terms.
+same terms. **Undo** and **Redo** in the footer do the same, and are greyed when there is nothing to undo or redo. A
+press on either while an edit is still saving (a label box's own save, started by that press as a click away) does
+nothing but say so: press again.
 
 ## What an edit changes
 

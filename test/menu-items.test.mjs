@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { GLOBAL_KEYS, keyIndex, MENUS, VERBS } from '../web/menu-items.mjs';
+import { EXPORT_MENU, GLOBAL_KEYS, keyIndex, MENUS, VERBS } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -11,17 +11,19 @@ const STATES = [
   { edgesOk: true, hasLabel: true, nameWhy: null },
   { edgesOk: false, hasLabel: false, nameWhy: 'This subgraph has no id in the file…' },
 ];
-const items = Object.entries(MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));
+const ALL_MENUS = { ...MENUS, export: EXPORT_MENU };
+const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));
 
 test('every menu label starts with one of the verbs, in sentence case', () => {
   for (const { item: { label } } of items) {
     assert.ok(VERBS.includes(label.split(' ')[0]), `${label}: not a listed verb`);
-    assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase()), `${label}: not sentence case`);
+    // An acronym (SVG) keeps its capitals.
+    assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase() || /^[A-Z]{2,}$/.test(w)), `${label}: not sentence case`);
   }
 });
 
 test('keys are unique within a menu and are a letter of their label', () => {
-  for (const [menu, list] of Object.entries(MENUS)) {
+  for (const [menu, list] of Object.entries(ALL_MENUS)) {
     const keys = list.map((i) => i.key);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const item of list) {
