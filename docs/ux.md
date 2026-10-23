@@ -108,6 +108,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Ctrl+Arrows jump by place, like Ctrl+Arrow jumping a word in text: what lies across from the selection (overlapping
   it) comes first, since that is what "below" means to the eye; then the nearest; no wrap. A subgraph is a container:
   they stop at its box going in and coming out, and never jump into one unasked; I and O go in and out.
+- Search (/) finds only what is on screen and never moves the view (the user): a jump to something off screen would
+  lose your place, so you move the view first. The selection steps aside while you search and comes back on Escape,
+  a click away, or Enter with nothing found, so a search that finds nothing changes nothing. Tab moves between matches
+  and so stays in the box; Escape is the way out (WCAG 2.1.2), and the box says so.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
   user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so

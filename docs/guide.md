@@ -176,6 +176,7 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: a node's or subgraph's edge on that side, then on along it (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Jump to the next node or subgraph that way on screen (below) |
+| / | Search what is on screen (below) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item last selected there, else its top-left one |
 | 1–9, 0 with a node selected | Give it that shape, by its digit in the node panel's shapes; the shape it has writes nothing |
@@ -222,6 +223,13 @@ item last selected inside it, else its top-left one. At the top, or with nothing
 
 Up (or Ctrl+Up) from a node or subgraph with nowhere else to go, and nothing drawn above it, selects the diagram's
 title, when there is one; Down from the title goes to the node or subgraph nearest below it.
+
+**Search** with /: type, and every node, edge label, subgraph and title on screen holding what you typed (ignoring
+case) is outlined in amber; the best match is filled, and Tab and Shift+Tab move to the next and the one before.
+Enter selects it; Escape, a click away, or Enter with nothing found, closes the search and puts back what was
+selected. The best match is the whole text, then one starting with it, then a word starting with it, then any;
+higher on screen first. Search never moves the view: what is off screen is not found, so move the view first. Tab
+stays in the search box, and Escape is the way out of it.
 
 In Connect to…, the arrows (plain or with Ctrl) move the dashed outline by place, starting from the node or subgraph
 the edge comes from, and I and O move it into and out of subgraphs; Enter connects to the outlined one.

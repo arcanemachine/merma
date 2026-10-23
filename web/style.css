@@ -6,6 +6,8 @@ html, body { height: 100%; }
   --success-bg: #dafbe1; --success-fg: #1a7f37;
   --warning-bg: #fff4d6; --warning-fg: #5c4400;
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
+  /* Search's marks: amber, apart from the selection's blue. */
+  --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
 }
 /* The notice shares the diagram's row and lies over its top, so it never resizes the diagram: a diagram that moved as
    a notice appeared would put another node under a click aimed just before. */
@@ -13,7 +15,7 @@ html, body { height: 100%; }
 body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; grid-template-columns: minmax(0, 1fr);
        font-family: system-ui, sans-serif;
        background: #fff; color: #222; }
-#notice, #diagram { grid-row: 3; grid-column: 1; }
+#notice, #find, #diagram { grid-row: 3; grid-column: 1; }
 header { padding: 8px 16px; border-bottom: 1px solid #ddd; font-size: 13px; display: flex; gap: 16px; }
 header h1 { margin: 0; font-size: 16px; white-space: nowrap; align-self: center; }
 header .paths { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -103,6 +105,21 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice { display: none; position: relative; z-index: 1; align-self: start; padding: 8px 16px; font-size: 13px;
           line-height: 16px; white-space: pre-wrap; }
 #notice.show { display: block; }
+/* Search on /: a bar over the diagram's top, as the notice lies, so the diagram never moves. */
+#find { position: relative; z-index: 2; align-self: start; display: flex; gap: 8px; align-items: center;
+        padding: 6px 16px; font-size: 13px; background: var(--find-bg); color: #222; }
+#find[hidden] { display: none; }
+#find input { font: inherit; padding: 2px 6px; border: 1px solid #888; border-radius: 4px; min-width: 12em; }
+#find .find-keys { color: #57606a; margin-left: auto; }
+/* What search finds: every match outlined, the one Enter picks filled. */
+#stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
+#stage g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.cluster[data-page-current] > rect { fill: var(--find-bg) !important; }
+#stage g.edgeLabel[data-page-match] .labelBkg { box-shadow: inset 0 0 0 2px var(--find-mark); }
+#stage g.edgeLabel[data-page-current] .labelBkg { background: var(--find-bg) !important; }
+#stage text.flowchartTitleText[data-page-match] { text-decoration: underline 2px var(--find-mark); }
+#stage text.flowchartTitleText[data-page-current] { fill: var(--find-text); }
 #notice.info { background: var(--info-bg); color: var(--info-fg); }
 #notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
 #notice.error { background: var(--error-bg); color: var(--error-fg); }

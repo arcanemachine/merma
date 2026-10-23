@@ -32,6 +32,7 @@ export const GLOBAL_KEYS = {
   'ctrl+arrowright': [],
   o: [],
   i: [],
+  '/': [],
   '+': [],
   '=': [],
   '-': [],
