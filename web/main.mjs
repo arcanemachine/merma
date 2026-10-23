@@ -161,7 +161,7 @@ for (const id of ['path', 'host']) {
   el(id).addEventListener('click', async () => {
     const text = el(id).dataset.copy;
     if (!text) return;
-    await copyText(text);
+    try { await copyText(text); } catch { ui.notice('Not copied: the browser refused.', 'error'); return; }
     toast('Copied!');
   });
 }
@@ -198,7 +198,7 @@ const exports = {
   'copy-svg': async () => {
     const markup = viewer.svgMarkup();
     if (!markup) return;
-    await copyText(markup);
+    try { await copyText(markup); } catch { ui.notice('Not copied: the browser refused. Use Download SVG instead.', 'error'); return; }
     toast('SVG copied!');
   },
   'download-svg': () => {
