@@ -583,7 +583,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       } else if (key === 'ArrowUp') toTitle(boxes, at);
       return true;
     }
-    if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return true; }
+    if (!edgesOk) {
+      ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
+      return true;
+    }
     const next = walk(graph, /** @type {import('./navigate.mjs').Target} */ (selected), key, trail?.edge === selected.id ? trail : null);
     if (next) {
       selectByKey(next.target);

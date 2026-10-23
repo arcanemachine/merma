@@ -154,7 +154,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - The colours come in pairs, a background and a text colour that reads on it, one pair per kind; `success` (green)
   is the toasts'. GLOSSARY names them.
 - Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so
-  pressing a greyed item's key over and over does not keep cutting in.
+  pressing a greyed item's key over and over does not keep cutting in. This follows "something tried that failed", not
+  the colour, so re-sorting info and warning moves nothing here.
 
 ## One way to do each thing
 
