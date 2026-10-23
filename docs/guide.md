@@ -176,8 +176,8 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
-| Arrows with something selected | Walk the edges: a node's or subgraph's edge on that side, then on along it (below) |
-| Ctrl+Arrows (Option on a Mac) with something selected | Jump to the next node or subgraph that way on screen (below) |
+| Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; the opposite arrow goes back (below) |
+| Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, jump to the next node that way (below) |
 | / (wherever it is on your keyboard) | Search what is on screen (below) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item last selected there, else its top-left one |
@@ -204,21 +204,24 @@ The diagram is one stop for Tab. Each item reached is read out to screen readers
 screen; one already in view moves nothing. The arrows are the diagram's wherever the keyboard is, except in the label
 box, a menu or Help; while Help is open, no key acts on the diagram. A key with nowhere to go does nothing.
 
-**Plain arrows walk the edges**, two presses a step. With a node or a subgraph's box selected, an arrow selects an edge
-on that side of it: Down an edge meeting its bottom, Right one meeting its right, and so on, whichever way the edge
-points. Press the same arrow again to go on along the edge to the node or subgraph at its far end, or the opposite
-arrow to go back. While an edge is selected, the other two arrows step through the edges on the same side, wrapping
-round within that side and never on to another. On a side, the leftmost edge comes first (on a left or right side,
-the topmost). A side is where the edge meets the outline, measured against the node's own width and height, so the
-slanted ends of a hexagon are its left and right, and edges spread along the bottom of a wide node are all on its
-bottom. An edge selected by a click goes, by an arrow, to the end that lies that way.
+**Plain arrows walk the edges**, two presses a step, and always mean their direction on screen. With a node or a
+subgraph's box selected, an arrow selects an edge leaving it that way: Down an edge that heads down as it leaves
+(whichever way it points, and wherever on the outline it starts: the edges out of a diamond's lower corners head
+down), Right one that heads right, and so on; the leftmost first (for Left and Right, the topmost). With none that way,
+a node inside a subgraph selects the subgraph's box, and the same arrow again takes the box's edge. On an edge, the
+arrow along it goes to the end you arrive at that way, and the other two go to the edge beside it, among those leaving
+its top end (or left end) the same way: from "Paid?", Down, then Right, Right, Right, steps through all four of its
+edges. They stop at the last one. An edge to a subgraph lands on its box.
 
-**Ctrl+Arrows jump by place** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
-next node or subgraph that way on screen, connected or not. One overlapping the selection across the arrow comes
-first (the nearest); with none, the nearest at all; the leftmost (or topmost) breaks a tie. They do not wrap. A
-subgraph is a container: inside one, they move among its own items, and when nothing lies that way the next press
-selects its box; from outside, they stop at a subgraph's box rather than jump into it. From an edge they jump from its
-middle. With nothing selected, Alt+Left and Alt+Right are the browser's (back and forward).
+The opposite arrow takes your last move back, and again the one before, so you can retrace your steps; a click, a
+search, or any other key that selects starts the way back afresh.
+
+**Ctrl+Arrows skip the edge** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the node
+or subgraph at the far end of the edge the plain arrow would select. With no edge that way, they jump by place: to the
+next node or subgraph that way on screen, connected or not, one in the same row (or column) first, then the nearest;
+inside a subgraph, among its own items, then its box; from outside, to a subgraph's box rather than into it. They do
+not wrap. From an edge, Ctrl+Arrow goes to the end that way, or jumps from its middle. With nothing selected, Alt+Left
+and Alt+Right are the browser's (back and forward).
 
 **O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
 item last selected inside it, else its top-left one. At the top, or with nothing inside, they do nothing.
