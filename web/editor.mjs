@@ -9,7 +9,7 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { beside, byPlace, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
+import { beside, byPlace, enter, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -624,8 +624,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
         return true;
       }
-      // An edge leaving that way, else the next thing that way.
-      next = walk(graph, here, key) ?? placed();
+      // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.
+      next = enter(path, graph.boxes, here, key) ?? walk(graph, here, key) ?? placed();
     }
     if (next) {
       // Leaving a subgraph for its own box: I comes back here.

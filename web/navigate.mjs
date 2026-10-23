@@ -248,6 +248,32 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 }
 
 /**
+ * Where plain arrow `key` goes from subgraph box `at` when the last move brought you to it by that same arrow from
+ * outside it: on into it, through the side you entered, to its child nearest that side (Down: the topmost, leftmost on
+ * a tie; Right: the leftmost, topmost on a tie). Null otherwise (a click, O, or a climb from inside: the box walks its
+ * edges), and for an empty box.
+ * @param {Move[]} path
+ * @param {Box[]} boxes from nest()
+ * @param {Target} at
+ * @param {string} key
+ * @returns {Target | null}
+ */
+export function enter(path, boxes, at, key) {
+  const last = path.at(-1);
+  const arrow = SIDES[key];
+  if (at.kind !== 'subgraph' || !arrow || !last || last.key !== key || last.to.kind !== 'subgraph' || last.to.id !== at.id) {
+    return null;
+  }
+  if (last.from.id === at.id || within(boxes, at.id).has(last.from.id)) return null;
+  const [vx, vy] = arrow.v;
+  // How far a child's entered side lies from the side you came in by, and its place across the way you go.
+  const depth = (/** @type {Box} */ b) => (vx ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);
+  const across = (/** @type {Box} */ b) => (vx ? b.y - b.h / 2 : b.x - b.w / 2);
+  const first = boxes.filter((b) => b.parent === at.id).sort((p, q) => depth(p) - depth(q) || across(p) - across(q))[0];
+  return first ? { kind: first.kind, id: first.id } : null;
+}
+
+/**
  * A move made by an arrow key, kept so the opposite key can take it back: from `from` to `to` by `key`, with Ctrl or
  * not.
  * `came`, for a move onto an edge: the node it was reached from and by which arrow, kept while stepping across.
