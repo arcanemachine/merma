@@ -115,7 +115,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
   user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
-  pickers use plain digits.
+  pickers use plain digits. A digit is read by its key's place on the number row, so it is the same key on every
+  layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
+  number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift.
 
 ## Greyed out or left out
 
