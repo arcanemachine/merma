@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nearest, step } from '../web/navigate.mjs';
+import { byPlace, nearest, step } from '../web/navigate.mjs';
 import { direction } from '../web/patch/flowchart.mjs';
 
 // A top-down diagram, as drawn:
@@ -99,4 +99,20 @@ test('direction reads the header, TD being TB, and defaults to TB', () => {
   assert.equal(direction('flowchart RL'), 'RL');
   assert.equal(direction('flowchart BT'), 'BT');
   assert.equal(direction('flowchart\n  A --> B'), 'TB');
+});
+
+test('byPlace goes to the nearest node within 45° of the arrow, connected or not', () => {
+  // check and charge are not connected to each other.
+  assert.equal(byPlace(boxes, 'check', 'ArrowRight'), 'charge');
+  assert.equal(byPlace(boxes, 'charge', 'ArrowLeft'), 'check');
+  // record is straight above done, start further up.
+  assert.equal(byPlace(boxes, 'done', 'ArrowUp'), 'record');
+  // From check, record is down and to the right at 63° from Right: Down takes it, Right does not.
+  assert.equal(byPlace(boxes, 'check', 'ArrowDown'), 'record');
+  assert.equal(byPlace(boxes, 'record', 'ArrowRight'), null);
+});
+
+test('byPlace finds nothing past the edge, and does not wrap', () => {
+  assert.equal(byPlace(boxes, 'start', 'ArrowUp'), null);
+  assert.equal(byPlace(boxes, 'done', 'ArrowDown'), null);
 });

@@ -8,7 +8,7 @@ import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { nearest, step } from './navigate.mjs';
+import { byPlace, nearest, step } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, direction, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, shapeOf, subgraphIdFromSvgId,
@@ -239,6 +239,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
+    if (!again) walk = null;   // a run of arrow keys ends when something else selects
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) e.setAttribute('data-page-selected', '');
@@ -424,6 +425,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     arrowdown: () => arrow('ArrowDown', 0, PAN_STEP),
     arrowleft: () => arrow('ArrowLeft', -PAN_STEP, 0),
     arrowright: () => arrow('ArrowRight', PAN_STEP, 0),
+    'shift+arrowup': () => arrow('ArrowUp', 0, -PAN_STEP, true),
+    'shift+arrowdown': () => arrow('ArrowDown', 0, PAN_STEP, true),
+    'shift+arrowleft': () => arrow('ArrowLeft', -PAN_STEP, 0, true),
+    'shift+arrowright': () => arrow('ArrowRight', PAN_STEP, 0, true),
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
@@ -437,7 +442,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return had;
     },
   };
-  const VIEW_KEYS = ['f', 'escape', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', '+', '=', '-'];
+  const VIEW_KEYS = ['f', 'escape', '+', '=', '-',
+    ...['up', 'down', 'left', 'right'].flatMap((d) => [`arrow${d}`, `shift+arrow${d}`])];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
 
@@ -447,10 +453,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { id: /** @type {string} */ (g.dataset.pageNode), x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
   });
   /**
-   * An arrow key: with a node selected it moves the selection along the edges (navigate.mjs); with nothing selected it
-   * moves the diagram, `fx` and `fy` of the area's size.
+   * An arrow key: with a node selected it moves the selection along the edges, or with Shift (`place`) to the nearest
+   * node that way on screen (navigate.mjs); with nothing selected it moves the diagram, `fx` and `fy` of the area's
+   * size.
    */
-  function arrow(/** @type {string} */ key, /** @type {number} */ fx, /** @type {number} */ fy) {
+  function arrow(/** @type {string} */ key, /** @type {number} */ fx, /** @type {number} */ fy, place = false) {
     if (!selected) { viewer.pan(fx, fy); return true; }
     // In Connect to… the arrows move the candidate, from the node the edge starts at; from a subgraph, the first
     // arrow reaches the node nearest the middle of the view.
@@ -467,7 +474,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (id) markCandidate(id);
       return true;
     }
-    const next = step(graph, at, key, walk?.at === at ? walk.trail : null);
+    // A move by place starts a new run: Up then goes to a parent, not back to where Shift left.
+    const found = place ? byPlace(graph.boxes, at, key) : null;
+    const next = place
+      ? found && { id: found, trail: { path: [], group: [] } }
+      : step(graph, at, key, walk?.at === at ? walk.trail : null);
     if (next) {
       if (connecting) markCandidate(next.id); else selectByKey(next.id);
       walk = { at: next.id, trail: next.trail };
