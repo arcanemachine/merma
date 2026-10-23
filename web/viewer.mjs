@@ -36,8 +36,10 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  * @param {(target: Element) => void} [hooks.onClick] a click, with the element pressed
  * @param {(target: Element) => boolean} [hooks.onDoubleClick] a double-click, with the element pressed; return true to
  *   say it was handled, or the view is fitted
- * @param {(target: Element, x: number, y: number) => boolean} [hooks.onContextMenu] a right-click or long-press, at
- *   client coordinates; return true to say it was handled (the browser's own menu is then not shown)
+ * @param {(target: Element, x: number, y: number, byKey: boolean) => boolean} [hooks.onContextMenu] a right-click or
+ *   long-press, at client coordinates, or the menu key or Shift+F10 (`byKey`: its target is the focused diagram, and
+ *   its coordinates are the browser's guess); return true to say it was handled (the browser's own menu is then not
+ *   shown)
  * @param {() => void} [hooks.onViewChange] the diagram moved or was zoomed on screen
  */
 export function createViewer({ diagram, stage }, hooks = {}) {
@@ -151,7 +153,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       press.timer = setTimeout(() => {
         if (drag !== press || press.moving) return;
         press.handled = true;   // the release that follows is not a click
-        onContextMenu(press.target, press.startX, press.startY);
+        onContextMenu(press.target, press.startX, press.startY, false);
       }, LONG_PRESS_MS);
     }
   });
@@ -160,7 +162,10 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     // On Android this is the long-press itself: whichever of it and the timer above comes first reports it, once.
     if (drag?.handled) { e.preventDefault(); return; }
     if (drag) { clearTimeout(drag.timer); drag.handled = true; }
-    if (onContextMenu(drag?.target ?? /** @type {Element} */ (e.target), e.clientX, e.clientY)) e.preventDefault();
+    // A right-click is button 2; the menu key and Shift+F10 come with button 0 and no press before them (a long-press
+    // has one, so it is never taken for a key).
+    const byKey = !drag && e.button !== 2;
+    if (onContextMenu(drag?.target ?? /** @type {Element} */ (e.target), e.clientX, e.clientY, byKey)) e.preventDefault();
   });
   diagram.addEventListener('pointermove', (e) => {
     if (!drag || !pointers.has(e.pointerId)) return;

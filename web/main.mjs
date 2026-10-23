@@ -121,7 +121,7 @@ let shownOnce = false;   // a diagram has been rendered; until then the view is 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onClick: (target) => editor?.clicked(target),
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
-  onContextMenu: (target, x, y) => editor?.contextMenu(target, x, y) ?? false,
+  onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
   onViewChange: () => { editor?.viewChanged(); if (shownOnce) keepView(); },
 });
 
