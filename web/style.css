@@ -1,13 +1,18 @@
 html, body { height: 100%; }
 /* The notice shares the diagram's row and lies over its top, so it never resizes the diagram: a diagram that moved as
    a notice appeared would put another node under a click aimed just before. */
-body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; font-family: system-ui, sans-serif;
+/* minmax(0, 1fr): the one column is the window's width, never the width of a long line in it (the header's path). */
+body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; grid-template-columns: minmax(0, 1fr);
+       font-family: system-ui, sans-serif;
        background: #fff; color: #222; }
 #notice, #diagram { grid-row: 3; grid-column: 1; }
 header { padding: 8px 16px; border-bottom: 1px solid #ddd; font-size: 13px; display: flex; gap: 16px; }
 header h1 { margin: 0; font-size: 16px; white-space: nowrap; align-self: center; }
 header .paths { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-header .path { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+/* One line, cut at the start so the file name stays in view (the user); the path itself is a <bdi>, so it reads left to
+   right inside the right-to-left box that puts the ellipsis on the left. */
+header .path { font-family: ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+               direction: rtl; text-align: left; }
 header .host { color: #666; }
 header .host:empty { display: none; }
 header .path[data-copy] { cursor: copy; }

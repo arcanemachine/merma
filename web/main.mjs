@@ -54,6 +54,24 @@ function toast(/** @type {string} */ message) {
   toastTimer = setTimeout(() => el('toast').classList.remove('show'), ms);
 }
 
+/**
+ * Put `text` on the clipboard. The clipboard API exists only in a secure context: localhost is one, but a page opened
+ * by the machine's address from another device (a phone) is not, and there the old copy command still works.
+ */
+async function copyText(/** @type {string} */ text) {
+  if (navigator.clipboard) { await navigator.clipboard.writeText(text); return; }
+  const box = Object.assign(document.createElement('textarea'), { value: text });
+  box.setAttribute('readonly', '');
+  Object.assign(box.style, { position: 'fixed', top: '0', opacity: '0' });
+  const focused = /** @type {HTMLElement | null} */ (document.activeElement);
+  document.body.append(box);
+  box.select();
+  const ok = document.execCommand('copy');
+  box.remove();
+  focused?.focus();
+  if (!ok) throw new Error('The browser refused to copy');
+}
+
 function showError(/** @type {string} */ message) {
   el('error').textContent = message;
   el('error').style.display = message ? 'block' : 'none';
@@ -129,22 +147,21 @@ editor = createEditor({
   els: { stage: el('stage'), diagram: el('diagram'), labelBox: el('label-box') },
 });
 
-// The header: the file's path, and its host path when the server knows it. Click either to copy it; localhost is a
-// secure context, so the clipboard API is available.
-el('path').textContent = file;
-el('path').dataset.copy = file;
+// The header: the file's path, and its host path when the server knows it, each on one line cut at the start, so the
+// file name stays in view; the title has all of it. Click either to copy it.
+function showPath(/** @type {string} */ id, /** @type {string} */ text, /** @type {string} */ path) {
+  el(id).replaceChildren(Object.assign(document.createElement('bdi'), { textContent: text }));
+  el(id).dataset.copy = path;
+  el(id).title = `${path}\nClick to copy`;
+}
+showPath('path', file, file);
 document.title = file.split('/').pop() + ' · merma';
-source.hostPath().then((host) => {
-  if (!host) return;
-  el('host').textContent = 'host: ' + host;
-  el('host').dataset.copy = host;
-});
+source.hostPath().then((host) => { if (host) showPath('host', 'host: ' + host, host); });
 for (const id of ['path', 'host']) {
-  el(id).title = 'Click to copy path to clipboard';
   el(id).addEventListener('click', async () => {
     const text = el(id).dataset.copy;
     if (!text) return;
-    await navigator.clipboard.writeText(text);
+    await copyText(text);
     toast('Copied!');
   });
 }
@@ -181,7 +198,7 @@ const exports = {
   'copy-svg': async () => {
     const markup = viewer.svgMarkup();
     if (!markup) return;
-    await navigator.clipboard.writeText(markup);
+    await copyText(markup);
     toast('SVG copied!');
   },
   'download-svg': () => {
