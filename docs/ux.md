@@ -73,8 +73,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   saved for any other reason (a shape the label cannot take, another edit still saving) keeps the box open with its
   error, and the click that left it does nothing. A click away onto another item selects that item once the save is
   drawn.
-- No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
-  hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
+- No hover styling on the diagram, where a highlight would say something is selectable when it is not. The pointer
+  says what a click does instead (the user): the pointing finger on anything a click selects (a node, an edge with
+  the band around its line, a subgraph, the title), the browser's own hand everywhere else, where a drag moves the
+  diagram. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
 - Arrow keys in a picker wrap within their row or column, never on into the next: Right at a row's end goes to its
   start, Down at the bottom to the top of the same column. So a key always moves along one line of the grid, and
