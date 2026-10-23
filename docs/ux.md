@@ -70,7 +70,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   as it was, with a notice (the user), and the click goes on as after any save (the reviewer): a click away is not the
   deliberate save Enter is, so it does not hold you in the box. Enter on one is refused with an error. What cannot be
   saved for any other reason (a shape the label cannot take, another edit still saving) keeps the box open with its
-  error, and the click that left it does nothing. A click away onto another item selects that item once the save is drawn.
+  error, and the click that left it does nothing. A click away onto another item selects that item once the save is
+  drawn.
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
