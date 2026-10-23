@@ -67,6 +67,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
+  let keptClick = false;   // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;
 
@@ -324,7 +325,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return;
     }
     if (item) select(item);
-    else { deselect(); ui.hideNotice(); }
+    else { deselect(); if (!keptClick) ui.hideNotice(); }
+    keptClick = false;
   }
 
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
@@ -414,6 +416,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // Any press is a new click: one left over from a refused save (its click landed outside the diagram) goes. This
     // runs before the press moves focus, and so before that blur can set it again.
     swallowClick = false;
+    keptClick = false;
     // A press outside the label box and its strip ends it (and saves, commit): by the press itself, not by the focus
     // it moves, which a touch moves only once it is a tap.
     const at = /** @type {Node} */ (e.target), focused = /** @type {HTMLElement | null} */ (document.activeElement);
@@ -492,7 +495,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
     if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); selectShape(on.dataset.key); input.focus(); }
-    else if (e.key === 'Tab') { e.preventDefault(); saveLabel(); }
+    else if (e.key === 'Tab') { e.preventDefault(); saveLabel(keepEmptied()); }
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
     e.stopPropagation();
   });
@@ -582,14 +585,27 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /**
    * Focus left the label box and its strip (a click or tap away, Tab): save, as Enter does; only Escape discards
-   * (docs/ux.md). What cannot be saved keeps the box open, focus back in it, and the click that left it does nothing.
+   * (docs/ux.md). An emptied label is kept as it was, and the click goes on. What cannot be saved (a shape the label
+   * cannot take, or another edit still saving) keeps the box open, focus back in it, and the click that left it does
+   * nothing.
    */
   function commit() {
     if (!labelling) return;
     // Refused already by this press: its own focus move blurs the box a second time.
     if (swallowClick) { input.focus(); return; }
     if (busy) { ui.notice('Not saved: another edit is still saving; try again.', 'error'); keepBox(); return; }
-    if (!submitLabel()) keepBox();
+    const kept = keepEmptied();
+    if (!submitLabel(kept)) keepBox();
+    else if (kept) keptClick = true;
+  }
+  /**
+   * Leaving the box (a click away, Tab) with a node's label or a subgraph's title emptied keeps it as it was, rather
+   * than refusing the save as Enter does. Returns the notice that says so, or null.
+   */
+  function keepEmptied() {
+    if (!labelling || labelling.kind === 'edge' || input.value.trim() || input.value === input.dataset.initial) return null;
+    input.value = input.dataset.initial ?? '';
+    return labelling.kind === 'node' ? 'Label kept: a label cannot be empty.' : 'Title kept: a title cannot be empty.';
   }
   function keepBox() {
     swallowClick = true;
@@ -620,7 +636,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     if (!target || !(e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey))) return;
     e.preventDefault();
-    saveLabel();
+    saveLabel(e.key === 'Tab' ? keepEmptied() : null);
   });
 
   /**
@@ -653,15 +669,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * Enter, or Tab either way: save, and leave focus in the diagram, where what was edited is selected, rather than on
    * the next control in the page, which is not where the user was working.
    */
-  function saveLabel() {
-    if (submitLabel()) els.diagram.focus();
+  function saveLabel(/** @type {string | null} */ kept = null) {
+    if (submitLabel(kept)) els.diagram.focus();
   }
 
   /**
    * Save what the label box holds (and the strip's shape, while it is open), as Enter does. Returns false when it was
-   * refused, the box still open.
+   * refused, the box still open. `kept` is the notice for an emptied label kept as it was, shown once the save is done.
    */
-  function submitLabel() {
+  function submitLabel(/** @type {string | null} */ kept = null) {
     const target = labelling;
     if (!target) return false;
     const label = input.value;
@@ -686,7 +702,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
     // selected, as after an edit: the two look alike.
-    if (!relabelled && !shape) { select(target); naming = null; return true; }
+    if (!relabelled && !shape) { select(target); naming = null; if (kept) ui.notice(kept, 'warning'); return true; }
     if (target.kind === 'edge') {
       editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) });
       return true;
@@ -696,7 +712,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (target.kind === 'node') {
       const names = [named(target), NODE_SHAPES.find((e) => e.key === shape)?.name];
       // A shape change is not seen by a screen reader, unlike a label it typed.
-      const afterSave = shape && !relabelled ? () => ui.announce(`Changed ${names[0]} to ${names[1]}`) : undefined;
+      const afterSave = shape && !relabelled ? () => {
+        ui.announce(`Changed ${names[0]} to ${names[1]}`);
+        if (kept) ui.notice(kept, 'warning');
+      } : undefined;
       edit(renamed, { into, afterSave, after: () => ({ item: target }) });
       return true;
     }
