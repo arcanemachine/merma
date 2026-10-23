@@ -121,8 +121,8 @@ export function nest(/** @type {Box[]} */ boxes) {
 
 /**
  * Where Ctrl+Arrow `key` goes from box `at`, by place: among the boxes at its own level (the same subgraph, or the
- * top), those ahead (their middle more than a pixel beyond its middle along the arrow); the ones overlapping it across
- * the arrow first, nearest along it; else the nearest; leftmost or topmost breaking ties. Nothing ahead inside a
+ * top), those ahead (their middle more than a pixel beyond its middle along the arrow); the ones in its row (or column)
+ * first, nearest along it; else the nearest; leftmost or topmost breaking ties. Nothing ahead inside a
  * subgraph: the subgraph's own box. Nothing at all: null; nothing wraps. To go from something with no box (an edge),
  * pass a box of no size at its middle through nest(), which puts it at the level of the subgraph around that point.
  * @param {Box[]} boxes from nest()
@@ -137,9 +137,11 @@ export function byPlace(boxes, at, key) {
   const [vx, vy] = arrow.v;
   const alongOf = (/** @type {Box} */ b) => (b.x - from.x) * vx + (b.y - from.y) * vy;
   const horizontal = vx !== 0;
+  // In the same row (or column): one's middle within the other's span across the arrow. A sliver of shared span is
+  // not enough: a box mostly above, a little to the right, is not what Right means.
   const overlaps = (/** @type {Box} */ b) => (horizontal
-    ? Math.abs(b.y - from.y) < (b.h + from.h) / 2
-    : Math.abs(b.x - from.x) < (b.w + from.w) / 2);
+    ? Math.abs(b.y - from.y) < Math.max(b.h, from.h) / 2
+    : Math.abs(b.x - from.x) < Math.max(b.w, from.w) / 2);
   const tie = (/** @type {Box} */ p, /** @type {Box} */ q) => (horizontal ? p.y - q.y : p.x - q.x);
   // Ahead by more than a pixel: a box straight below is not to the right for being a fraction across.
   const ahead = boxes.filter((b) => b.id !== at && (b.parent ?? null) === (from.parent ?? null) && alongOf(b) > 1);

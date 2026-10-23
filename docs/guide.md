@@ -220,8 +220,8 @@ middle. With nothing selected, Alt+Left and Alt+Right are the browser's (back an
 **O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
 item last selected inside it, else its top-left one. At the top, or with nothing inside, they do nothing.
 
-Up from a node with nowhere else to go, and nothing drawn above it, selects the diagram's title, when there is one;
-Down from the title goes to the node or subgraph nearest below it.
+Up (or Ctrl+Up) from a node or subgraph with nowhere else to go, and nothing drawn above it, selects the diagram's
+title, when there is one; Down from the title goes to the node or subgraph nearest below it.
 
 In Connect to…, the arrows (plain or with Ctrl) move the dashed outline by place, starting from the node or subgraph
 the edge comes from, and I and O move it into and out of subgraphs; Enter connects to the outlined one.
