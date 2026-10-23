@@ -253,18 +253,21 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
  * a tie; Right: the leftmost, topmost on a tie). Null otherwise (a click, O, or a climb from inside: the box walks its
  * edges), and for an empty box.
  * @param {Move[]} path
- * @param {Box[]} boxes from nest()
+ * @param {{ boxes: Box[], edges: Edge[] }} graph boxes from nest()
  * @param {Target} at
  * @param {string} key
  * @returns {Target | null}
  */
-export function enter(path, boxes, at, key) {
+export function enter(path, { boxes, edges }, at, key) {
   const last = path.at(-1);
   const arrow = SIDES[key];
   if (at.kind !== 'subgraph' || !arrow || !last || last.key !== key || last.to.kind !== 'subgraph' || last.to.id !== at.id) {
     return null;
   }
-  if (last.from.id === at.id || within(boxes, at.id).has(last.from.id)) return null;
+  const inside = within(boxes, at.id);
+  // From an edge with an end inside (a climb by place from its middle, or a crossing edge): from inside.
+  const from = last.from.kind === 'edge' ? edges.find((e) => e.id === last.from.id) : null;
+  if (last.from.id === at.id || inside.has(last.from.id) || (from && (inside.has(from.from) || inside.has(from.to)))) return null;
   const [vx, vy] = arrow.v;
   // How far a child's entered side lies from the side you came in by, and its place across the way you go.
   const depth = (/** @type {Box} */ b) => (vx ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);

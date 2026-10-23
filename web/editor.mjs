@@ -640,7 +640,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         return true;
       }
       // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.
-      next = enter(path, graph.boxes, here, key) ?? walk(graph, here, key) ?? placed();
+      next = enter(path, graph, here, key) ?? walk(graph, here, key) ?? placed();
     }
     if (next) {
       // Leaving a subgraph for its own box: I comes back here.
