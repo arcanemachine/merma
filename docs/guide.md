@@ -132,8 +132,9 @@ away and then Undo. Once the panel an add opened is closed, Undo is the way back
   change shape with its label left empty. Only the label changes, where the node is first given a
   shape; a node that only appears bare gets brackets at its first appearance.
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
-  (wrapping within their row or column), a digit selects one of the first ten and Shift+digit one of the next ten
-  (holding Shift turns their digits dark and the first ten's grey), Enter selects the one with the outline and goes
+  (wrapping within their row or column), a digit selects one of the first ten and Shift+digit one of the next ten, by
+  the number row's keys whatever they type on your layout (holding Shift turns their digits dark and the first ten's
+  grey), Enter selects the one with the outline and goes
   back to the label, and Up from the top row or Escape goes back to the label, keeping what was selected.
   The selected shape is filled; the outline is where the arrows are. The line under them names the shape under the
   pointer, else the one the arrows are on, else the selected one ("Current: Rectangle (Process)").

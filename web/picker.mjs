@@ -12,10 +12,16 @@ import { move } from './grid.mjs';
 
 // While Shift is held, the digits Shift picks show dark and the plain ones grey, and the other way round when it is not:
 // the page marks the root, which every picker's digits read (style.css).
-const shiftHeld = (/** @type {boolean} */ on) => document.documentElement.toggleAttribute('data-shift', on);
-document.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld(true); });
-document.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld(false); });
-window.addEventListener('blur', () => shiftHeld(false));
+// Listened for from the first picker made, not on import, so a test can import this module without a page.
+let watchingShift = false;
+function watchShift() {
+  if (watchingShift) return;
+  watchingShift = true;
+  const shiftHeld = (/** @type {boolean} */ on) => document.documentElement.toggleAttribute('data-shift', on);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld(true); });
+  document.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld(false); });
+  window.addEventListener('blur', () => shiftHeld(false));
+}
 
 /**
  * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
@@ -41,6 +47,7 @@ const label = (/** @type {PickerEntry} */ entry) => entry.name
  * @param {boolean} [options.strip] its buttons never take focus
  */
 export function createPicker({ title, entries, onPick, columns = 5, strip = false }) {
+  watchShift();
   const el = document.createElement('div');
   el.className = 'picker';
   el.setAttribute('role', 'group');
