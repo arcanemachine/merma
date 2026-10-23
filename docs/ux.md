@@ -35,8 +35,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Fit | changes the view, not the file | Fit to window |
   | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG |
 
-- An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu. ▾ on
-  a button opens a menu (Export ▾): the footer's other buttons act at once.
+- An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu. ▴ on
+  a button opens a menu above it (Export ▴): the footer's other buttons act at once.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
 ## Gestures and keys
