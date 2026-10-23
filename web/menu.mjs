@@ -21,8 +21,9 @@ import { place } from './place.mjs';
  * @param {(action: string) => void} options.onRun
  * @param {(why: string) => void} options.onRefuse an item that does not apply was chosen
  * @param {() => void} [options.onClose] it closed, by whatever means
+ * @param {'right' | 'above'} [options.side] where it opens from its anchor
  */
-export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, onRun, onRefuse, onClose = () => {} }) {
+export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, onRun, onRefuse, onClose = () => {}, side = 'right' }) {
   const el = popover('menu');
   el.setAttribute('role', 'menu');
   const sub = popover('menu submenu');
@@ -121,7 +122,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function reposition(to = anchor) {
     if (!isOpen() || !to) return;
     anchor = to;
-    put(el, place(anchor, el.getBoundingClientRect(), bounds(), { gap }));
+    put(el, place(anchor, el.getBoundingClientRect(), bounds(), { side, gap }));
     placeSub();
   }
 

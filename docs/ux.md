@@ -32,8 +32,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Remove | clears a property; the thing stays | Remove label |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
+  | Fit | changes the view, not the file | Fit to window |
+  | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG |
 
-- An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu.
+- An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu. ▾ on
+  a button opens a menu (Export ▾): the footer's other buttons act at once.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
 ## Gestures and keys
@@ -56,9 +59,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Connect to…) ends on one, as on Escape. The label box is the exception (the user): a click or tap away, or Tab,
   keeps what you typed (it saves, as Enter does); only Escape discards it. In the box an add opened, Escape takes the
   add back too (the user): it cancels what was started, and what was started is the add. Undo takes a save back, which
-  is what makes saving on a click away safe, and a touch screen has no other sure way to save. What cannot be saved
-  (an emptied label) keeps the box open with its error, and the click that left it does nothing. A click away onto
-  another item selects that item once the save is drawn.
+  is what makes saving on a click away safe, and a touch screen has no other sure way to save. A press on Undo or Redo
+  that started that save, as its click away, does not wait for it: it says the save is still going and to press again,
+  rather than doing nothing silently or two things at once. What cannot be saved (an emptied label) keeps the box open
+  with its error, and the click that left it does nothing. A click away onto another item selects that item once the
+  save is drawn.
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
@@ -83,7 +88,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   in the notice when its key is pressed or it is tapped.
 - An item for another kind of thing is left out.
 - Items run make, change, rearrange, delete: Add and Connect, then Edit and Remove, then Reverse and Move, then Delete,
-  last and set apart. Within a group, the most used first.
+  last and set apart. A view action (Fit to window), which changes nothing in the file, goes last and set apart in the
+  same way. Within a group, the most used first.
 - This is a balance, not a fixed rule: hide what would only be noise.
 
 ## After an edit

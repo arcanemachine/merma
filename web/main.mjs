@@ -2,6 +2,8 @@
 // and footer. The three never reach into each other; everything they share passes through here.
 
 import { createEditor } from './editor.mjs';
+import { createMenu } from './menu.mjs';
+import { EXPORT_MENU } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
@@ -84,6 +86,10 @@ const ui = {
     el('notice').classList.remove('show');
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
   },
+  history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
+    /** @type {HTMLButtonElement} */ (el('undo')).disabled = !can.undo;
+    /** @type {HTMLButtonElement} */ (el('redo')).disabled = !can.redo;
+  },
 };
 
 /** @type {ReturnType<typeof createEditor> | null} set once the source and viewer it needs exist */
@@ -105,7 +111,7 @@ async function display(/** @type {string} */ text) {
     editor?.failed();
     return;
   }
-  for (const b of ['copy-svg', 'download-svg', 'reset-view']) /** @type {HTMLButtonElement} */ (el(b)).disabled = false;
+  /** @type {HTMLButtonElement} */ (el('export')).disabled = false;
   showError('');
   if (!shownOnce) { shownOnce = true; restoreView(); }
   el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
@@ -145,6 +151,8 @@ const osKey = 'merma:help-os';
 const osPicks = /** @type {NodeListOf<HTMLButtonElement>} */ (el('help').querySelectorAll('[data-os-pick]'));
 function showOs(/** @type {string} */ os) {
   el('help').dataset.os = os;
+  el('undo').title = os === 'mac' ? 'Undo (⌘Z)' : 'Undo (Ctrl+Z)';
+  el('redo').title = os === 'mac' ? 'Redo (⌘⇧Z)' : 'Redo (Ctrl+Shift+Z or Ctrl+Y)';
   for (const b of osPicks) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));
 }
 /** @type {string | null} */
@@ -160,24 +168,47 @@ for (const b of osPicks) {
   });
 }
 
-// The footer. The SVG is exported as this browser drew it, with its fonts, so it can differ slightly from a
-// mermaid-cli PNG.
-el('reset-view').addEventListener('click', viewer.fit);
-el('copy-svg').addEventListener('click', async () => {
-  const markup = viewer.svgMarkup();
-  if (!markup) return;
-  await navigator.clipboard.writeText(markup);
-  toast('SVG copied!');
+// The footer: Undo and Redo, and the Export menu. The SVG is exported as this browser drew it, with its fonts, so it can
+// differ slightly from a mermaid-cli PNG.
+el('undo').addEventListener('click', () => editor?.undo());
+el('redo').addEventListener('click', () => editor?.redo());
+const exportButton = el('export');
+const exports = {
+  'copy-svg': async () => {
+    const markup = viewer.svgMarkup();
+    if (!markup) return;
+    await navigator.clipboard.writeText(markup);
+    toast('SVG copied!');
+  },
+  'download-svg': () => {
+    const markup = viewer.svgMarkup();
+    if (!markup) return;
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
+    link.download = /** @type {string} */ (file.split('/').pop()).replace(/\.mmd$/, '') + '.svg';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    toast('SVG downloaded');
+  },
+};
+const exportMenu = createMenu(EXPORT_MENU, {
+  parent: /** @type {HTMLElement} */ (document.querySelector('footer')),
+  bounds: () => new DOMRect(0, 0, innerWidth, innerHeight),
+  returnFocus: exportButton,
+  side: 'above',
+  onRun: (action) => exports[/** @type {keyof typeof exports} */ (action)](),
+  onRefuse: () => {},
+  onClose: () => exportButton.setAttribute('aria-expanded', 'false'),
 });
-el('download-svg').addEventListener('click', () => {
-  const markup = viewer.svgMarkup();
-  if (!markup) return;
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
-  link.download = /** @type {string} */ (file.split('/').pop()).replace(/\.mmd$/, '') + '.svg';
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-  toast('SVG downloaded');
+exportButton.addEventListener('click', () => {
+  if (exportMenu.isOpen()) { exportMenu.close(); return; }
+  exportMenu.open(exportButton.getBoundingClientRect(), { edgesOk: true, hasLabel: false, nameWhy: null }, { gap: 4 });
+  exportButton.setAttribute('aria-expanded', 'true');
+});
+// A press anywhere else closes it, the diagram included, as for the diagram's own menus.
+document.addEventListener('pointerdown', (e) => {
+  const at = /** @type {Node} */ (e.target);
+  if (exportMenu.isOpen() && !exportMenu.contains(at) && !exportButton.contains(at)) exportMenu.close();
 });
 
 // For tests: hold polling to set up a stale save, or save text directly to exercise the parse check.

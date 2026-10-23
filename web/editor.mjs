@@ -40,7 +40,8 @@ import { NODE_SHAPES } from './shapes.mjs';
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
@@ -130,7 +131,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     editable = on;
     els.stage.classList.toggle('editable', on);
     if (!on) { deselect(); closeLabelBox(); }
+    historyChanged();
   }
+  const historyChanged = () => ui.history({ undo: editable && history.size > 0, redo: editable && history.redoSize > 0 });
 
   // --- the menus -----------------------------------------------------------------------------------------------
 
@@ -160,6 +163,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const parent = selectedSubgraph();
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
     },
+    'fit-view': () => viewer.fit(),
   };
   // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
   // menu item that does nothing.
@@ -366,7 +370,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // opens its History with it); N adds a node (connected to the selected node, or in the selected subgraph); Enter or F2
   // opens the selected node's panel, or edits the selected edge's label or subgraph's title; Delete or Backspace deletes
   // the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
-  // diagram; Escape backs out of whatever is open.
+  // diagram; F fits the diagram to the window, whatever is selected or waiting; Escape backs out of whatever is open.
+  // F and Escape also work when the diagram is not editable (a sequence diagram still fits).
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
   /** @type {Record<string, () => unknown>} what each key does; truthy when it was used */
   const keys = {
@@ -388,6 +393,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       openSpaceMenu(r.left + r.width / 2, r.top + r.height / 2);
       return true;
     },
+    f: () => { viewer.fit(); return true; },
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
     // goes ahead.
     escape: () => {
@@ -398,6 +404,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return had;
     },
   };
+  const VIEW_KEYS = ['f', 'escape'];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
 
@@ -418,6 +425,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   document.addEventListener('keydown', (e) => {
     if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
     const key = e.key.toLowerCase();
+    // Enter and Space on a focused button (the footer's) press it.
+    if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
       if (e.shiftKey) redo(); else undo();
@@ -428,7 +437,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       redo();
       return;
     }
-    if (e.ctrlKey || e.metaKey || e.altKey || !keys[key] || (!editable && key !== 'escape')) return;
+    if (e.ctrlKey || e.metaKey || e.altKey || !keys[key] || (!editable && !VIEW_KEYS.includes(key))) return;
     if (keys[key]()) e.preventDefault();
   });
 
@@ -738,6 +747,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       await work();
     } finally {
       busy = false;
+      historyChanged();
     }
   }
 
@@ -907,6 +917,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       selected: selectedNode(), selectedEdge: selected?.kind === 'edge' ? selected.id : null,
       selectedSubgraph: selectedSubgraph(), connecting, editable, edgesOk,
     }),
+
+    /**
+     * Undo or redo from a button. Unlike the keys, which a held key repeats, a press while an edit saves says why it did
+     * nothing: most often the label box's own save, which the press started by clicking away from it.
+     */
+    undo: () => (busy ? ui.notice('Not undone: another edit is still saving; try again.', 'error') : undo()),
+    redo: () => (busy ? ui.notice('Not redone: another edit is still saving; try again.', 'error') : redo()),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
     idle: () => !busy && !labelling && !connecting,

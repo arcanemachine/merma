@@ -5,7 +5,7 @@
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move'];
+export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Fit', 'Copy', 'Download'];
 
 /** Keys the page answers outside menus (KeyboardEvent.key, lower-cased), and the actions each one runs. */
 export const GLOBAL_KEYS = {
@@ -14,6 +14,7 @@ export const GLOBAL_KEYS = {
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
   backspace: ['delete-node', 'delete-edge'],
+  f: ['fit-view'],
   m: [],
   escape: [],
 };
@@ -66,8 +67,15 @@ export const MENUS = {
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
+    { action: 'fit-view', label: 'Fit to window', key: 'f', separated: true },
   ],
 };
+
+/** The footer's Export menu. Its items act on the page, not the diagram, so it is not one of MENUS. */
+export const EXPORT_MENU = [
+  { action: 'copy-svg', label: 'Copy SVG', key: 'c' },
+  { action: 'download-svg', label: 'Download SVG', key: 'd' },
+];
 
 /**
  * Where an item's key is shown in its label: its first letter that starts a word, else its first letter at all.
