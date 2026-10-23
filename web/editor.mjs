@@ -9,7 +9,7 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { beside, byPlace, enter, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
+import { across, byPlace, enter, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -632,8 +632,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const e = graph.edges.find((x) => x.id === here.id);
       if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
       next = walk(graph, here, key, came);
-      // Stepped across to another edge: it counts as reached from the end whose edges were stepped through.
-      came = next?.kind === 'edge' ? beside(graph, here.id, came) : null;
+      // Paged across to another edge: it counts as reached from the end whose edges it was found among.
+      came = next?.kind === 'edge' ? across(graph, here.id, key, came)?.from ?? null : null;
     } else {
       if (!edgesOk) {
         ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
