@@ -132,6 +132,10 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-selected] > rect { stroke: #0969da !important; stroke-width: 3px !important; }
+/* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text colour give way. */
+#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *) { fill: #ddf4ff !important; }
+#stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
+#stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: #0969da; text-decoration: underline 2px; }
 /* In Connect to…, the node or subgraph the arrows have reached: dashed, as it is not yet chosen. */
 #stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *),

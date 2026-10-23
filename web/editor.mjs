@@ -281,7 +281,22 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection -----------------------------------------------------------------------------------------------
 
+  // Mermaid writes classDef, style and linkStyle colours inline with !important, which no stylesheet rule beats: while
+  // an item is selected, its inline colours lose the !important (the original kept in data-page-style), so the
+  // selection's colours show.
+  const loosen = (/** @type {Element} */ el) => {
+    for (const e of [el, ...el.querySelectorAll('[style*="important"]')]) {
+      const style = e.getAttribute('style');
+      if (!style?.includes('important')) continue;
+      e.setAttribute('data-page-style', style);
+      e.setAttribute('style', style.replaceAll('!important', ''));
+    }
+  };
   const unmark = () => {
+    for (const e of drawn('[data-page-style]')) {
+      e.setAttribute('style', e.getAttribute('data-page-style') ?? '');
+      e.removeAttribute('data-page-style');
+    }
     for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected');
     for (const e of drawn('[data-page-candidate]')) e.removeAttribute('data-page-candidate');
     candidate = null;
@@ -297,7 +312,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!again && !moving) path = [];   // a click, a search, an edit: the way back starts again
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
-    for (const e of elsOf(sel)) e.setAttribute('data-page-selected', '');
+    for (const e of elsOf(sel)) { e.setAttribute('data-page-selected', ''); loosen(e); }
     if (!keepMode) connecting = false;
     if (!menu || connecting) return;
     if (sel.kind === 'edge') {
