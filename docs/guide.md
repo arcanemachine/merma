@@ -21,8 +21,8 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 ## Selecting
 
-In a flowchart, click a node, an edge's line or label, or a subgraph (anywhere on its box that is not a node or an
-edge), to select it: it is outlined in blue. After an edit, what it acted on stays selected (a new node or edge
+In a flowchart, click a node, an edge's line or label, a subgraph (anywhere on its box that is not a node or an
+edge), or the diagram's title, to select it: it is outlined in blue (the title is underlined). After an edit, what it acted on stays selected (a new node or edge
 included), so you can go on from it: N adds the next node, Enter edits it, M opens its menu. A delete, undo and
 redo leave nothing selected. Click empty space to deselect. Right-click it (or long-press on a touch screen) for its
 menu. Other diagram types are view-only.
@@ -101,6 +101,15 @@ another click on it closes it.
 
 Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
 
+### Title menu
+
+The diagram's title is the frontmatter's `title:`, drawn over the diagram; a diagram with none has no title to select.
+- **Edit title** edits it in place, in the label box: `title: Old` becomes `title: New title`, or
+  `title: "Step: one"` where YAML would read the plain words otherwise. A title cannot be empty, as for a subgraph. A
+  title written over several lines (`title: >`) is refused: edit it in the file.
+
+Removing the title is not supported: Delete or Backspace on it says so.
+
 ### Empty space
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
@@ -163,10 +172,11 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Key | Does |
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
-| Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's title |
+| Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with a node selected | Select the next node along the edges (below) |
 | Shift+Arrows with a node selected | Select the nearest node that way on screen, connected or not |
+| Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
@@ -193,6 +203,9 @@ step through, and likewise for `BT` and `RL`. A subgraph's own `direction` is no
 out to screen readers, and brought into view when it is off screen; one already in view moves nothing. The arrows are
 the diagram's wherever the keyboard is, except in the label box, a menu or Help; while Help is open, no key acts on
 the diagram.
+
+Up from a node with nothing above it, along the edges or on screen, selects the diagram's title, when there is one;
+Down from the title goes to the node nearest below it. Shift+Arrows never reach the title.
 
 Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
 arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to

@@ -76,6 +76,24 @@ export function isFlowchart(/** @type {string} */ text) {
   return /^\s*(flowchart|graph)\b/.test(header);
 }
 
+/**
+ * Give the diagram the title `title`: the frontmatter's `title:` line gets the new value, plain when YAML reads it as
+ * written, else double-quoted; the rest of the line's indentation and every other line stay. A file with no title in
+ * its frontmatter, or one written over several lines, is refused.
+ */
+export function setTitle(/** @type {string} */ text, /** @type {string} */ title) {
+  const ls = lines(text);
+  const end = ls[0]?.trim() === '---' ? ls.findIndex((l, i) => i > 0 && l.trim() === '---') : -1;
+  const k = ls.findIndex((l, i) => i > 0 && i < end && /^title:/.test(l));
+  if (k < 0) throw new Error('This diagram has no title in its frontmatter.');
+  const m = /^title:[ \t]*(.*?)(\r?\n)?$/.exec(ls[k]);
+  if (!m || /^[|>]/.test(m[1])) throw new Error('This title is written over several lines; edit it in the file.');
+  // Plain when it cannot be read as anything else: no leading or trailing space, no quote, indicator or comment.
+  const plain = /^[^\s'"#|>&*!%@`{}[\],?:-][^#]*$/.test(title) && !/:\s|:$|\s$/.test(title);
+  ls[k] = `title: ${plain ? title : JSON.stringify(title)}${m[2] ?? ''}`;
+  return { text: ls.join('') };
+}
+
 /** A flowchart's top-level direction, from its header (`flowchart LR`): TB (also written TD), BT, LR or RL. */
 export function direction(/** @type {string} */ text) {
   const ls = lines(text);
