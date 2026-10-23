@@ -166,10 +166,11 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with a node selected | Select the next node along the edges (below) |
+| Shift+Arrows with a node selected | Select the nearest node that way on screen, connected or not |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
-| Arrows with nothing selected | Move the diagram, a tenth of the view at a time (in any diagram) |
+| Arrows or Shift+Arrows with nothing selected | Move the diagram, a tenth of the view at a time (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram) |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
@@ -192,6 +193,10 @@ step through, and likewise for `BT` and `RL`. A subgraph's own `direction` is no
 out to screen readers, and brought into view when it is off screen; one already in view moves nothing. The arrows are
 the diagram's wherever the keyboard is, except in the label box, a menu or Help; while Help is open, no key acts on
 the diagram.
+
+Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
+arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to
+connect to the same way.
 
 ## Undo and redo
 

@@ -85,3 +85,25 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
   }
   return best;
 }
+
+/** Each arrow's direction on screen. */
+const ON_SCREEN = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
+
+/**
+ * The nearest node in `key`'s direction from node `at`, by place on screen, connected or not: one whose middle lies
+ * within 45° either side of the arrow. Null when there is none; nothing wraps.
+ */
+export function byPlace(/** @type {Box[]} */ boxes, /** @type {string} */ at, /** @type {string} */ key) {
+  const v = /** @type {Record<string, number[]>} */ (ON_SCREEN)[key];
+  const from = boxes.find((b) => b.id === at);
+  if (!v || !from) return null;
+  let best = null, bestD = Infinity;
+  for (const b of boxes) {
+    const dx = b.x - from.x, dy = b.y - from.y;
+    const ahead = dx * v[0] + dy * v[1], aside = Math.abs(dx * v[1] - dy * v[0]);
+    if (b.id === at || ahead <= 0 || aside > ahead) continue;
+    const d = Math.hypot(dx, dy);
+    if (d < bestD) { best = b.id; bestD = d; }
+  }
+  return best;
+}
