@@ -22,6 +22,9 @@ export const GLOBAL_KEYS = {
   arrowdown: [],
   arrowleft: [],
   arrowright: [],
+  '+': [],
+  '=': [],
+  '-': [],
   m: [],
   escape: [],
 };

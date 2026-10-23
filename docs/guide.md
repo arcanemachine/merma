@@ -167,7 +167,9 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
-| Escape | Cancel Connect to…, or deselect |
+| Arrows with nothing selected | Move the diagram, a tenth of the window at a time (in any diagram) |
+| + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
+| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram) |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 
