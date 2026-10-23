@@ -12,7 +12,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
   to the window. Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
-- **Export ▾** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
+- **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
   it.
 - Click the file's path in the header to copy it.
 
