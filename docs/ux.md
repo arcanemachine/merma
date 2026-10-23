@@ -53,6 +53,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open, and a notice lies over
   the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
   that moved as Connect to… asked for a click would put another node under the click aimed at.
+  For the same reason an edit keeps the view (the user): the diagram is fitted when the page opens, and again only on
+  Fit to window or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
+  past the edge; that is the price of nodes staying put.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,

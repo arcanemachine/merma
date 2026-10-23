@@ -9,7 +9,9 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
-  fits the diagram to the window. Once you have zoomed or moved it, edits keep your view, and so does a reload of the tab.
+  fits the diagram to the window. The diagram is fitted when the page opens; after that, edits keep the view as it
+  is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
+  size fits it again; once you have, a reload of the tab keeps your view too.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew

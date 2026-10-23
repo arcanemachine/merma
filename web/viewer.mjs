@@ -42,8 +42,9 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  */
 export function createViewer({ diagram, stage }, hooks = {}) {
   const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {} } = hooks;
-  // A scale and offset applied to the stage. Until the user zooms or drags, the view fits the diagram to the window
-  // (never enlarging it); after that, it is kept across re-renders so edits do not reset it.
+  // A scale and offset applied to the stage. The first render is fitted to the window (never enlarged); after that the
+  // view is kept across re-renders (the user), so an edit moves nothing under the pointer. Until the user zooms or
+  // drags, a change in the window's size fits it again.
   const view = { x: 0, y: 0, k: 1 };
   let size = { w: 0, h: 0 };
   let touched = false;
@@ -240,11 +241,12 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       const id = 'd' + n++;
       try {
         const { svg } = await mermaid.render(id, text, scratch);
+        const first = renderId === null;
         stage.innerHTML = svg;
         renderId = id;
         const rect = /** @type {SVGSVGElement} */ (stage.querySelector('svg')).getBoundingClientRect();
         size = { w: rect.width / view.k, h: rect.height / view.k };
-        if (!touched) fit();
+        if (first) fit();
         return { ok: true };
       } catch (e) {
         // A failed render can leave its scratch element in the page.
