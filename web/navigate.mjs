@@ -107,3 +107,40 @@ export function byPlace(/** @type {Box[]} */ boxes, /** @type {string} */ at, /*
   }
   return best;
 }
+
+/** @typedef {{ id: string, from: string, to: string }} Edge an edge between drawn nodes, by its SVG id */
+
+/**
+ * Arrow keys onto and between edges. From node `at`, forward selects its first outgoing edge and back its first
+ * incoming one (first across the flow, by the node at the other end); from edge `at`, forward and back go to the node
+ * it points to and the one it comes from, and the cross arrows step through `group` (the edges it was reached among,
+ * else the edges leaving the node it comes from), without wrapping. Null when there is nowhere to go.
+ * @param {{ boxes: Box[], edges: Edge[], direction: Direction }} graph
+ * @param {{ kind: 'node' | 'edge', id: string }} at
+ * @param {string} key
+ * @param {string[] | null} group
+ * @returns {{ kind: 'node' | 'edge', id: string, group: string[] } | null}
+ */
+export function edgeStep({ boxes, edges, direction }, at, key, group) {
+  const move = /** @type {Record<string, string>} */ (ARROWS[direction])[key];
+  const byId = new Map(boxes.map((b) => [b.id, b]));
+  const across = direction === 'TB' || direction === 'BT' ? 'x' : 'y';
+  const real = edges.filter((e) => e.from !== e.to && byId.has(e.from) && byId.has(e.to));
+  /** Edges ordered across the flow by their other end. */
+  const order = (/** @type {Edge[]} */ list, /** @type {'from' | 'to'} */ end) => [...list]
+    .sort((a, b) => /** @type {Box} */ (byId.get(a[end]))[across] - /** @type {Box} */ (byId.get(b[end]))[across])
+    .map((e) => e.id);
+  if (!move) return null;
+  if (at.kind === 'node') {
+    const list = move === 'forward' ? order(real.filter((e) => e.from === at.id), 'to')
+      : move === 'back' ? order(real.filter((e) => e.to === at.id), 'from') : [];
+    return list.length ? { kind: 'edge', id: list[0], group: list } : null;
+  }
+  const edge = real.find((e) => e.id === at.id);
+  if (!edge) return null;
+  if (move === 'forward') return { kind: 'node', id: edge.to, group: [] };
+  if (move === 'back') return { kind: 'node', id: edge.from, group: [] };
+  const list = group?.includes(at.id) ? group : order(real.filter((e) => e.from === edge.from), 'to');
+  const k = list.indexOf(at.id) + (move === 'next' ? 1 : -1);
+  return k >= 0 && k < list.length ? { kind: 'edge', id: list[k], group: list } : null;
+}

@@ -8,7 +8,7 @@ import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { byPlace, nearest, step } from './navigate.mjs';
+import { byPlace, edgeStep, nearest, step } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, direction, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -78,6 +78,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ at: string, trail: import('./navigate.mjs').Trail } | null} the last arrow key's move, while it is selected */
   let walk = null;
+  /** @type {{ at: string, group: string[] } | null} the last Ctrl+arrow's move: the edges the next steps go through */
+  let edgeWalk = null;
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;
 
@@ -120,12 +122,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const labelEl = (/** @type {Item} */ sel) => /** @type {HTMLElement | null} */ (
     (sel.kind === 'node' ? nodeEl(sel.id) : clusterEl(sel.id))?.querySelector('.nodeLabel'));
   /**
-   * A node or a subgraph as messages name it: its label or title as drawn, in quotes, on one line; one drawn with
-   * none shows its id.
+   * An item as messages name it: a node or a subgraph by its label or title as drawn, in quotes, on one line (one
+   * drawn with none by its id); an edge by its two ends; the diagram's title as "the title".
+   * @returns {string}
    */
-  const named = (/** @type {Item} */ sel) => (sel.kind === 'title'
-    ? `the title "${(titleEl()?.textContent ?? '').trim()}"`
-    : `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`);
+  const named = (/** @type {Item} */ sel) => {
+    if (sel.kind === 'title') return `the title "${(titleEl()?.textContent ?? '').trim()}"`;
+    if (sel.kind === 'edge') {
+      const e = shownEdge(sel.id);
+      if (!e) return 'the edge';
+      const end = (/** @type {string} */ id) => /** @type {string} */ (named({ kind: nodeEl(id) ? 'node' : 'subgraph', id }));
+      return `the edge from ${end(e.from)} to ${end(e.to)}`;
+    }
+    return `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`;
+  };
   /**
    * Whether an edit naming subgraph `id` is good only for the text it was drawn from: one with no id in the file is
    * known by Mermaid's `subGraph<k>`, which renumbers when subgraphs come and go.
@@ -274,7 +284,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
-    if (!again) walk = null;   // a run of arrow keys ends when something else selects
+    if (!again) walk = edgeWalk = null;   // a run of arrow keys ends when something else selects
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) e.setAttribute('data-page-selected', '');
@@ -465,6 +475,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'shift+arrowdown': () => arrow('ArrowDown', 0, PAN_STEP, true),
     'shift+arrowleft': () => arrow('ArrowLeft', -PAN_STEP, 0, true),
     'shift+arrowright': () => arrow('ArrowRight', PAN_STEP, 0, true),
+    'ctrl+arrowup': () => edgeArrow('ArrowUp', true),
+    'ctrl+arrowdown': () => edgeArrow('ArrowDown', true),
+    'ctrl+arrowleft': () => edgeArrow('ArrowLeft', true),
+    'ctrl+arrowright': () => edgeArrow('ArrowRight', true),
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
@@ -503,6 +517,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       links: edges(shownText).map((e) => ({ from: e.from, to: e.to })),
       direction: direction(shownText),
     };
+    if (selected.kind === 'edge' && !connecting) return place ? false : edgeArrow(key, false);
     // The title: Down goes to the nearest node below it.
     if (!connecting && selected.kind === 'title') {
       const t = titleEl()?.getBoundingClientRect();
@@ -528,6 +543,26 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     } else if (!place && !connecting && key === 'ArrowUp' && titleEl() && !byPlace(graph.boxes, at, key)) {
       // Up from the top row, with nowhere else to go, reaches the title.
       selectByKey(TITLE);
+    }
+    return true;
+  }
+  /**
+   * Ctrl (or Alt) + an arrow onto and between edges, from the selected node or edge; with an edge selected, the plain
+   * arrows do the same (navigate.mjs). `ctrl`: a plain arrow on a node is not this one's.
+   */
+  function edgeArrow(/** @type {string} */ key, /** @type {boolean} */ ctrl) {
+    if (connecting || !edgesOk || !selected || (selected.kind !== 'node' && selected.kind !== 'edge')) return false;
+    if (selected.kind === 'node' && !ctrl) return false;
+    const graph = {
+      boxes: nodeBoxes(),
+      edges: edges(shownText).map((e) => ({ id: e.svgId, from: e.from, to: e.to })),
+      direction: direction(shownText),
+    };
+    const at = /** @type {{ kind: 'node' | 'edge', id: string }} */ (selected);
+    const next = edgeStep(graph, at, key, edgeWalk?.at === at.id ? edgeWalk.group : null);
+    if (next) {
+      selectByKey({ kind: next.kind, id: next.id });
+      edgeWalk = { at: next.id, group: next.group };
     }
     return true;
   }

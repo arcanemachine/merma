@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { byPlace, nearest, step } from '../web/navigate.mjs';
+import { byPlace, edgeStep, nearest, step } from '../web/navigate.mjs';
 import { direction } from '../web/patch/flowchart.mjs';
 
 // A top-down diagram, as drawn:
@@ -115,4 +115,39 @@ test('byPlace goes to the nearest node within 45° of the arrow, connected or no
 test('byPlace finds nothing past the edge, and does not wrap', () => {
   assert.equal(byPlace(boxes, 'start', 'ArrowUp'), null);
   assert.equal(byPlace(boxes, 'done', 'ArrowDown'), null);
+});
+
+// The same diagram's edges, by made-up SVG ids.
+const edgeList = links.map((l) => ({ id: `${l.from}-${l.to}`, from: l.from, to: l.to }));
+const tdEdges = { boxes, edges: edgeList, direction: /** @type {const} */ ('TB') };
+const node = (/** @type {string} */ id) => ({ kind: /** @type {const} */ ('node'), id });
+const edge = (/** @type {string} */ id) => ({ kind: /** @type {const} */ ('edge'), id });
+
+test('from a node, forward selects its leftmost outgoing edge, and back its leftmost incoming one', () => {
+  assert.equal(edgeStep(tdEdges, node('start'), 'ArrowDown', null)?.id, 'start-check');
+  assert.equal(edgeStep(tdEdges, node('record'), 'ArrowUp', null)?.id, 'check-record');
+  assert.equal(edgeStep(tdEdges, node('done'), 'ArrowDown', null), null);
+  assert.equal(edgeStep(tdEdges, node('start'), 'ArrowRight', null), null);
+});
+
+test('from an edge, forward and back go to its ends', () => {
+  assert.deepEqual(edgeStep(tdEdges, edge('start-charge'), 'ArrowDown', null), { kind: 'node', id: 'charge', group: [] });
+  assert.deepEqual(edgeStep(tdEdges, edge('start-charge'), 'ArrowUp', null), { kind: 'node', id: 'start', group: [] });
+});
+
+test('the cross arrows step through the edges an edge was reached among, without wrapping', () => {
+  // Reached going back from record: its incoming edges.
+  const up = edgeStep(tdEdges, node('record'), 'ArrowUp', null);
+  const right = edgeStep(tdEdges, edge('check-record'), 'ArrowRight', up?.group ?? null);
+  assert.equal(right?.id, 'charge-record');
+  assert.equal(edgeStep(tdEdges, edge('charge-record'), 'ArrowRight', right?.group ?? null), null);
+  // With no group, the edges leaving the same node.
+  assert.equal(edgeStep(tdEdges, edge('start-check'), 'ArrowRight', null)?.id, 'start-charge');
+});
+
+test('edges turn with the direction too', () => {
+  const lr = { edges: edgeList, direction: /** @type {const} */ ('LR'), boxes: boxes.map((b) => box(b.id, b.y, b.x)) };
+  assert.equal(edgeStep(lr, node('start'), 'ArrowRight', null)?.id, 'start-check');
+  assert.equal(edgeStep(lr, edge('start-check'), 'ArrowDown', null)?.id, 'start-charge');
+  assert.equal(edgeStep(lr, edge('start-check'), 'ArrowRight', null)?.id, 'check');
 });
