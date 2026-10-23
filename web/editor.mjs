@@ -551,8 +551,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * arrows do the same (navigate.mjs). `ctrl`: a plain arrow on a node is not this one's.
    */
   function edgeArrow(/** @type {string} */ key, /** @type {boolean} */ ctrl) {
-    if (connecting || !edgesOk || !selected || (selected.kind !== 'node' && selected.kind !== 'edge')) return false;
+    if (connecting || !selected || (selected.kind !== 'node' && selected.kind !== 'edge')) return false;
     if (selected.kind === 'node' && !ctrl) return false;
+    // Without an edge match no edge can be selected (only a node can be selected then), as Delete says.
+    if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return true; }
     const graph = {
       boxes: nodeBoxes(),
       edges: edges(shownText).map((e) => ({ id: e.svgId, from: e.from, to: e.to })),

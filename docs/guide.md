@@ -216,7 +216,7 @@ Ctrl+Down selects the first edge leaving it and Ctrl+Up the first edge coming in
 by the node at the other end). With an edge selected, Down goes to the node it points to and Up to the node it comes
 from, and Left and Right, with or without Ctrl, step through the edges it was reached among (else the edges leaving
 the same node), without wrapping. They turn with the diagram's direction, as the plain arrows do. Each edge reached is
-read out by its two ends.
+read out by its two ends. With nothing selected, Alt+Left and Alt+Right are the browser's (back and forward).
 
 Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
 arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to
