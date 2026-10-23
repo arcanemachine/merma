@@ -81,7 +81,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {import('./navigate.mjs').Trail | null} how the last arrow reached the selected edge */
   let trail = null;
-  /** @type {Map<string, string>} subgraph → the item last selected inside it, for I */
+  /**
+   * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Never pruned: I
+   * checks an entry against what is drawn inside now.
+   * @type {Map<string, string>}
+   */
   const inside = new Map();
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;

@@ -142,6 +142,12 @@ test('by place: an overlapping box comes before a nearer one off to the side', (
   assert.deepEqual(byPlace(three, 'a', 'ArrowDown'), at('node', 'y'));
 });
 
+test('by place: a box mostly above, a little ahead, is not in the row; one squarely beside it is', () => {
+  // As "Take order" sits above and right of "In stock?" in the demo, with "Wait for stock" further right.
+  const row = nest([node('here', 0, 0, 60, 40), node('above', 20, -30, 100, 40), node('beside', 150, 10)]);
+  assert.deepEqual(byPlace(row, 'here', 'ArrowRight'), at('node', 'beside'));
+});
+
 test('by place breaks a tie by leftmost (topmost going sideways)', () => {
   const overlapping = nest([node('a', 100, 0), node('l', 50, 100), node('r', 150, 100)]);
   assert.deepEqual(byPlace(overlapping, 'a', 'ArrowDown'), at('node', 'l'));
