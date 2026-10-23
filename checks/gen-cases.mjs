@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, subgraphs,
+  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 // Mermaid's db names for each arrow type: [type, stroke].
@@ -28,6 +28,12 @@ sources.push(['text-form labels', [], 'flowchart LR\n  A -- yes (maybe): [b] {c}
 for (const [name, list, src] of sources) {
   cases.push({ name: `${name} add node`, kind: 'add', src, out: addNode(src).text });
   cases.push({ name: `${name} add subgraph`, kind: 'add', src, out: addSubgraph(src).text });
+  // The diagram's title, in a fixture whose frontmatter has one: drawn exactly as typed.
+  for (const title of ['New title', 'Step: one', '#1 "best"', '- item', '2024', 'true', 'null', '~', 'a: b # c']) {
+    let out;
+    try { out = setTitle(src, title).text; } catch { break; }
+    cases.push({ name: `${name} diagram title ${title}`, kind: 'diagram-title', src, out, diagramTitle: title });
+  }
   for (const sg of subgraphs(src).filter((s) => s.end !== null)) {
     const renamed = sg.written ? null : { from: sg.id, to: freeId(src, 's') };
     const now = renamed?.to ?? sg.id;

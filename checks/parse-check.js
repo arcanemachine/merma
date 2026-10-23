@@ -47,6 +47,12 @@
           const expected = await drawnTitle(`flowchart LR\n  subgraph x [${c.title.text}]\n    a\n  end\n`, 'x');
           if (got !== expected) fails.push(`${c.name}: title drawn as ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`);
         }
+        if (c.kind === 'diagram-title') {
+          const { svg } = await mermaid.render('parse-check-' + k++, c.out);
+          const got = new DOMParser().parseFromString(svg, 'text/html').querySelector('.flowchartTitleText')?.textContent ?? null;
+          if (got !== c.diagramTitle) fails.push(`${c.name}: title drawn as ${JSON.stringify(got)}`);
+          continue;
+        }
         if (c.kind === 'shape') {
           /* The node has the shape asked for, its label and its classes; every other node is as it was. */
           const want = await Promise.all(c.shape.refs.map(async (r) => (await db(r)).getVertices().get('X')?.type));

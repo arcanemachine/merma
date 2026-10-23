@@ -663,6 +663,8 @@ test('setTitle changes only the frontmatter title line, quoting what YAML would 
   assert.equal(setTitle(text, 'Step: one').text, text.replace('title: Old', 'title: "Step: one"'));
   assert.equal(setTitle(text, '#1 "best"').text, text.replace('title: Old', 'title: "#1 \\"best\\""'));
   assert.equal(setTitle(text, '- item').text, text.replace('title: Old', 'title: "- item"'));
+  // YAML would read these as a number, a boolean and null (which draws no title at all).
+  for (const t of ['2024', 'true', 'null']) assert.equal(setTitle(text, t).text, text.replace('title: Old', `title: "${t}"`));
   assert.equal(setTitle('---\r\ntitle: x\r\n---\r\nflowchart TD\r\n', 'y').text, '---\r\ntitle: y\r\n---\r\nflowchart TD\r\n');
 });
 
