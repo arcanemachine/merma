@@ -21,6 +21,9 @@ const CLICK_SLOP = 4;
 // A touch held this long without moving is a long-press, reported as a context menu. Android raises the browser's own
 // contextmenu event for it; iOS Safari does not, hence the timer.
 const LONG_PRESS_MS = 500;
+// Two taps this close in time and place are a double-tap: about iOS's own window, and a finger's slop.
+const DOUBLE_TAP_MS = 350;
+const DOUBLE_TAP_SLOP = 24;
 
 /** Check that `text` is valid Mermaid; throws with Mermaid's message if not. */
 export const parse = (/** @type {string} */ text) => mermaid.parse(text);
@@ -105,6 +108,11 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   let drag = null;
   /** @type {Element | null} the element the last click pressed, for the double-click that follows it */
   let clicked = null;
+  // A double-tap is the viewer's own: iOS Safari fires no dblclick where the page takes the gestures (touch-action:
+  // none), and Android's, which it does fire, is then ignored, so every browser does the same.
+  /** @type {{ t: number, x: number, y: number } | null} the last tap, while a second could make it a double */
+  let tapped = null;
+  let lastPointer = '';
   /** @type {Map<number, { x: number, y: number }>} pointerId → the fingers (or the mouse) down in this gesture */
   const pointers = new Map();
   const spread = () => {
@@ -186,16 +194,27 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   };
   diagram.addEventListener('pointerup', (e) => {
     if (lifted(e)) return;
+    lastPointer = e.pointerType;
     const press = drag;
     endDrag();
     clicked = press && !press.moving && !press.handled ? press.target : null;
-    if (clicked) onClick(clicked);
+    if (!clicked) { tapped = null; return; }
+    onClick(clicked);
+    if (e.pointerType !== 'touch') return;
+    const now = { t: e.timeStamp, x: e.clientX, y: e.clientY };
+    const twice = tapped && now.t - tapped.t < DOUBLE_TAP_MS && Math.hypot(now.x - tapped.x, now.y - tapped.y) < DOUBLE_TAP_SLOP;
+    tapped = twice ? null : now;
+    if (twice) doubled();
   });
-  diagram.addEventListener('pointercancel', (e) => { if (!lifted(e)) endDrag(); });
+  diagram.addEventListener('pointercancel', (e) => { if (!lifted(e)) { endDrag(); tapped = null; } });
   diagram.addEventListener('dblclick', (e) => {
-    if (/** @type {Element} */ (e.target).closest('[data-overlay]')) return;
-    if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
+    if (lastPointer === 'touch' || /** @type {Element} */ (e.target).closest('[data-overlay]')) return;
+    doubled();
   });
+  /** A double-click or double-tap on what the last click pressed: whoever wired the viewer handles it, or it fits. */
+  function doubled() {
+    if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
+  }
   // Refit when the diagram's box changes (window resize, the header growing when the host path arrives, an error
   // message appearing above it).
   new ResizeObserver(() => { if (!touched) fit(); }).observe(diagram);
