@@ -9,7 +9,7 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { byPlace, nearest, nest, walk } from './navigate.mjs';
+import { byPlace, nearest, nest, retrace, skip, walk } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -80,8 +80,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let refused = false;        // the notice shows why a menu item does not apply
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
-  /** @type {import('./navigate.mjs').Trail | null} how the last arrow reached the selected edge */
-  let trail = null;
+  /** @type {import('./navigate.mjs').Move[]} the arrow moves since the selection last changed otherwise, to retrace */
+  let path = [];
+  let moving = false;   // an arrow key is selecting: the path goes on
   /**
    * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Never pruned: I
    * checks an entry against what is drawn inside now.
@@ -293,7 +294,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
-    if (!again) trail = null;   // a run of arrow keys ends when something else selects
+    if (!again && !moving) path = [];   // a click, a search, an edit: the way back starts again
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) e.setAttribute('data-page-selected', '');
@@ -532,7 +533,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         const length = path.getTotalLength();
         const label = edgeEls(e.svgId).find((el) => el.matches('g.edgeLabel'))?.getBoundingClientRect();
         const mid = label?.width ? { x: label.left + label.width / 2, y: label.top + label.height / 2 } : onScreen(length / 2);
-        lines.push({ id: e.svgId, from: e.from, to: e.to, start: onScreen(0), end: onScreen(length), mid });
+        // Which way the edge heads as it leaves each end: measured 20 px along, where a curve that leaves a corner has
+        // already turned (40 px reads the early bend of a short edge as its heading).
+        const along = Math.min(20, length / 2);
+        lines.push({
+          id: e.svgId, from: e.from, to: e.to, mid,
+          start: onScreen(0), startOut: onScreen(along), end: onScreen(length), endOut: onScreen(length - along),
+        });
       }
     }
     return { boxes, edges: lines };
@@ -569,33 +576,52 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (hit) selectByKey({ kind: hit.kind, id: hit.id });
       return true;
     }
-    if (how === 'ctrl') {
-      let boxes = graph.boxes, at = selected.id;
-      if (selected.kind === 'edge') {
-        const e = graph.edges.find((x) => x.id === selected?.id);
-        if (!e) return true;
-        boxes = nest([...graph.boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]);
-        at = EDGE;
+    const ctrl = how === 'ctrl';
+    const here = /** @type {import('./navigate.mjs').Target} */ (selected);
+    // The opposite key takes the last move back, retracing the way it came.
+    const back = retrace(path, here, key, ctrl);
+    if (back) {
+      path.pop();
+      moveTo(back.from);
+      return true;
+    }
+    let next = null;
+    if (ctrl) {
+      // Ctrl skips the edge plain would select; with none that way, it jumps by place.
+      next = edgesOk ? skip(graph, here, key) : null;
+      if (!next) {
+        let boxes = graph.boxes, at = here.id;
+        if (here.kind === 'edge') {
+          const e = graph.edges.find((x) => x.id === here.id);
+          if (!e) return true;
+          boxes = nest([...graph.boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]);
+          at = EDGE;
+        }
+        next = byPlace(boxes, at, key);
+        if (!next && key === 'ArrowUp') toTitle(boxes, at);
       }
-      const next = byPlace(boxes, at, key);
-      if (next) {
-        const from = boxes.find((b) => b.id === at);
-        // Leaving a subgraph for its own box: I comes back here.
-        if (next.kind === 'subgraph' && from?.parent === next.id && selected.kind !== 'edge') inside.set(next.id, selected.id);
-        selectByKey(next);
-      } else if (key === 'ArrowUp') toTitle(boxes, at);
-      return true;
+    } else {
+      if (!edgesOk) {
+        ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
+        return true;
+      }
+      next = walk(graph, here, key);
+      if (!next && key === 'ArrowUp' && here.kind !== 'edge') toTitle(graph.boxes, here.id);
     }
-    if (!edgesOk) {
-      ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
-      return true;
-    }
-    const next = walk(graph, /** @type {import('./navigate.mjs').Target} */ (selected), key, trail?.edge === selected.id ? trail : null);
     if (next) {
-      selectByKey(next.target);
-      trail = next.trail;
-    } else if (key === 'ArrowUp' && selected.kind !== 'edge') toTitle(graph.boxes, selected.id);
+      // Leaving a subgraph for its own box: I comes back here.
+      if (next.kind === 'subgraph' && here.kind !== 'edge' && graph.boxes.find((b) => b.id === here.id)?.parent === next.id) {
+        inside.set(next.id, here.id);
+      }
+      moveTo(next);
+      path.push({ from: here, to: next, key, ctrl });
+    }
     return true;
+  }
+  /** Select by an arrow key, keeping the path to retrace. */
+  function moveTo(/** @type {Item} */ item) {
+    moving = true;
+    try { selectByKey(item); } finally { moving = false; }
   }
   /** Up with nowhere else to go, and nothing at all drawn above, reaches the diagram's title. */
   function toTitle(/** @type {import('./navigate.mjs').Box[]} */ boxes, /** @type {string} */ id) {

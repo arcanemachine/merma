@@ -95,23 +95,25 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
   view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
   after a drag: a change in the window's size no longer refits it.
-- Plain arrows walk the edges, two presses a step: node, edge, node. The edge is where you choose (the user found that
-  jumping straight to "the next node" along edges picked far-off nodes and trapped you in loops). An edge belongs to
-  both its ends and arrowheads play no part (the user: an edge is an edge), so nothing is a dead end that an edge
-  leads out of. A subgraph's box walks its edges like a node, and an edge to a subgraph lands on its box.
-- **A side** of a node is where an edge meets its outline, measured against the node's own half width and half height
-  (the larger of |dx|/half-width and |dy|/half-height wins; equal goes to top or bottom). Not a plain angle: edges
-  spread along the bottom of a wide node meet it far out and only a little down, and are still its bottom; a hexagon's
-  slanted ends are its left and right (the user).
-- Stepping through the edges on a side wraps within that side, never on to another, as a picker's arrows wrap within
-  their row or column: a key always moves along one line.
-- Ctrl+Arrows jump by place, like Ctrl+Arrow jumping a word in text: what lies across from the selection (overlapping
-  it) comes first, since that is what "below" means to the eye; then the nearest; no wrap. A subgraph is a container:
-  they stop at its box going in and coming out, and never jump into one unasked; I and O go in and out.
-- Search (/) finds only what is on screen and never moves the view (the user): a jump to something off screen would
-  lose your place, so you move the view first. The selection steps aside while you search and comes back on Escape,
-  a click away, or Enter with nothing found, so a search that finds nothing changes nothing. Tab moves between matches
-  and so stays in the box; Escape is the way out (WCAG 2.1.2), and the box says so.
+- The arrows are screen directions (the user): Up is up, Right is right, wherever you are. Plain arrows walk the edges,
+  two presses a step, node, edge, node, so the edge is where you choose (the user found jumping straight to "the next
+  node" picked far-off nodes and trapped you in loops). An edge belongs to both its ends and arrowheads play no part
+  (the user: an edge is an edge).
+- An edge heads the way it goes just after it leaves a node, measured 20 px along its line, not where on the outline it
+  starts (the user): the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to
+  right. Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached its
+  next bend.
+- On an edge, the other two arrows step to the edge beside it, at its top (or left) end, where the edges fan out the
+  way it goes. They stop at the last edge rather than wrap: Right always means right.
+- A node in a subgraph with no edge leaving it that way climbs to the subgraph's box, which walks its own edges like a
+  node: so an edge into a subgraph is always reachable, from the box.
+- The opposite arrow retraces your last move (the user: you should be able to go back the way you came). Every other
+  key follows the rules from where you are, so the same key on the same node leads the same way unless you are going
+  back; a click or a search starts the way back afresh.
+- Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user). With no edge that way they jump by place: one
+  in the same row (or column) first, its middle within the other's span, since that is what "beside" means to the
+  eye; then the nearest; no wrap. A subgraph is a container: they stop at its box going in and coming out, and never
+  jump into one unasked; I and O go in and out.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
   user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so

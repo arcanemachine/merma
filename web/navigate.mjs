@@ -1,6 +1,7 @@
 // Where an arrow key moves the selection, from the diagram as drawn: no DOM (the editor measures and passes it in).
-// docs/ux.md gives the rules and why. Plain arrows walk edges: from a node or a subgraph's box, an arrow selects an
-// edge on that side; from an edge, it goes on to an end. Ctrl+Arrows jump by place, to the next node or box on screen.
+// docs/ux.md gives the rules and why. The arrows are screen directions. Plain arrows walk edges: from a node or a
+// subgraph's box, an arrow selects an edge leaving it that way; on an edge, the arrow along it goes to that end and the
+// other two step to the edges beside it. Ctrl+Arrows skip the edge, or jump by place when there is none that way.
 
 /** @typedef {{ x: number, y: number }} Point */
 /**
@@ -8,99 +9,126 @@
  * @typedef {{ kind: 'node' | 'subgraph', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
  */
 /**
- * A drawn edge: its ends' ids (a node's or a subgraph's), the points where it meets them, and its middle (its label,
- * else the middle of its line).
- * @typedef {{ id: string, from: string, to: string, start: Point, end: Point, mid: Point }} Edge
- */
-/** @typedef {'top' | 'bottom' | 'left' | 'right'} Side */
-/**
- * What an arrow onto an edge remembers: the edge, the box it was reached from, the arrow, and the side's edges in
- * order, which the cross arrows step through.
- * @typedef {{ edge: string, from: string, key: string, edges: string[] }} Trail
+ * A drawn edge: its ends' ids (a node's or a subgraph's), and at each end where it meets it and a point a little way
+ * along its line from there, which says which way it heads as it leaves; `mid` is its label, else its line's middle.
+ * @typedef {{ id: string, from: string, to: string, start: Point, startOut: Point, end: Point, endOut: Point, mid: Point }} Edge
  */
 /** @typedef {{ kind: 'node' | 'subgraph' | 'edge', id: string }} Target */
 
-/** Each arrow's side, and its direction on screen. */
-const SIDES = /** @type {Record<string, { side: Side, v: [number, number] }>} */ ({
-  ArrowUp: { side: 'top', v: [0, -1] },
-  ArrowDown: { side: 'bottom', v: [0, 1] },
-  ArrowLeft: { side: 'left', v: [-1, 0] },
-  ArrowRight: { side: 'right', v: [1, 0] },
+/** Each arrow's direction on screen. */
+const SIDES = /** @type {Record<string, { v: [number, number] }>} */ ({
+  ArrowUp: { v: [0, -1] },
+  ArrowDown: { v: [0, 1] },
+  ArrowLeft: { v: [-1, 0] },
+  ArrowRight: { v: [1, 0] },
 });
-const OPPOSITE = /** @type {Record<string, string>} */ ({
+export const OPPOSITE = /** @type {Record<string, string>} */ ({
   ArrowUp: 'ArrowDown', ArrowDown: 'ArrowUp', ArrowLeft: 'ArrowRight', ArrowRight: 'ArrowLeft',
 });
+const vertical = (/** @type {string} */ key) => key === 'ArrowUp' || key === 'ArrowDown';
 
-/**
- * The side of `box` that `point` (where an edge meets it) is on. Measured against the box's own half width and half
- * height, not as a plain angle: under a wide node, edges spread along its bottom meet it far from its middle and only a
- * little below, yet are on its bottom. Equal goes to top or bottom.
- */
-export function sideOf(/** @type {Box} */ box, /** @type {Point} */ point) {
-  const dx = (point.x - box.x) / (box.w / 2 || 1), dy = (point.y - box.y) / (box.h / 2 || 1);
-  if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
-  return dy >= 0 ? 'bottom' : 'top';
+/** Which way a line heads from `a` towards `b`: the arrow of its larger move, down or up when equal. */
+export function heading(/** @type {Point} */ a, /** @type {Point} */ b) {
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'ArrowRight' : 'ArrowLeft';
+  return dy >= 0 ? 'ArrowDown' : 'ArrowUp';
 }
 
 /**
- * The edges on `side` of box `id`, in order: left to right along a top or bottom, top to bottom along a left or right.
- * An edge belongs to both its ends, whichever way it points. Self-loops are left out.
+ * The edge's two ends, each with the way the edge heads as it leaves it, and where it meets it.
+ * @returns {{ id: string, dir: string, at: Point }[]}
  */
-export function edgesOn(/** @type {Box} */ box, /** @type {Side} */ side, /** @type {Edge[]} */ edges) {
-  const along = side === 'top' || side === 'bottom' ? 'x' : 'y';
+const endsOf = (/** @type {Edge} */ e) => [
+  { id: e.from, dir: heading(e.start, e.startOut), at: e.start },
+  { id: e.to, dir: heading(e.end, e.endOut), at: e.end },
+];
+
+/**
+ * The edges leaving `id` heading `key`, in order across that way by where they meet it (two out of a diamond's
+ * corners are told apart there): left to right for up and down, top to bottom for left and right. An edge belongs to
+ * both its ends, whichever way it points. Self-loops are left out.
+ */
+export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /** @type {string} */ key) {
+  const across = vertical(key) ? 'x' : 'y';
   /** @type {{ id: string, at: Point }[]} */
   const found = [];
   for (const e of edges) {
     if (e.from === e.to) continue;
-    const at = e.from === box.id ? e.start : e.to === box.id ? e.end : null;
-    if (at && sideOf(box, at) === side) found.push({ id: e.id, at });
+    for (const end of endsOf(e)) if (end.id === id && end.dir === key) found.push({ id: e.id, at: end.at });
   }
-  return found.sort((a, b) => a.at[along] - b.at[along]).map((f) => f.id);
+  return found.sort((a, b) => a.at[across] - b.at[across]).map((f) => f.id);
 }
 
 /**
- * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box, the first edge on that side.
- * From an edge reached by arrow K (`trail`), K goes on to its far end and the opposite arrow back; the cross arrows step
- * through the side's edges, wrapping within the side. From an edge reached any other way, an arrow goes to the end that
- * lies that way from the edge's middle (both do: the nearer), and the cross arrows do nothing.
+ * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
+ * way; none, and it is drawn in a subgraph: that subgraph's box. From an edge: the arrow along it goes to the end you
+ * arrive at travelling that way (the one end it leaves heading the other way); the other two step to the edge beside
+ * it among the edges leaving its top (or left) end the same way as it, without wrapping, and else among those at its
+ * other end. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
+ * lies further that way from the edge's middle.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
  * @param {string} key
- * @param {Trail | null} trail from the last arrow, if it selected `at`
- * @returns {{ target: Target, trail: Trail | null } | null}
+ * @returns {Target | null}
  */
-export function walk({ boxes, edges }, at, key, trail) {
-  const arrow = SIDES[key];
-  if (!arrow) return null;
+export function walk({ boxes, edges }, at, key) {
+  if (!SIDES[key]) return null;
   const byId = new Map(boxes.map((b) => [b.id, b]));
-  const end = (/** @type {string} */ id) => {
+  const box = (/** @type {string} */ id) => {
     const b = byId.get(id);
-    return b ? { target: /** @type {Target} */ ({ kind: b.kind, id }), trail: null } : null;
+    return b ? /** @type {Target} */ ({ kind: b.kind, id }) : null;
   };
   if (at.kind !== 'edge') {
-    const box = byId.get(at.id);
-    const list = box ? edgesOn(box, arrow.side, edges) : [];
-    return list.length ? { target: { kind: 'edge', id: list[0] }, trail: { edge: list[0], from: at.id, key, edges: list } } : null;
+    const first = leaving(edges, at.id, key)[0];
+    if (first) return { kind: 'edge', id: first };
+    const parent = byId.get(at.id)?.parent;
+    return parent ? { kind: 'subgraph', id: parent } : null;
   }
   const edge = edges.find((e) => e.id === at.id);
-  if (!edge) return null;
-  if (trail?.edge === at.id) {
-    const far = edge.from === trail.from ? edge.to : edge.from;
-    if (key === trail.key) return end(far);
-    if (key === OPPOSITE[trail.key]) return end(trail.from);
-    const n = trail.edges.length, k = trail.edges.indexOf(at.id);
-    // The cross arrows: towards the end of the side (right, or down) is next.
-    const next = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1;
-    const id = trail.edges[(k + next + n) % n];
-    return { target: { kind: 'edge', id }, trail: { ...trail, edge: id } };
+  if (!edge || edge.from === edge.to) return null;
+  const ends = endsOf(edge);
+  // Along the edge: the end it leaves heading back towards us.
+  const along = ends.filter((end) => end.dir === OPPOSITE[key]);
+  if (along.length === 1) return box(along[0].id);
+  if (!along.length) {
+    // Across it: the edges beside it, at the end where they fan out the way it goes (its top or left end first).
+    const step = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1;
+    const fans = ends.filter((end) => vertical(end.dir) !== vertical(key))
+      .sort((a, b) => Number(b.dir === 'ArrowDown' || b.dir === 'ArrowRight') - Number(a.dir === 'ArrowDown' || a.dir === 'ArrowRight'));
+    for (const end of fans) {
+      const list = leaving(edges, end.id, end.dir);
+      const k = list.indexOf(edge.id) + step;
+      if (k >= 0 && k < list.length) return { kind: 'edge', id: list[k] };
+      if (list.length > 1) return null;
+    }
   }
-  // By the ends' middles, not where the line meets them: simpler, and only an edge entering a large box from behind
-  // its middle could tell them apart. Should one turn up, compare `edge.start` and `edge.end` instead.
-  const [vx, vy] = arrow.v;
-  const ahead = [edge.from, edge.to].map((id) => ({ id, b: byId.get(id) }))
-    .filter((e) => e.b && (e.b.x - edge.mid.x) * vx + (e.b.y - edge.mid.y) * vy > 0)
-    .sort((p, q) => dist(/** @type {Box} */ (p.b), edge.mid) - dist(/** @type {Box} */ (q.b), edge.mid));
-  return ahead.length ? end(ahead[0].id) : null;
+  // The end further that way from the middle, if it lies that way at all.
+  const [vx, vy] = SIDES[key].v;
+  const beyond = (/** @type {Box} */ b) => (b.x - edge.mid.x) * vx + (b.y - edge.mid.y) * vy;
+  const ahead = ends.map((end) => byId.get(end.id)).filter((b) => b && beyond(b) > 0)
+    .sort((p, q) => beyond(/** @type {Box} */ (q)) - beyond(/** @type {Box} */ (p)));
+  return ahead[0] ? box(ahead[0].id) : null;
+}
+
+/**
+ * Where Ctrl+Arrow `key` goes from `at`: past the edge plain `key` would select, to its far end; from an edge, to the
+ * end that way. With no edge that way, null: the caller jumps by place instead.
+ * @param {{ boxes: Box[], edges: Edge[] }} graph
+ * @param {Target} at
+ * @param {string} key
+ * @returns {Target | null}
+ */
+export function skip(graph, at, key) {
+  if (at.kind === 'edge') {
+    const end = walk(graph, at, key);
+    return end?.kind === 'edge' ? null : end;
+  }
+  const first = leaving(graph.edges, at.id, key)[0];
+  const edge = graph.edges.find((e) => e.id === first);
+  if (!edge) return null;
+  const far = edge.from === at.id ? edge.to : edge.from;
+  const b = graph.boxes.find((x) => x.id === far);
+  return b ? { kind: b.kind, id: far } : null;
 }
 
 const dist = (/** @type {Point} */ a, /** @type {Point} */ b) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -160,4 +188,24 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
     if (d < bestD) { best = b.id; bestD = d; }
   }
   return best;
+}
+
+/**
+ * A move made by an arrow key, kept so the opposite key can take it back: from `from` to `to` by `key`, with Ctrl or
+ * not.
+ * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean }} Move
+ */
+
+/**
+ * The move that `key` (with Ctrl or not) takes back from `at`: the last one, when it ended at `at` and `key` is its
+ * opposite with the same modifier; else null, and the rules decide.
+ * @param {Move[]} path
+ * @param {Target} at
+ * @param {string} key
+ * @param {boolean} ctrl
+ */
+export function retrace(path, at, key, ctrl) {
+  const last = path.at(-1);
+  return last && last.to.kind === at.kind && last.to.id === at.id && key === OPPOSITE[last.key] && ctrl === last.ctrl
+    ? last : null;
 }
