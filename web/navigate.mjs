@@ -43,18 +43,36 @@ const endsOf = (/** @type {Edge} */ e) => [
   { id: e.to, dir: heading(e.end, e.endOut), at: e.end },
 ];
 
+/** Every node and subgraph drawn inside subgraph `id`, at any depth. */
+export function within(/** @type {Box[]} */ boxes, /** @type {string} */ id) {
+  const parent = new Map(boxes.map((b) => [b.id, b.parent ?? null]));
+  const inside = new Set();
+  for (const b of boxes) {
+    for (let p = parent.get(b.id); p; p = parent.get(p) ?? null) if (p === id) { inside.add(b.id); break; }
+  }
+  return inside;
+}
+
 /**
- * The edges leaving `id` heading `key`, in order across that way by where they meet it (two out of a diamond's
+ * The edges leaving `id` heading `key` (for a subgraph, with `inside` from within(): also those crossing its border
+ * from inside), in order across that way by where they meet it (two out of a diamond's
  * corners are told apart there): left to right for up and down, top to bottom for left and right. An edge belongs to
  * both its ends, whichever way it points. Self-loops are left out.
  */
-export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /** @type {string} */ key) {
+export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /** @type {string} */ key, inside = new Set()) {
   const across = vertical(key) ? 'x' : 'y';
   /** @type {{ id: string, at: Point }[]} */
   const found = [];
   for (const e of edges) {
     if (e.from === e.to) continue;
-    for (const end of endsOf(e)) if (end.id === id && end.dir === key) found.push({ id: e.id, at: end.at });
+    const [a, b] = endsOf(e);
+    for (const [end, other] of [[a, b], [b, a]]) {
+      // A subgraph's own edges, and those crossing its border from a node inside it, which head as they leave that node
+      // (not as they cross the border: should a line that leaves sideways and bends out through the bottom surprise,
+      // measure the heading where it leaves the subgraph's rect instead).
+      const crossing = inside.has(end.id) && !inside.has(other.id) && other.id !== id;
+      if ((end.id === id || crossing) && end.dir === key) found.push({ id: e.id, at: end.at });
+    }
   }
   return found.sort((a, b) => a.at[across] - b.at[across]).map((f) => f.id);
 }
@@ -79,7 +97,7 @@ export function walk({ boxes, edges }, at, key) {
     return b ? /** @type {Target} */ ({ kind: b.kind, id }) : null;
   };
   if (at.kind !== 'edge') {
-    const first = leaving(edges, at.id, key)[0];
+    const first = leaving(edges, at.id, key, at.kind === 'subgraph' ? within(boxes, at.id) : undefined)[0];
     if (first) return { kind: 'edge', id: first };
     const parent = byId.get(at.id)?.parent;
     return parent ? { kind: 'subgraph', id: parent } : null;
@@ -126,10 +144,11 @@ export function skip(graph, at, key) {
     const end = walk(graph, at, key);
     return end?.kind === 'edge' ? null : end;
   }
-  const first = leaving(graph.edges, at.id, key)[0];
+  const inside = at.kind === 'subgraph' ? within(graph.boxes, at.id) : new Set();
+  const first = leaving(graph.edges, at.id, key, inside)[0];
   const edge = graph.edges.find((e) => e.id === first);
   if (!edge) return null;
-  const far = edge.from === at.id ? edge.to : edge.from;
+  const far = edge.from === at.id || inside.has(edge.from) ? edge.to : edge.from;
   const b = graph.boxes.find((x) => x.id === far);
   return b ? { kind: b.kind, id: far } : null;
 }

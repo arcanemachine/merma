@@ -106,7 +106,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - On an edge, the other two arrows step to the edge beside it, at its top (or left) end, where the edges fan out the
   way it goes. They stop at the last edge rather than wrap: Right always means right.
 - A node in a subgraph with no edge leaving it that way climbs to the subgraph's box, which walks its own edges like a
-  node: so an edge into a subgraph is always reachable, from the box.
+  node: so an edge into a subgraph is always reachable, from the box. A box's edges include those crossing its border
+  from a node inside it (the user: from Payment, Down should reach the edge leaving it), heading as they leave that
+  node, so no way out of a subgraph is hidden from its box.
 - The opposite arrow retraces your last move (the user: you should be able to go back the way you came). Every other
   key follows the rules from where you are, so the same key on the same node leads the same way unless you are going
   back; a click or a search starts the way back afresh.
