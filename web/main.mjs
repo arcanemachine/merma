@@ -87,8 +87,12 @@ const ui = {
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
   },
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
-    /** @type {HTMLButtonElement} */ (el('undo')).disabled = !can.undo;
-    /** @type {HTMLButtonElement} */ (el('redo')).disabled = !can.redo;
+    for (const [id, on] of /** @type {const} */ ([['undo', can.undo], ['redo', can.redo]])) {
+      const b = /** @type {HTMLButtonElement} */ (el(id));
+      // A focused button that turns itself off would drop focus to the body: it goes to the diagram, as after a save.
+      if (!on && b === document.activeElement) el('diagram').focus();
+      b.disabled = !on;
+    }
   },
 };
 

@@ -425,7 +425,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   document.addEventListener('keydown', (e) => {
     if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
     const key = e.key.toLowerCase();
-    // Enter and Space on a focused button (the footer's) press it.
+    // Enter and Space on a focused button outside the diagram (the footer's, Help's) press it.
     if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
