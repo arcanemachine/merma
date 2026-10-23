@@ -53,8 +53,8 @@ another click on it closes it.
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on another node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click anywhere else, or Escape,
-  cancels. By keyboard, the arrows reach the node to connect to, along the edges from this one (outlined dashed, and
-  read out), and Enter connects to it; only nodes are reached this way, not subgraphs.
+  cancels. By keyboard, the arrows reach the node or subgraph to connect to, by place (outlined dashed, and read
+  out), and Enter connects to it (Moving by keyboard, below).
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
@@ -92,8 +92,8 @@ another click on it closes it.
 - **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
   the label box on its title (Escape there takes the add back, as for a node). Mermaid draws an empty subgraph as its
   title alone, until it has nodes.
-- **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node. By
-  keyboard, the first arrow reaches the node nearest the middle of the view.
+- **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node, and by
+  keyboard the same way.
 - **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
@@ -174,17 +174,17 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
-| Arrows with a node selected | Select the next node along the edges (below) |
-| Shift+Arrows with a node selected | Select the nearest node that way on screen, connected or not |
-| Ctrl+Arrows (Option on a Mac) with a node or edge selected | Select its edges, and step between them (below) |
-| Arrows with an edge selected | Down and Up to the nodes at its ends; Left and Right to the edges beside it |
+| Arrows with something selected | Walk the edges: a node's or subgraph's edge on that side, then on along it (below) |
+| Ctrl+Arrows (Option on a Mac) with something selected | Jump to the next node or subgraph that way on screen (below) |
+| O | Select the subgraph the selection is in |
+| I with a subgraph selected | Go into it: the item last selected there, else its top-left one |
 | 1–9, 0 with a node selected | Give it that shape, by its digit in the node panel's shapes; the shape it has writes nothing |
 | 1–9, 0 with an edge selected | Give it that arrow type, by its digit in Edit arrow type ▸ |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
-| Arrows or Shift+Arrows with nothing selected | Move the diagram, a tenth of the view at a time (in any diagram) |
+| Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram) |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
@@ -195,32 +195,36 @@ switches between Windows and Linux, and macOS.
 
 A double-click on a node or an edge edits its label too, and one on a subgraph its title.
 
-### Moving along the edges
+### Moving by keyboard
 
-The diagram is one stop for Tab. With a node selected, the arrows follow the edges, as the diagram is drawn top to
-bottom: Down goes to the node this one points to (the leftmost, when there are several), Left and Right step through
-the other nodes the same node points to, and Up goes back the way you came, or else to the leftmost node pointing to
-this one. Where several nodes point to one, Up picks one of them and Left and Right step through the rest. Left and
-Right stop at the last one; they do not wrap. "Leftmost" and "next" are where the nodes are drawn, not their order in
-the file. In a diagram drawn left to right (`flowchart LR`) the arrows turn with it: Right goes forward, Up and Down
-step through, and likewise for `BT` and `RL`. A subgraph's own `direction` is not followed. Each node reached is read
-out to screen readers, and brought into view when it is off screen; one already in view moves nothing. The arrows are
-the diagram's wherever the keyboard is, except in the label box, a menu or Help; while Help is open, no key acts on
-the diagram.
+The diagram is one stop for Tab. Each item reached is read out to screen readers, and brought into view when it is off
+screen; one already in view moves nothing. The arrows are the diagram's wherever the keyboard is, except in the label
+box, a menu or Help; while Help is open, no key acts on the diagram. A key with nowhere to go does nothing.
 
-Up from a node where Up has nowhere else to go, along the edges or on screen, selects the diagram's title, when there
-is one; Down from the title goes to the node nearest below it. Shift+Arrows never reach the title.
+**Plain arrows walk the edges**, two presses a step. With a node or a subgraph's box selected, an arrow selects an edge
+on that side of it: Down an edge meeting its bottom, Right one meeting its right, and so on, whichever way the edge
+points. Press the same arrow again to go on along the edge to the node or subgraph at its far end, or the opposite
+arrow to go back. While an edge is selected, the other two arrows step through the edges on the same side, wrapping
+round within that side and never on to another. On a side, the leftmost edge comes first (on a left or right side,
+the topmost). A side is where the edge meets the outline, measured against the node's own width and height, so the
+slanted ends of a hexagon are its left and right, and edges spread along the bottom of a wide node are all on its
+bottom. An edge selected by a click goes, by an arrow, to the end that lies that way.
 
-Ctrl+Arrows (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows) select edges: from a node,
-Ctrl+Down selects the first edge leaving it and Ctrl+Up the first edge coming into it ("first" is leftmost on screen,
-by the node at the other end). With an edge selected, Down goes to the node it points to and Up to the node it comes
-from, and Left and Right, with or without Ctrl, step through the edges it was reached among (else the edges leaving
-the same node), without wrapping. They turn with the diagram's direction, as the plain arrows do. Each edge reached is
-read out by its two ends. With nothing selected, Alt+Left and Alt+Right are the browser's (back and forward).
+**Ctrl+Arrows jump by place** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
+next node or subgraph that way on screen, connected or not. One overlapping the selection across the arrow comes
+first (the nearest); with none, the nearest at all; the leftmost (or topmost) breaks a tie. They do not wrap. A
+subgraph is a container: inside one, they move among its own items, and when nothing lies that way the next press
+selects its box; from outside, they stop at a subgraph's box rather than jump into it. From an edge they jump from its
+middle. With nothing selected, Alt+Left and Alt+Right are the browser's (back and forward).
 
-Shift+Arrows go by place instead: to the nearest node in that direction on screen (its middle within 45° of the
-arrow), connected or not. Nothing there, nothing happens; they do not wrap. In Connect to… they move the node to
-connect to the same way.
+**O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
+item last selected inside it, else its top-left one. At the top, or with nothing inside, they do nothing.
+
+Up from a node with nowhere else to go, and nothing drawn above it, selects the diagram's title, when there is one;
+Down from the title goes to the node or subgraph nearest below it.
+
+In Connect to…, the arrows (plain or with Ctrl) move the dashed outline by place, starting from the node or subgraph
+the edge comes from, and I and O move it into and out of subgraphs; Enter connects to the outlined one.
 
 ## Undo and redo
 
