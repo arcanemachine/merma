@@ -67,7 +67,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
-  let keptClick = false;   // a click away that kept an emptied label: its notice outlasts the click
+  let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;
 
