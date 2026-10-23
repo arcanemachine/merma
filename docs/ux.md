@@ -55,7 +55,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   that moved as Connect to… asked for a click would put another node under the click aimed at.
   For the same reason an edit keeps the view (the user): the diagram is fitted when the page opens, and again only on
   Fit to window or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
-  past the edge; that is the price of nodes staying put.
+  past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
+  someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
+  pointer whenever a pick resizes the node.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
