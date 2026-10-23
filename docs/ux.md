@@ -66,9 +66,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   add back too (the user): it cancels what was started, and what was started is the add. Undo takes a save back, which
   is what makes saving on a click away safe, and a touch screen has no other sure way to save. A press on Undo or Redo
   that started that save, as its click away, does not wait for it: it says the save is still going and to press again,
-  rather than doing nothing silently or two things at once. What cannot be saved (an emptied label) keeps the box open
-  with its error, and the click that left it does nothing. A click away onto another item selects that item once the
-  save is drawn.
+  rather than doing nothing silently or two things at once. An emptied label or title (which cannot be saved) is kept
+  as it was, with a notice, and the click goes on as after any save (the user): a click away is not the deliberate save
+  Enter is, so it does not hold you in the box. Enter on one is refused with an error. What cannot be saved for any
+  other reason (a shape the label cannot take, another edit still saving) keeps the box open with its error, and the
+  click that left it does nothing. A click away onto another item selects that item once the save is drawn.
 - No hover styling on the diagram, where a highlight would say something is selectable when it is not; except where
   hovering tells you something can be dragged. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
@@ -118,7 +120,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - A notice is one of three kinds, by what was lost:
   - **info** (blue): what to do next ("Click the node the edge goes to"), and nothing else.
   - **warning** (amber): the page will not do this here, and nothing was tried: a greyed item's key, "Nothing to
-    undo", merma unable to match the edges. The no is firm; the colour says nothing was lost.
+    undo", merma unable to match the edges, an emptied label kept on a click away. The no is firm; the colour says
+    nothing was lost.
   - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
     empty label on Enter.
 - Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so

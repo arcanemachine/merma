@@ -94,7 +94,8 @@ another click on it closes it.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node.
 - **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
-  `subgraph Payment ["New title"]`.
+  `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
+  keeps the title as it was.
 
 Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
 
@@ -114,9 +115,10 @@ Escape closes the panel without writing. On a node just added, Escape takes the 
 does not bring it back); from the shapes it takes two, since the first goes back to the label. On a touch screen, tap
 away and then Undo. Once the panel an add opened is closed, Undo is the way back.
 
-- **The label:** Shift+Enter starts a new line (written as `<br>`). A label you empty is refused; a node drawn with
-  none (a shape such as `bolt`) can still change shape with its label left empty: the panel stays open with the error, even after a
-  click away. Only the label changes, where the node is first given a
+- **The label:** Shift+Enter starts a new line (written as `<br>`). A label cannot be empty: Enter on an emptied
+  label is refused, and the panel stays open with the error; a click or tap away, or Tab, keeps the label as it was
+  (still saving a shape picked meanwhile) and says so. A node drawn with none (a shape such as `bolt`) can still
+  change shape with its label left empty. Only the label changes, where the node is first given a
   shape; a node that only appears bare gets brackets at its first appearance.
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
   (wrapping within their row or column), a digit selects one of the first ten, Enter selects the one with the outline
