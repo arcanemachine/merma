@@ -63,7 +63,8 @@ there is no login.
 | `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
 | `web/icons.mjs` | The frame every icon shares |
 | `web/grid.mjs` | Where an arrow key moves focus in a picker's grid |
-| `web/navigate.mjs` | Where an arrow key moves the selection along the diagram's edges |
+| `web/navigate.mjs` | Where an arrow key moves the selection: along edges, or to the next thing that way |
+| `web/find.mjs` | Search on /: which drawn items match, best first |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
