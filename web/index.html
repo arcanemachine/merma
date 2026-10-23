@@ -15,6 +15,12 @@
   </header>
   <div id="error"></div>
   <div id="notice"></div>
+  <div id="find" hidden>
+    <label for="find-box">Find</label>
+    <input id="find-box" type="text" autocomplete="off" spellcheck="false">
+    <span id="find-count"></span>
+    <span class="find-keys">Tab: next · Enter: select · Esc: cancel</span>
+  </div>
   <div id="notice-status" class="visually-hidden" role="status"></div>
   <div id="notice-alert" class="visually-hidden" role="alert"></div>
   <main>
@@ -47,6 +53,7 @@
       <tr><td colspan="2" class="hint">Keyboard shortcuts are case-insensitive.</td></tr>
       <tr><th scope="row"><kbd>+</kbd> or <kbd>-</kbd></th><td>Zoom in or out</td></tr>
       <tr><th scope="row"><kbd>F</kbd></th><td>Fit to window</td></tr>
+      <tr><th scope="row"><kbd>/</kbd></th><td>Search on screen</td></tr>
       <tr><th scope="row"><kbd>M</kbd> or <kbd>Shift</kbd>+<kbd>F10</kbd></th><td>Open menu</td></tr>
       <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel or deselect</td></tr>
       <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>Z</kbd></span></th><td>Undo</td></tr>

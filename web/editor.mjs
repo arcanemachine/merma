@@ -6,6 +6,7 @@
 
 import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
+import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import { byPlace, nearest, nest, walk } from './navigate.mjs';
@@ -51,7 +52,7 @@ const ZOOM_STEP = 1.25;
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
- * @param {Record<'stage'|'diagram'|'labelBox', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
@@ -139,7 +140,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const e = shownEdge(sel.id);
       if (!e) return 'the edge';
       const end = (/** @type {string} */ id) => /** @type {string} */ (named({ kind: nodeEl(id) ? 'node' : 'subgraph', id }));
-      return `the edge from ${end(e.from)} to ${end(e.to)}`;
+      const label = edgeEls(sel.id).find((x) => x.matches('g.edgeLabel'))?.textContent?.trim();
+      return `the edge ${label ? `"${label}" ` : ''}from ${end(e.from)} to ${end(e.to)}`;
     }
     return `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`;
   };
@@ -165,7 +167,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function setEditable(/** @type {boolean} */ on) {
     editable = on;
     els.stage.classList.toggle('editable', on);
-    if (!on) { deselect(); closeLabelBox(); }
+    if (!on) { closeFind(null); deselect(); closeLabelBox(); }
     historyChanged();
   }
   const historyChanged = () => ui.history({ undo: editable && history.size > 0, redo: editable && history.redoSize > 0 });
@@ -482,6 +484,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     })),
     o: () => out(),
     i: () => into(),
+    '/': () => { if (connecting) return false; openFind(); return true; },
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
@@ -644,6 +647,98 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const el = elsOf(item)[0];
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
+
+  // --- search: / -----------------------------------------------------------------------------------------------
+
+  // What was typed is matched against what is drawn on screen (find.mjs), and the view never moves: what is off
+  // screen is found by moving the view first. The selection is set aside meanwhile, and comes back on Escape, on a
+  // click away, and on Enter with nothing found; Enter selects the current match. Tab and Shift+Tab step through the
+  // matches, so Escape is the way out of the box (docs/ux.md).
+  const findBox = /** @type {HTMLInputElement} */ (els.findBox);
+  /** @type {{ before: Item | null, matches: import('./find.mjs').Findable[], at: number } | null} */
+  let finding = null;
+  /** What can be found, drawn wholly or partly on screen. */
+  function findables() {
+    const area = els.diagram.getBoundingClientRect();
+    /** @type {import('./find.mjs').Findable[]} */
+    const out = [];
+    const add = (/** @type {Item} */ item, /** @type {Element | null | undefined} */ el, /** @type {string} */ text) => {
+      const r = el?.getBoundingClientRect();
+      if (!r || !text.trim() || r.right < area.left || r.left > area.right || r.bottom < area.top || r.top > area.bottom) return;
+      out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    };
+    for (const g of drawn('g.node[data-page-node]')) {
+      const item = /** @type {Item} */ ({ kind: 'node', id: g.dataset.pageNode });
+      add(item, g, labelEl(item)?.innerText ?? '');
+    }
+    if (edgesOk) {
+      for (const g of drawn('g.edgeLabel[data-page-edge]')) add({ kind: 'edge', id: /** @type {string} */ (g.dataset.pageEdge) }, g, g.textContent ?? '');
+    }
+    for (const g of drawn('g.cluster[data-page-subgraph]')) {
+      const item = /** @type {Item} */ ({ kind: 'subgraph', id: g.dataset.pageSubgraph });
+      add(item, g.querySelector('.cluster-label'), labelEl(item)?.innerText ?? g.querySelector('.cluster-label')?.textContent ?? '');
+    }
+    add(TITLE, titleEl(), titleEl()?.textContent ?? '');
+    return out;
+  }
+  /** The element search marks for an item: an edge's label, else what is drawn for it. */
+  const markEl = (/** @type {Item} */ item) => (item.kind === 'edge'
+    ? edgeEls(item.id).find((e) => e.matches('g.edgeLabel'))
+    : elsOf(item)[0]);
+  function markMatches() {
+    for (const e of drawn('[data-page-match], [data-page-current]')) { e.removeAttribute('data-page-match'); e.removeAttribute('data-page-current'); }
+    if (!finding) return;
+    const { matches, at } = finding;
+    matches.forEach((m, k) => {
+      const el = markEl(m);
+      el?.setAttribute('data-page-match', '');
+      if (k === at) el?.setAttribute('data-page-current', '');
+    });
+    els.findCount.textContent = findBox.value.trim() ? (matches.length ? `${at + 1} of ${matches.length}` : 'No match') : '';
+  }
+  function openFind() {
+    if (finding) { findBox.focus(); return; }
+    finding = { before: selected, matches: [], at: 0 };
+    deselect();
+    ui.hideNotice();
+    findBox.value = '';
+    els.findCount.textContent = '';
+    els.find.hidden = false;
+    findBox.focus();
+  }
+  /** Close the box: select `pick`, or put back what was selected before. */
+  function closeFind(/** @type {Item | null} */ pick) {
+    const was = finding;
+    if (!was) return;
+    finding = null;
+    markMatches();
+    els.find.hidden = true;
+    if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
+    if (findBox === document.activeElement) els.diagram.focus();
+  }
+  findBox.addEventListener('input', () => {
+    if (!finding) return;
+    finding.matches = find(findables(), findBox.value);
+    finding.at = 0;
+    markMatches();
+    const first = finding.matches[0];
+    ui.announce(first ? `${finding.matches.length} found; ${named(first)}` : findBox.value.trim() ? 'No match' : '');
+  });
+  findBox.addEventListener('keydown', (e) => {
+    if (!finding) return;
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(null); return; }
+    if (e.key === 'Enter') { e.preventDefault(); closeFind(finding.matches[finding.at] ?? null); return; }
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const n = finding.matches.length;
+      if (!n) return;
+      finding.at = (finding.at + (e.shiftKey ? -1 : 1) + n) % n;
+      markMatches();
+      ui.announce(named(finding.matches[finding.at]));
+    }
+  });
+  // Focus leaving the box (a click away) cancels, as Escape does.
+  findBox.addEventListener('blur', () => { if (finding) closeFind(null); });
 
   // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
   // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
@@ -1161,6 +1256,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         if (id && known.has(id)) g.dataset.pageSubgraph = id;
       }
       tagEdges(text);
+      // A new drawing while searching: find again in it, so no mark is left on what has gone.
+      if (finding) {
+        finding.matches = find(findables(), findBox.value);
+        finding.at = Math.min(finding.at, Math.max(0, finding.matches.length - 1));
+        markMatches();
+      }
       const menu = menuOpen();
       const sel = selected;
       const next = pending;
