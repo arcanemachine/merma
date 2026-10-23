@@ -186,3 +186,10 @@ test('retrace takes back the last move with its opposite key and the same modifi
   assert.equal(retrace([move], at('node', 'paid'), 'ArrowUp', false), null);
   assert.equal(retrace([], at('node', 'retry'), 'ArrowUp', false), null);
 });
+
+test('a lone edge: the cross arrows stop, even with an end a little that way', () => {
+  // b sits a few pixels right of the edge's middle.
+  const lone = { boxes: nest([node('a', 0, 0), node('b', 6, 100)]), edges: [edge('a', 'b', [0, 15], 'D', [6, 85], 'U')] };
+  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowRight'), null);
+  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
+});

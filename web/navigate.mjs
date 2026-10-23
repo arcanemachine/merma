@@ -101,6 +101,9 @@ export function walk({ boxes, edges }, at, key) {
       if (k >= 0 && k < list.length) return { kind: 'edge', id: list[k] };
       if (list.length > 1) return null;
     }
+    // Nothing beside it: a cross arrow stops here, rather than taking an end that happens to lie a little that way.
+    // Only a U, leaving both ends the same way, has its ends found by where they lie.
+    if (fans.length && ends[0].dir !== ends[1].dir) return null;
   }
   // The end further that way from the middle, if it lies that way at all.
   const [vx, vy] = SIDES[key].v;
