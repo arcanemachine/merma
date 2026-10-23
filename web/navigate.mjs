@@ -141,8 +141,11 @@ export function beside({ boxes, edges }, id, from = null) {
   const edge = edges.find((e) => e.id === id);
   if (!edge || edge.from === edge.to) return null;
   const ends = endsOf(edge);
-  const start = from && ends.some((end) => end.id === from.id) ? from : { id: ends[0].id, key: ends[0].dir };
-  const other = ends.find((end) => end.id !== start.id);
+  // Reached from a subgraph's box by an edge crossing its border: the box, whose other end is the one outside it.
+  const box = from && boxes.find((b) => b.id === from.id && b.kind === 'subgraph');
+  const outside = box ? within(boxes, box.id) : null;
+  const start = from && (box || ends.some((end) => end.id === from.id)) ? from : { id: ends[0].id, key: ends[0].dir };
+  const other = ends.find((end) => (outside ? !outside.has(end.id) && end.id !== start.id : end.id !== start.id));
   for (const set of other ? [start, { id: other.id, key: other.dir }] : [start]) {
     const kind = boxes.find((b) => b.id === set.id)?.kind;
     const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);

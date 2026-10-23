@@ -249,3 +249,22 @@ test('beside: the end reached from when it has others there, else the other end,
   assert.deepEqual(beside(graph, 'order-wait'), { id: 'order', key: 'ArrowDown' });
   assert.equal(beside(graph, 'wait-paid'), null);
 });
+
+test("from a subgraph's box, across a crossing edge: the box's set, and alone there, the outside end's", () => {
+  const g = {
+    boxes: nest([sub('pay', 100, 100, 200, 100), node('paid', 100, 100), node('retry', 60, 130),
+      node('ship', 60, 260), node('log', 160, 260), node('far', 300, 0)]),
+    edges: [
+      // The inside edge leaves paid rightmost, so paid's own set goes on past the box's.
+      edge('paid', 'retry', [112, 115], 'D', [60, 115], 'U'),
+      edge('paid', 'ship', [95, 115], 'D', [60, 245], 'U'),
+      edge('paid', 'log', [105, 115], 'D', [160, 245], 'U'),
+      edge('paid', 'far', [115, 85], 'U', [300, 15], 'D'),
+      edge('far', 'log', [310, 15], 'D', [170, 245], 'U'),
+    ],
+  };
+  // Down from pay: its two crossing edges, not paid's inside one; then nothing.
+  assert.deepEqual(run(at('subgraph', 'pay'), ['ArrowDown', 'ArrowRight', 'ArrowRight'], g), ['edge paid-ship', 'edge paid-log', null]);
+  // Up from pay: paid-far is its only crossing edge going up: far's edges going down.
+  assert.deepEqual(beside(g, 'paid-far', { id: 'pay', key: 'ArrowUp' }), { id: 'far', key: 'ArrowDown' });
+});
