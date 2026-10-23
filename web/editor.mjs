@@ -221,11 +221,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /**
    * A digit on a selected node or edge sets its shape or arrow type, as the pickers' digits do: read by `e.code`, so a
-   * digit means the same on any layout. Returns whether it was one.
+   * digit means the same on any layout. A numpad key is a digit only with Num Lock on; off, it is an arrow. Returns
+   * whether it was one.
    */
-  function digitKey(/** @type {string} */ code) {
-    const d = /^(?:Digit|Numpad)(\d)$/.exec(code)?.[1];
-    if (!d || !selected || connecting) return false;
+  function digitKey(/** @type {KeyboardEvent} */ e) {
+    const d = /^(?:Digit|Numpad)(\d)$/.exec(e.code)?.[1];
+    if (!d || (e.code.startsWith('Numpad') && e.key !== d) || !selected || connecting) return false;
     const entries = selected.kind === 'node' ? NODE_SHAPES : selected.kind === 'edge' ? ARROW_TYPES : [];
     const entry = entries.find((e) => e.digit === d);
     if (!entry) return false;
@@ -584,7 +585,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // A key's name carries its modifiers: `ctrl+` for Ctrl or Alt (Option on a Mac; either on every system), then
     // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive.
     // Plain digits only: browsers keep Ctrl and Alt digits for switching tabs.
-    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && editable && digitKey(e.code)) { e.preventDefault(); return; }
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && editable && digitKey(e)) { e.preventDefault(); return; }
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
     if (e.metaKey || !keys[name] || (!editable && !VIEW_KEYS.includes(name))) return;
