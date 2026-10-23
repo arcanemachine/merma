@@ -95,7 +95,8 @@ test('the guide lists every shape with its digit, meaning and syntax', () => {
   for (const s of NODE_SHAPES) {
     const b = BRACKETS[s.key];
     const syntax = b ? `A${b[0]}text${b[1]}` : `A@{ shape: ${s.key} }`;
-    assert.ok(guide.includes(`| ${s.digit ?? ''} | ${s.name} | ${s.meaning} | \`${syntax}\` |`), `${s.name} ${syntax}`);
+    const key = s.digit ? `${s.shift ? 'Shift+' : ''}${s.digit}` : '';
+    assert.ok(guide.includes(`| ${key} | ${s.name} | ${s.meaning} | \`${syntax}\` |`), `${s.name} ${syntax}`);
   }
 });
 
@@ -104,9 +105,11 @@ test('the guide lists every arrow type with its digit and syntax', () => {
   for (const a of ARROW_TYPES) assert.ok(guide.includes(`| ${a.digit} | ${a.name} | \`${a.key}\` |`), `${a.name} ${a.key}`);
 });
 
-test('shapes: the first ten have the digits 1–9, 0 and the rest none; keys and names unique; every bracket shape listed', () => {
-  assert.deepEqual(NODE_SHAPES.slice(0, 10).map((s) => s.digit), ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']);
-  assert.ok(NODE_SHAPES.slice(10).every((s) => s.digit === undefined));
+test('shapes: the first ten have the digits 1–9, 0, the next ten the same with Shift, and the rest none; keys and names unique; every bracket shape listed', () => {
+  const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+  assert.deepEqual(NODE_SHAPES.slice(0, 10).map((s) => [s.digit, Boolean(s.shift)]), digits.map((d) => [d, false]));
+  assert.deepEqual(NODE_SHAPES.slice(10, 20).map((s) => [s.digit, s.shift]), digits.map((d) => [d, true]));
+  assert.ok(NODE_SHAPES.slice(20).every((s) => s.digit === undefined));
   assert.equal(new Set(NODE_SHAPES.map((s) => s.key)).size, NODE_SHAPES.length);
   assert.equal(new Set(NODE_SHAPES.map((s) => s.name)).size, NODE_SHAPES.length);
   for (const at of Object.keys(BRACKETS)) assert.ok(NODE_SHAPES.some((s) => s.key === at), `${at} is not listed`);

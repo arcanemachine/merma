@@ -169,7 +169,10 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .picker-title { font-size: 12px; color: #666; padding: 2px 4px 4px; }
 .picker-grid { display: grid; grid-template-columns: repeat(var(--columns), auto); gap: 2px; }
 .menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
-.picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #888; }
+.picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #1f2328; }
+/* The digits Shift does not pick are grey, still readable (at least 4.5:1 on the pressed fill); holding Shift swaps. */
+.picker-grid .digit.shift, :root[data-shift] .picker-grid .digit { color: #57606a; }
+:root[data-shift] .picker-grid .digit.shift { color: #1f2328; }
 /* Focus is the outline only, and the fill only what is selected (the user): two marks that never look alike. With
    focus elsewhere (in the label box above the strip), the outline stays where the arrows start from. */
 .menu .picker-grid button:focus,

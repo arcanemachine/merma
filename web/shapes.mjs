@@ -1,4 +1,4 @@
-// The shapes a node can be given, in a fixed order: an entry's digit picks it, so the order never changes and new
+// The shapes a node can be given, in a fixed order: an entry's digit picks it (the second ten with Shift), so the order never changes and new
 // entries go at the end. `key` is the shape's `@{ shape }` name; `name` and `meaning` are the "Shape Name" and
 // "Semantic Name" columns of Mermaid's flowchart docs. Which shapes also have brackets is in BRACKETS
 // (patch/flowchart.mjs).
@@ -20,14 +20,14 @@ export const NODE_SHAPES = [
   { key: 'hex', digit: '8', name: 'Hexagon', meaning: 'Prepare conditional', icon: shape('<path d="M7 3 H21 L26 9 L21 15 H7 L2 9 Z"/>') },
   { key: 'circle', digit: '9', name: 'Circle', meaning: 'Start', icon: shape('<circle cx="14" cy="9" r="7"/>') },
   { key: 'doc', digit: '0', name: 'Document', meaning: 'Document', icon: shape('<path d="M3 3 H25 V14 Q19.5 11 14 14 T3 14 Z"/>') },
-  { key: 'odd', name: 'Odd', meaning: 'Odd', icon: shape('<path d="M2 3 H26 V15 H2 L7 9 Z"/>') },
-  { key: 'lean-l', name: 'Lean left', meaning: 'Data input/output', icon: shape('<path d="M2 3 H21 L26 15 H7 Z"/>') },
-  { key: 'trap-b', name: 'Trapezoid base bottom', meaning: 'Priority action', icon: shape('<path d="M7 3 H21 L26 15 H2 Z"/>') },
-  { key: 'trap-t', name: 'Trapezoid base top', meaning: 'Manual operation', icon: shape('<path d="M2 3 H26 L21 15 H7 Z"/>') },
-  { key: 'dbl-circ', name: 'Double circle', meaning: 'Stop', icon: shape('<circle cx="14" cy="9" r="7.5"/><circle cx="14" cy="9" r="4.5"/>') },
-  { key: 'docs', name: 'Stacked document', meaning: 'Multi-document', icon: shape('<path d="M2 6 H21 V15 Q16.25 12.5 11.5 15 T2 15 Z M5 6 V3.5 H24 V12.5 H21 M8 3.5 V1 H27 V10 H24"/>') },
-  { key: 'sl-rect', name: 'Sloped rectangle', meaning: 'Manual input', icon: shape('<path d="M2 8 L26 3 V15 H2 Z"/>') },
-  { key: 'delay', name: 'Half-rounded rectangle', meaning: 'Delay', icon: shape('<path d="M2 3 H20 A6 6 0 0 1 20 15 H2 Z"/>') },
-  { key: 'bow-rect', name: 'Bow tie rectangle', meaning: 'Stored data', icon: shape('<path d="M6 3 H26 Q22 9 26 15 H6 Q2 9 6 3 Z"/>') },
-  { key: 'curv-trap', name: 'Curved trapezoid', meaning: 'Display', icon: shape('<path d="M8 3 H20 Q26 3 26 9 Q26 15 20 15 H8 L2 9 Z"/>') },
+  { key: 'odd', digit: '1', shift: true, name: 'Odd', meaning: 'Odd', icon: shape('<path d="M2 3 H26 V15 H2 L7 9 Z"/>') },
+  { key: 'lean-l', digit: '2', shift: true, name: 'Lean left', meaning: 'Data input/output', icon: shape('<path d="M2 3 H21 L26 15 H7 Z"/>') },
+  { key: 'trap-b', digit: '3', shift: true, name: 'Trapezoid base bottom', meaning: 'Priority action', icon: shape('<path d="M7 3 H21 L26 15 H2 Z"/>') },
+  { key: 'trap-t', digit: '4', shift: true, name: 'Trapezoid base top', meaning: 'Manual operation', icon: shape('<path d="M2 3 H26 L21 15 H7 Z"/>') },
+  { key: 'dbl-circ', digit: '5', shift: true, name: 'Double circle', meaning: 'Stop', icon: shape('<circle cx="14" cy="9" r="7.5"/><circle cx="14" cy="9" r="4.5"/>') },
+  { key: 'docs', digit: '6', shift: true, name: 'Stacked document', meaning: 'Multi-document', icon: shape('<path d="M2 6 H21 V15 Q16.25 12.5 11.5 15 T2 15 Z M5 6 V3.5 H24 V12.5 H21 M8 3.5 V1 H27 V10 H24"/>') },
+  { key: 'sl-rect', digit: '7', shift: true, name: 'Sloped rectangle', meaning: 'Manual input', icon: shape('<path d="M2 8 L26 3 V15 H2 Z"/>') },
+  { key: 'delay', digit: '8', shift: true, name: 'Half-rounded rectangle', meaning: 'Delay', icon: shape('<path d="M2 3 H20 A6 6 0 0 1 20 15 H2 Z"/>') },
+  { key: 'bow-rect', digit: '9', shift: true, name: 'Bow tie rectangle', meaning: 'Stored data', icon: shape('<path d="M6 3 H26 Q22 9 26 15 H6 Q2 9 6 3 Z"/>') },
+  { key: 'curv-trap', digit: '0', shift: true, name: 'Curved trapezoid', meaning: 'Display', icon: shape('<path d="M8 3 H20 Q26 3 26 9 Q26 15 20 15 H8 L2 9 Z"/>') },
 ];
