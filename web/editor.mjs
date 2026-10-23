@@ -448,7 +448,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const item = /** @type {Item} */ ({ kind: 'node', id });
     select(item);
     walk = null;
-    ui.announce(named(item));
+    ui.announce(`${named(item)} selected`);
     const el = nodeEl(id);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
@@ -470,6 +470,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   });
   document.addEventListener('keydown', (e) => {
     if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
+    // While a dialog (Help: a popover that is not one of the page's overlays) is open, its keys are its own: arrows
+    // scroll it and Escape closes it.
+    if (document.querySelector(':popover-open:not([data-overlay])')) return;
     const key = e.key.toLowerCase();
     // Enter and Space on a focused button outside the diagram (the footer's, Help's) press it.
     if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
@@ -488,8 +491,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
     if (e.metaKey || !keys[name] || (!editable && !VIEW_KEYS.includes(name))) return;
-    // Help, the one popover that leaves keys to the page, scrolls by the arrows while it is open.
-    if (key.startsWith('arrow') && document.querySelector(':popover-open')) return;
     if (keys[name]()) e.preventDefault();
   });
 

@@ -186,7 +186,8 @@ Right stop at the last one; they do not wrap. "Leftmost" and "next" are where th
 the file. In a diagram drawn left to right (`flowchart LR`) the arrows turn with it: Right goes forward, Up and Down
 step through, and likewise for `BT` and `RL`. A subgraph's own `direction` is not followed. Each node reached is read
 out to screen readers, and brought into view when it is off screen; one already in view moves nothing. The arrows are
-the diagram's wherever the keyboard is, except in the label box, a menu or Help.
+the diagram's wherever the keyboard is, except in the label box, a menu or Help; while Help is open, no key acts on
+the diagram.
 
 ## Undo and redo
 
