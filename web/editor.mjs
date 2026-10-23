@@ -582,9 +582,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const back = retrace(path, here, key, ctrl);
     if (back) {
       path.pop();
-      // Back onto an edge from a node: it now counts as reached from that node (Left and Right step its edges).
-      const top = path.at(-1);
-      if (top && back.from.kind === 'edge' && here.kind !== 'edge') top.came = { id: here.id, key };
+      // Back onto an edge from a node: it now counts as reached from that node by this arrow, so Left and Right step
+      // that node's edges rather than take back the steps before it (the user).
+      if (back.from.kind === 'edge' && here.kind !== 'edge') {
+        path = [{ from: here, to: back.from, key, ctrl, came: { id: here.id, key } }];
+      }
       moveTo(back.from);
       return true;
     }
