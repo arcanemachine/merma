@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { byPlace, heading, leaving, nearest, nest, retrace, skip, walk } from '../web/navigate.mjs';
+import { byPlace, heading, leaving, nearest, nest, retrace, skip, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -192,4 +192,25 @@ test('a lone edge: the cross arrows stop, even with an end a little that way', (
   const lone = { boxes: nest([node('a', 0, 0), node('b', 6, 100)]), edges: [edge('a', 'b', [0, 15], 'D', [6, 85], 'U')] };
   assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowRight'), null);
   assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
+});
+
+test("a subgraph's box also owns the edges crossing its border from inside, at any depth", () => {
+  // pay holds paid; deeper, ship holds box, which holds tape.
+  const g = {
+    boxes: nest([sub('pay', 100, 100, 200, 100), node('paid', 100, 100), node('retry', 60, 130),
+      sub('ship', 100, 300, 200, 120), sub('box', 130, 310, 80, 60), node('tape', 130, 310), node('log', 260, 220)]),
+    edges: [
+      edge('paid', 'retry', [90, 115], 'D', [60, 115], 'U'),
+      edge('paid', 'log', [110, 115], 'D', [260, 205], 'U'),
+      edge('paid', 'ship', [100, 115], 'D', [100, 240], 'U'),
+      edge('log', 'tape', [260, 235], 'D', [130, 295], 'U'),
+    ],
+  };
+  assert.deepEqual(leaving(g.edges, 'pay', 'ArrowDown', within(g.boxes, 'pay')), ['paid-ship', 'paid-log']);
+  assert.deepEqual(walk(g, at('subgraph', 'pay'), 'ArrowDown'), at('edge', 'paid-ship'));
+  assert.deepEqual(skip(g, at('subgraph', 'pay'), 'ArrowDown'), at('subgraph', 'ship'));
+  // log-tape crosses both box's and ship's borders.
+  assert.deepEqual(walk(g, at('subgraph', 'box'), 'ArrowUp'), at('edge', 'log-tape'));
+  assert.deepEqual(walk(g, at('subgraph', 'ship'), 'ArrowUp'), at('edge', 'paid-ship'));
+  assert.deepEqual(leaving(g.edges, 'ship', 'ArrowUp', within(g.boxes, 'ship')), ['paid-ship', 'log-tape']);
 });

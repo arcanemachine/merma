@@ -208,7 +208,9 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
 subgraph's box selected, an arrow selects an edge leaving it that way: Down an edge that heads down as it leaves
 (whichever way it points, and wherever on the outline it starts: the edges out of a diamond's lower corners head
 down), Right one that heads right, and so on; the leftmost first (for Left and Right, the topmost). With none that way,
-a node inside a subgraph selects the subgraph's box, and the same arrow again takes the box's edge. On an edge, the
+a node inside a subgraph selects the subgraph's box, and the same arrow again takes the box's edge. A box's edges are
+those drawn to it and those crossing its border from a node inside it: from Payment's box, Down takes the "yes" edges
+out of it. On an edge, the
 arrow along it goes to the end you arrive at that way, and the other two go to the edge beside it, among those leaving
 its top end (or left end) the same way: from "Paid?", Down, then Right, Right, Right, steps through all four of its
 edges. They stop at the last one. An edge to a subgraph lands on its box.
