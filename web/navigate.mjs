@@ -80,10 +80,9 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
 /**
  * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
  * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
- * travelling that way (the one end it leaves heading the other way); the other two step to the edge beside it, without
- * wrapping, among the edges at the end it was reached from (`from`, else its source) that way, or at its other end
- * when it is alone there. Past the last of them, alone at both ends, or on a bend that leaves both ends heading the same
- * way, an arrow goes to the end that lies further that way from the edge's middle, if either does.
+ * travelling that way (the one end it leaves heading the other way); the other two page across the edges beside it
+ * (across()), never to a node. Only on a bend that leaves both ends heading the same way does an arrow go to the end
+ * lying further that way from the edge's middle.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
  * @param {string} key
@@ -107,16 +106,11 @@ export function walk({ boxes, edges }, at, key, from = null) {
   // Along the edge: the end it leaves heading back towards us.
   const along = ends.filter((end) => end.dir === OPPOSITE[key]);
   if (along.length === 1) return box(along[0].id);
-  // Across it: among the edges beside it (beside()); nothing there: nothing.
   if (!along.length) {
-    const set = beside({ boxes, edges }, edge.id, from);
-    if (set && vertical(set.key) !== vertical(key)) {
-      const kind = byId.get(set.id)?.kind;
-      const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
-      const k = list.indexOf(edge.id) + (key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1);
-      if (k >= 0 && k < list.length) return { kind: 'edge', id: list[k] };
-      // Past the last edge beside it, or alone at both ends: on to the end lying that way, below.
-    } else if (set) return null;
+    const step = across({ boxes, edges }, edge.id, key, from);
+    if (step) return step.to;
+    // Nothing beside it that way: a cross arrow stops (only a U, both ends one way, falls to where the ends lie).
+    if (ends.some((end) => vertical(end.dir) !== vertical(key))) return null;
   }
   // The end further that way from the middle, if it lies that way at all.
   const [vx, vy] = SIDES[key].v;
@@ -127,28 +121,33 @@ export function walk({ boxes, edges }, at, key, from = null) {
 }
 
 /**
- * The edges an edge steps among across it, as the node and heading they leave by: those at the end it was reached
- * from (`from`; reached any other way, its source, the node the file writes first, which every edge has), when it has
- * others there; alone there, those at its other end, which is then where it counts as reached from. Null when it is
- * alone at both.
+ * Paging across edge `id` with arrow `key`: the edge beside it that way, without wrapping, among the edges at the end it
+ * was reached from that leave heading as it does there (`from`; reached any other way, its source, the node the file
+ * writes first, which every edge has); past the last of them, on among those at its other end, from its place there.
+ * Edges heading along `key`'s axis are not paged by it. Returns the edge and the end whose edges it was found among
+ * (where it now counts as reached from), or null.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {string} id
+ * @param {string} key
  * @param {{ id: string, key: string } | null} [from]
- * @returns {{ id: string, key: string } | null}
+ * @returns {{ to: Target, from: { id: string, key: string } } | null}
  */
-export function beside({ boxes, edges }, id, from = null) {
+export function across({ boxes, edges }, id, key, from = null) {
   const edge = edges.find((e) => e.id === id);
-  if (!edge || edge.from === edge.to) return null;
+  if (!edge || edge.from === edge.to || !SIDES[key]) return null;
   const ends = endsOf(edge);
   // Reached from a subgraph's box by an edge crossing its border: the box, whose other end is the one outside it.
   const box = from && boxes.find((b) => b.id === from.id && b.kind === 'subgraph');
   const outside = box ? within(boxes, box.id) : null;
   const start = from && (box || ends.some((end) => end.id === from.id)) ? from : { id: ends[0].id, key: ends[0].dir };
   const other = ends.find((end) => (outside ? !outside.has(end.id) && end.id !== start.id : end.id !== start.id));
+  const forward = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1;
   for (const set of other ? [start, { id: other.id, key: other.dir }] : [start]) {
+    if (vertical(set.key) === vertical(key)) continue;
     const kind = boxes.find((b) => b.id === set.id)?.kind;
     const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
-    if (list.length > 1 && list.includes(id)) return set;
+    const k = list.indexOf(id);
+    if (k >= 0 && k + forward >= 0 && k + forward < list.length) return { to: { kind: 'edge', id: list[k + forward] }, from: set };
   }
   return null;
 }
