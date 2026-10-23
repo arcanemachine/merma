@@ -103,19 +103,24 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   starts (the user): the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to
   right. Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached its
   next bend.
-- On an edge, the other two arrows step to the edge beside it, at its top (or left) end, where the edges fan out the
-  way it goes. They stop at the last edge rather than wrap: Right always means right.
-- A node in a subgraph with no edge leaving it that way climbs to the subgraph's box, which walks its own edges like a
-  node: so an edge into a subgraph is always reachable, from the box. A box's edges include those crossing its border
-  from a node inside it (the user: from Payment, Down should reach the edge leaving it), heading as they leave that
-  node, so no way out of a subgraph is hidden from its box.
+- On an edge, the other two arrows step to the edge beside it among the edges of the node you reached it from, going
+  the way you went (the user: from Retry, Up then Right reaches the other edge at Retry's top, never another node's).
+  An edge clicked or found by search steps among its source's (the node the file writes first: every edge has one).
+  They stop at the last edge rather than wrap: Right always means right.
+- With no edge leaving that way, an arrow goes to the next thing that way (the user: Right from Print label is Boxing,
+  the subgraph to its right): the nearest node or subgraph box lying wholly that way, at any depth, measured box to
+  box, the topmost (or leftmost) on a tie. The subgraph you are in counts by its border, so with nothing nearer inside,
+  you reach its box: Charge card, Up, is Payment. Wholly that way: a node below and to the right that overlaps you
+  sideways is not to the right. Nearest, not same row: a near node up and to the right beats a far one straight right.
+- A subgraph's box walks its own edges like a node, including those crossing its border from a node inside it (the
+  user: from Payment, Down should reach the edge leaving it), heading as they leave that node, so no way out of a
+  subgraph is hidden from its box.
 - The opposite arrow retraces your last move (the user: you should be able to go back the way you came). Every other
   key follows the rules from where you are, so the same key on the same node leads the same way unless you are going
   back; a click or a search starts the way back afresh.
-- Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user). With no edge that way they jump by place: one
-  in the same row (or column) first, its middle within the other's span, since that is what "beside" means to the
-  eye; then the nearest; no wrap. A subgraph is a container: they stop at its box going in and coming out, and never
-  jump into one unasked; I and O go in and out.
+- Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user); with no edge that way they go to the next thing
+  that way, as a plain arrow does. From outside a subgraph its box is always nearer than anything inside it, so they
+  stop at the box rather than jump in; I and O go in and out.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
   user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so

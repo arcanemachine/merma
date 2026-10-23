@@ -44,12 +44,20 @@ const edges = [
 ];
 const graph = { boxes, edges };
 const at = (/** @type {'node' | 'subgraph' | 'edge'} */ kind, /** @type {string} */ id) => ({ kind, id });
-/** Where each of `keys` goes, pressed one after another from `from`; null where one went nowhere. */
-function run(/** @type {{ kind: any, id: string }} */ from, /** @type {string[]} */ keys) {
+/**
+ * Where each of `keys` goes, pressed one after another from `from`, telling walk() the node an edge was reached from,
+ * as the editor does; null where one went nowhere.
+ */
+function run(/** @type {{ kind: any, id: string }} */ from, /** @type {string[]} */ keys, g = graph) {
   let here = from;
+  /** @type {{ id: string, key: string } | null} */
+  let came = null;
   return keys.map((key) => {
-    const next = walk(graph, here, key);
-    if (next) here = next;
+    const next = walk(g, here, key, here.kind === 'edge' ? came : null);
+    if (next) {
+      came = next.kind === 'edge' && here.kind !== 'edge' ? { id: here.id, key } : came;
+      here = next;
+    }
     return next ? `${next.kind} ${next.id}` : null;
   });
 }
@@ -78,16 +86,28 @@ test('on an edge, the arrow along it goes to the end that way', () => {
   assert.deepEqual(run(at('node', 'retry'), ['ArrowUp', 'ArrowUp']), ['edge paid-retry', 'node paid']);
 });
 
-test('across an edge: the edges beside it at its top end, not where it was reached from, without wrapping', () => {
-  // Up from wait reaches order-wait; Right and Left step through order's downward edges.
-  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
-    ['edge order-wait', 'edge order-note', null, 'edge order-wait', 'node order']);
-  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowLeft', 'ArrowLeft']), ['edge order-wait', 'edge order-check', null]);
+test("across an edge reached from a node: only that node's edges going that way, without wrapping", () => {
+  // order-wait is wait's only upward edge: nothing beside it, though order has others going down.
+  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
+    ['edge order-wait', null, null, 'node order']);
+  assert.deepEqual(run(at('node', 'order'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowLeft']),
+    ['edge order-check', 'edge order-wait', 'edge order-note', null, 'edge order-wait']);
 });
 
-test('an edge alone at its top end steps among those at its other end', () => {
-  // wait-paid is wait's only downward edge; at paid it is the only upward one too: nowhere to step.
-  assert.deepEqual(run(at('edge', 'wait-paid'), ['ArrowRight']), [null]);
+test("across an edge reached any other way (a click): its source's edges going its way", () => {
+  // order-wait's source is order: its downward edges, whichever way they point.
+  assert.deepEqual(walk(graph, at('edge', 'order-wait'), 'ArrowRight'), at('edge', 'order-note'));
+  assert.equal(walk(graph, at('edge', 'wait-paid'), 'ArrowRight'), null);
+});
+
+test("an edge coming in and one going out of the same side are stepped between", () => {
+  // Retry's case: p comes into r's top, and r goes up to c; Up from r, then Right.
+  const g = { boxes: nest([node('p', 100, 0), node('c', 0, 0), node('r', 50, 100)]), edges: [
+    edge('r', 'c', [40, 85], 'U', [0, 15], 'D'), edge('p', 'r', [100, 15], 'D', [60, 85], 'U')] };
+  assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft'], g),
+    ['edge r-c', 'edge p-r', null, 'edge r-c']);
+  // Clicked, r-c's source is r: the same two.
+  assert.deepEqual(walk(g, at('edge', 'r-c'), 'ArrowRight'), at('edge', 'p-r'));
 });
 
 test('an edge that turns: the arrows go to the end that lies that way', () => {
@@ -96,11 +116,12 @@ test('an edge that turns: the arrows go to the end that lies that way', () => {
   assert.deepEqual(run(at('edge', 'check-aside'), ['ArrowRight']), ['node aside']);
 });
 
-test('an edge to a subgraph lands on its box; a node with no edge that way climbs to its subgraph', () => {
+test('an edge to a subgraph lands on its box; a node with no edge that way finds nothing, for the caller to go by place', () => {
   assert.deepEqual(run(at('edge', 'paid-ship'), ['ArrowDown']), ['subgraph ship']);
-  assert.deepEqual(run(at('node', 'pack'), ['ArrowUp', 'ArrowUp', 'ArrowUp']), ['subgraph ship', 'edge paid-ship', 'node paid']);
-  // At the top level, with nothing that way: nowhere.
-  assert.deepEqual(run(at('node', 'order'), ['ArrowUp']), [null]);
+  assert.deepEqual(run(at('node', 'pack'), ['ArrowUp']), [null]);
+  // By place, nothing nearer above pack than its subgraph's top border: the box, then walking on from it.
+  assert.deepEqual(byPlace(boxes, 'pack', 'ArrowUp'), at('subgraph', 'ship'));
+  assert.deepEqual(run(at('subgraph', 'ship'), ['ArrowUp', 'ArrowUp']), ['edge paid-ship', 'node paid']);
 });
 
 test('Ctrl skips the edge to its far end, or finds nothing for the caller to jump by place', () => {
@@ -123,16 +144,26 @@ test('nest puts a subgraph in the one around it, never in a smaller one over its
   assert.deepEqual(parents, { outer: null, inner: 'outer', n: 'inner' });
 });
 
-test('by place: one in the row (its middle within the span) comes first, nearest along the arrow', () => {
-  // x is nearer in a straight line, but only y lies under a.
-  const three = nest([node('a', 100, 0), node('x', 170, 40), node('y', 100, 150)]);
-  assert.deepEqual(byPlace(three, 'a', 'ArrowDown'), at('node', 'y'));
-  // A box mostly above, a little ahead, is not in the row; one squarely beside it is.
+test('by place: the nearest thing wholly that way, node or subgraph, at any depth', () => {
+  // Inside ship: label, and to its right the nested box holding tape.
+  const placed = nest([sub('ship', 150, 100, 300, 160), node('label', 50, 100), sub('box', 200, 110, 120, 80), node('tape', 200, 110)]);
+  assert.deepEqual(byPlace(placed, 'label', 'ArrowRight'), at('subgraph', 'box'));
+  // Without the box, the node inside it is nearer than ship's right border.
+  const flat = nest([sub('ship', 150, 100, 300, 160), node('label', 50, 100), node('tape', 200, 110)]);
+  assert.deepEqual(byPlace(flat, 'label', 'ArrowRight'), at('node', 'tape'));
+  // A box mostly above, a little ahead, is not wholly to the right.
   const row = nest([node('here', 0, 0, 60, 40), node('above', 20, -30, 100, 40), node('beside', 150, 10)]);
   assert.deepEqual(byPlace(row, 'here', 'ArrowRight'), at('node', 'beside'));
 });
 
-test('by place: nothing in the row, the nearest ahead; nothing ahead, nowhere (no wrap)', () => {
+test('by place: the subgraph around it counts by its border, when nothing inside is nearer', () => {
+  // charge in pay; check outside, further up than pay's top border.
+  const placed = nest([sub('pay', 100, 150, 200, 100), node('charge', 100, 150), node('check', 100, 20)]);
+  assert.deepEqual(byPlace(placed, 'charge', 'ArrowUp'), at('subgraph', 'pay'));
+  assert.deepEqual(byPlace(placed, 'pay', 'ArrowUp'), at('node', 'check'));
+});
+
+test('by place: nothing that way, nowhere (no wrap)', () => {
   const two = nest([node('a', 0, 0), node('b', 200, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));
   assert.equal(byPlace(two, 'b', 'ArrowDown'), null);
@@ -141,13 +172,6 @@ test('by place: nothing in the row, the nearest ahead; nothing ahead, nowhere (n
 test('by place: a box straight below is not to the side for being a fraction across', () => {
   const column = nest([node('a', 100, 0), node('b', 100.4, 100)]);
   assert.equal(byPlace(column, 'a', 'ArrowRight'), null);
-});
-
-test('by place inside a subgraph: its own items, then its box; from outside, the box, not inside it', () => {
-  const inside = nest([sub('s', 100, 100, 200, 100), node('a', 50, 100), node('b', 150, 100), node('c', 100, 300)]);
-  assert.deepEqual(byPlace(inside, 'a', 'ArrowRight'), at('node', 'b'));
-  assert.deepEqual(byPlace(inside, 'b', 'ArrowRight'), at('subgraph', 's'));
-  assert.deepEqual(byPlace(inside, 'c', 'ArrowUp'), at('subgraph', 's'));
 });
 
 test('by place breaks a tie by leftmost (topmost going sideways)', () => {
@@ -170,12 +194,12 @@ test('nearest finds the box whose middle is closest, and null with none', () => 
   assert.equal(nearest([], 0, 0), null);
 });
 
-test('a loop-back that leaves both ends the same way: an arrow goes to the end further that way', () => {
+test('a loop-back that leaves both ends the same way: Up or Down goes to the end further that way', () => {
   // Both ends leave heading down, in a U under them; l sits higher than r.
   const u = { boxes: nest([node('l', 0, 0), node('r', 200, 20)]), edges: [edge('l', 'r', [0, 15], 'D', [200, 35], 'D')] };
-  assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowLeft'), at('node', 'l'));
-  assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowRight'), at('node', 'r'));
   assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowUp'), at('node', 'l'));
+  // Left and Right step edges only: none beside it.
+  assert.equal(walk(u, at('edge', 'l-r'), 'ArrowRight'), null);
 });
 
 test('retrace takes back the last move with its opposite key and the same modifier, and nothing else', () => {
