@@ -193,19 +193,45 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const arrowPicker = createPicker({
     title: 'Arrow type',
     entries: ARROW_TYPES,
-    onPick: (arrow) => {
-      const id = selection().id;
-      // The arrow type it has already: nothing to write, and the picker stays, as after any pick.
-      if (arrowType(shownEdge(id)?.arrow ?? '') === arrow) return;
-      const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
-      const again = sameEdge(id);
-      editDrawn((text) => setEdgeArrow(text, id, arrow), {
-        keep: true,
-        after: (result) => { const next = again(result); return next && { ...next, menu: true }; },
-        afterSave: () => ui.announce(`Changed the edge to ${name}`),
-      });
-    },
+    onPick: (arrow) => setArrow(selection().id, arrow, true),
   });
+  /**
+   * Give edge `id` the arrow type `arrow`, from the picker (`inMenu`: it stays open, on the new entry) or a digit. The
+   * arrow type it has already writes nothing.
+   */
+  function setArrow(/** @type {string} */ id, /** @type {string} */ arrow, inMenu = false) {
+    if (arrowType(shownEdge(id)?.arrow ?? '') === arrow) return;
+    const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
+    const again = sameEdge(id);
+    editDrawn((text) => setEdgeArrow(text, id, arrow), {
+      keep: inMenu,
+      after: (result) => { const next = again(result); return next && { ...next, menu: inMenu }; },
+      afterSave: () => ui.announce(`Changed the edge to ${name}`),
+    });
+  }
+  /** Give node `id` the shape `shape`, from a digit; the shape it has already writes nothing. */
+  function setNodeShape(/** @type {string} */ id, /** @type {string} */ shape) {
+    if (shownShape(id) === shape) return;
+    const item = /** @type {Item} */ ({ kind: 'node', id });
+    const names = [named(item), NODE_SHAPES.find((e) => e.key === shape)?.name];
+    edit((text) => setShape(text, id, shape), {
+      after: () => ({ item }),
+      afterSave: () => ui.announce(`Changed ${names[0]} to ${names[1]}`),
+    });
+  }
+  /**
+   * A digit on a selected node or edge sets its shape or arrow type, as the pickers' digits do: read by `e.code`, so a
+   * digit means the same on any layout. Returns whether it was one.
+   */
+  function digitKey(/** @type {string} */ code) {
+    const d = /^(?:Digit|Numpad)(\d)$/.exec(code)?.[1];
+    if (!d || !selected || connecting) return false;
+    const entries = selected.kind === 'node' ? NODE_SHAPES : selected.kind === 'edge' ? ARROW_TYPES : [];
+    const entry = entries.find((e) => e.digit === d);
+    if (!entry) return false;
+    if (selected.kind === 'node') setNodeShape(selected.id, entry.key); else setArrow(selected.id, entry.key);
+    return true;
+  }
 
   const menuOptions = {
     parent: els.diagram,
@@ -557,6 +583,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     // A key's name carries its modifiers: `ctrl+` for Ctrl or Alt (Option on a Mac; either on every system), then
     // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive.
+    // Plain digits only: browsers keep Ctrl and Alt digits for switching tabs.
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && editable && digitKey(e.code)) { e.preventDefault(); return; }
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
     if (e.metaKey || !keys[name] || (!editable && !VIEW_KEYS.includes(name))) return;

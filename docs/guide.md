@@ -176,6 +176,8 @@ Outside menus, and not while typing in the label box. Keys are case-insensitive,
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with a node selected | Select the next node along the edges (below) |
 | Shift+Arrows with a node selected | Select the nearest node that way on screen, connected or not |
+| 1–9, 0 with a node selected | Give it that shape, by its digit in the node panel's shapes; the shape it has writes nothing |
+| 1–9, 0 with an edge selected | Give it that arrow type, by its digit in Edit arrow type ▸ |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M | Open the selection's menu; with nothing selected, the empty-space menu |
