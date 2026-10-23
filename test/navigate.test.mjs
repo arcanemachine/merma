@@ -280,19 +280,22 @@ test('the arrow that brought you to a box from outside carries you on into it, t
   const inner = nest([sub('ship', 100, 100, 200, 160), node('pack', 60, 50), node('tape', 160, 70), node('label', 60, 150),
     node('done', 100, 260), node('paid', 100, -60)]);
   const move = (/** @type {any} */ from, /** @type {string} */ key) => ({ from, to: at('subgraph', 'ship'), key, ctrl: false });
+  const g = { boxes: inner, edges: [edge('pack', 'label', [60, 65], 'D', [60, 135], 'U')] };
   const edgeIn = at('edge', 'paid-ship');
-  assert.deepEqual(enter([move(edgeIn, 'ArrowDown')], inner, at('subgraph', 'ship'), 'ArrowDown'), at('node', 'pack'));
-  assert.deepEqual(enter([move(at('node', 'done'), 'ArrowUp')], inner, at('subgraph', 'ship'), 'ArrowUp'), at('node', 'label'));
-  assert.deepEqual(enter([move(edgeIn, 'ArrowRight')], inner, at('subgraph', 'ship'), 'ArrowRight'), at('node', 'pack'));
-  assert.deepEqual(enter([move(edgeIn, 'ArrowLeft')], inner, at('subgraph', 'ship'), 'ArrowLeft'), at('node', 'tape'));
+  assert.deepEqual(enter([move(edgeIn, 'ArrowDown')], g, at('subgraph', 'ship'), 'ArrowDown'), at('node', 'pack'));
+  assert.deepEqual(enter([move(at('node', 'done'), 'ArrowUp')], g, at('subgraph', 'ship'), 'ArrowUp'), at('node', 'label'));
+  assert.deepEqual(enter([move(edgeIn, 'ArrowRight')], g, at('subgraph', 'ship'), 'ArrowRight'), at('node', 'pack'));
+  assert.deepEqual(enter([move(edgeIn, 'ArrowLeft')], g, at('subgraph', 'ship'), 'ArrowLeft'), at('node', 'tape'));
   // Another arrow, a click (no path), or a climb from inside: the box walks its edges.
-  assert.equal(enter([move(edgeIn, 'ArrowDown')], inner, at('subgraph', 'ship'), 'ArrowRight'), null);
-  assert.equal(enter([], inner, at('subgraph', 'ship'), 'ArrowDown'), null);
-  assert.equal(enter([move(at('node', 'label'), 'ArrowUp')], inner, at('subgraph', 'ship'), 'ArrowUp'), null);
+  assert.equal(enter([move(edgeIn, 'ArrowDown')], g, at('subgraph', 'ship'), 'ArrowRight'), null);
+  assert.equal(enter([], g, at('subgraph', 'ship'), 'ArrowDown'), null);
+  assert.equal(enter([move(at('node', 'label'), 'ArrowUp')], g, at('subgraph', 'ship'), 'ArrowUp'), null);
+  // A climb by place from an edge inside it: its edges, not back in.
+  assert.equal(enter([move(at('edge', 'pack-label'), 'ArrowLeft')], g, at('subgraph', 'ship'), 'ArrowLeft'), null);
   // Level with each other: the leftmost going down.
   const level = nest([sub('row', 100, 100, 200, 100), node('r', 160, 80), node('l', 40, 80)]);
   const down = [{ from: at('node', 'top'), to: at('subgraph', 'row'), key: 'ArrowDown', ctrl: false }];
-  assert.deepEqual(enter(down, level, at('subgraph', 'row'), 'ArrowDown'), at('node', 'l'));
+  assert.deepEqual(enter(down, { boxes: level, edges: [] }, at('subgraph', 'row'), 'ArrowDown'), at('node', 'l'));
   // Only from the box the last move ended at.
-  assert.equal(enter([move(edgeIn, 'ArrowDown')], inner, at('node', 'done'), 'ArrowDown'), null);
+  assert.equal(enter([move(edgeIn, 'ArrowDown')], g, at('node', 'done'), 'ArrowDown'), null);
 });
