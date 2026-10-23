@@ -57,6 +57,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let shownText = '';
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
+  /** @type {string | null} while connecting by keys: the node the arrows have reached, which Enter connects to */
+  let candidate = null;
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
@@ -154,7 +156,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => {
       connecting = true;
-      ui.notice('Click the node or subgraph the edge goes to. Click away or press Escape to cancel.', 'info');
+      ui.notice('Click the node or subgraph the edge goes to, or reach it with the arrows and press Enter. Click away or '
+        + 'press Escape to cancel.', 'info');
     },
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
@@ -223,7 +226,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection -----------------------------------------------------------------------------------------------
 
-  const unmark = () => { for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected'); };
+  const unmark = () => {
+    for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected');
+    for (const e of drawn('[data-page-candidate]')) e.removeAttribute('data-page-candidate');
+    candidate = null;
+  };
 
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
   function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean }} */ { keepMode = false, menu = false } = {}) {
@@ -307,33 +314,34 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (swallowClick) { swallowClick = false; return; }
     const item = itemAt(target);
     clickedDuringEdit(item);
-    if (connecting) {
-      const from = selection();   // Connect to… starts from the selection
-      connecting = false;
-      ui.hideNotice();
-      const to = item?.kind === 'edge' ? null : item;
-      if (!to) { deselect(); return; }
-      if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(from); return; }
-      if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
-      deselect();
-      const names = [named(from), named(to)];
-      const change = (/** @type {string} */ text) => connect(text, from.id, to.id);
-      /** @type {EditOptions} */
-      const options = {
-        afterSave: () => ui.announce(`Connected ${names[0]} to ${names[1]}`),
-        // The new edge is appended: it is the last.
-        after: (result) => {
-          const e = edges(result.text).at(-1);
-          return e ? { item: { kind: 'edge', id: e.svgId } } : null;
-        },
-      };
-      const drawn = [from, to].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
-      if (drawn) editDrawn(change, options); else edit(change, options);
-      return;
-    }
+    if (connecting) { connectTo(item?.kind === 'edge' ? null : item); return; }
     if (item) select(item);
     else { deselect(); if (!keptClick) ui.hideNotice(); }
     keptClick = false;
+  }
+
+  /** End Connect to… on `to`, a click's or Enter's: an edge from the selection to it, or nothing for null. */
+  function connectTo(/** @type {Item | null} */ to) {
+    const from = selection();   // Connect to… starts from the selection
+    connecting = false;
+    ui.hideNotice();
+    if (!to) { deselect(); return; }
+    if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(from); return; }
+    if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
+    deselect();
+    const names = [named(from), named(to)];
+    const change = (/** @type {string} */ text) => connect(text, from.id, to.id);
+    /** @type {EditOptions} */
+    const options = {
+      afterSave: () => ui.announce(`Connected ${names[0]} to ${names[1]}`),
+      // The new edge is appended: it is the last.
+      after: (result) => {
+        const e = edges(result.text).at(-1);
+        return e ? { item: { kind: 'edge', id: e.svgId } } : null;
+      },
+    };
+    const drawn = [from, to].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
+    if (drawn) editDrawn(change, options); else edit(change, options);
   }
 
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
@@ -394,7 +402,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     enter: () => {
-      if (connecting) return false;
+      if (connecting) { if (candidate) connectTo({ kind: 'node', id: candidate }); return Boolean(candidate); }
       if (selected) { editLabelOrTitle(selected); return true; }
       const r = els.diagram.getBoundingClientRect();
       const id = nearest(nodeBoxes(), r.left + r.width / 2, r.top + r.height / 2);
@@ -443,18 +451,37 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * moves the diagram, `fx` and `fy` of the area's size.
    */
   function arrow(/** @type {string} */ key, /** @type {number} */ fx, /** @type {number} */ fy) {
-    if (connecting) return false;
     if (!selected) { viewer.pan(fx, fy); return true; }
-    const at = selectedNode();
-    if (!at) return false;
+    // In Connect to… the arrows move the candidate, from the node the edge starts at; from a subgraph, the first
+    // arrow reaches the node nearest the middle of the view.
+    const at = connecting ? candidate ?? selectedNode() : selectedNode();
     const graph = {
       boxes: nodeBoxes(),
       links: edges(shownText).map((e) => ({ from: e.from, to: e.to })),
       direction: direction(shownText),
     };
+    if (!at) {
+      if (!connecting) return false;
+      const r = els.diagram.getBoundingClientRect();
+      const id = nearest(graph.boxes, r.left + r.width / 2, r.top + r.height / 2);
+      if (id) markCandidate(id);
+      return true;
+    }
     const next = step(graph, at, key, walk?.at === at ? walk.trail : null);
-    if (next) { selectByKey(next.id); walk = { at: next.id, trail: next.trail }; }
+    if (next) {
+      if (connecting) markCandidate(next.id); else selectByKey(next.id);
+      walk = { at: next.id, trail: next.trail };
+    }
     return true;
+  }
+  /** In Connect to…, the node Enter would connect to: outlined, said aloud and brought into view. */
+  function markCandidate(/** @type {string} */ id) {
+    for (const e of drawn('[data-page-candidate]')) e.removeAttribute('data-page-candidate');
+    candidate = id;
+    const el = nodeEl(id);
+    el?.setAttribute('data-page-candidate', '');
+    ui.announce(`${named({ kind: 'node', id })}: press Enter to connect`);
+    if (el) viewer.reveal(el.getBoundingClientRect());
   }
   /** Select a node from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */
   function selectByKey(/** @type {string} */ id) {
