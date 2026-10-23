@@ -79,17 +79,17 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
 
 /**
  * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
- * way; none, and it is drawn in a subgraph: that subgraph's box. From an edge: the arrow along it goes to the end you
- * arrive at travelling that way (the one end it leaves heading the other way); the other two step to the edge beside
- * it among the edges leaving its top (or left) end the same way as it, without wrapping, and else among those at its
- * other end. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
+ * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
+ * travelling that way (the one end it leaves heading the other way); the other two step to the edge beside it, without
+ * wrapping, among the edges leaving the node it was reached from (`from`) that way, else its source's. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
  * lies further that way from the edge's middle.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
  * @param {string} key
+ * @param {{ id: string, key: string } | null} [from] how the edge was reached: from node or box `id` by arrow `key`
  * @returns {Target | null}
  */
-export function walk({ boxes, edges }, at, key) {
+export function walk({ boxes, edges }, at, key, from = null) {
   if (!SIDES[key]) return null;
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const box = (/** @type {string} */ id) => {
@@ -98,9 +98,7 @@ export function walk({ boxes, edges }, at, key) {
   };
   if (at.kind !== 'edge') {
     const first = leaving(edges, at.id, key, at.kind === 'subgraph' ? within(boxes, at.id) : undefined)[0];
-    if (first) return { kind: 'edge', id: first };
-    const parent = byId.get(at.id)?.parent;
-    return parent ? { kind: 'subgraph', id: parent } : null;
+    return first ? { kind: 'edge', id: first } : null;
   }
   const edge = edges.find((e) => e.id === at.id);
   if (!edge || edge.from === edge.to) return null;
@@ -108,20 +106,14 @@ export function walk({ boxes, edges }, at, key) {
   // Along the edge: the end it leaves heading back towards us.
   const along = ends.filter((end) => end.dir === OPPOSITE[key]);
   if (along.length === 1) return box(along[0].id);
-  if (!along.length) {
-    // Across it: the edges beside it, at the end where they fan out the way it goes (its top or left end first).
-    const step = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1;
-    const fans = ends.filter((end) => vertical(end.dir) !== vertical(key))
-      .sort((a, b) => Number(b.dir === 'ArrowDown' || b.dir === 'ArrowRight') - Number(a.dir === 'ArrowDown' || a.dir === 'ArrowRight'));
-    for (const end of fans) {
-      const list = leaving(edges, end.id, end.dir);
-      const k = list.indexOf(edge.id) + step;
-      if (k >= 0 && k < list.length) return { kind: 'edge', id: list[k] };
-      if (list.length > 1) return null;
-    }
-    // Nothing beside it: a cross arrow stops here, rather than taking an end that happens to lie a little that way.
-    // Only a U, leaving both ends the same way, has its ends found by where they lie.
-    if (fans.length && ends[0].dir !== ends[1].dir) return null;
+  // Across it: among the edges the node it was reached from has going that way, or, reached any other way, its
+  // source's (the node the file writes first: every edge has one). None beside it: nothing.
+  const src = from ?? { id: edge.from, key: ends[0].dir };
+  if (!along.length && vertical(src.key) !== vertical(key)) {
+    const kind = byId.get(src.id)?.kind;
+    const list = leaving(edges, src.id, src.key, kind === 'subgraph' ? within(boxes, src.id) : undefined);
+    const k = list.indexOf(edge.id) + (key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1);
+    return list.includes(edge.id) && k >= 0 && k < list.length ? { kind: 'edge', id: list[k] } : null;
   }
   // The end further that way from the middle, if it lies that way at all.
   const [vx, vy] = SIDES[key].v;
@@ -153,8 +145,6 @@ export function skip(graph, at, key) {
   return b ? { kind: b.kind, id: far } : null;
 }
 
-const dist = (/** @type {Point} */ a, /** @type {Point} */ b) => Math.hypot(a.x - b.x, a.y - b.y);
-
 /**
  * The subgraph each box is drawn in: the smallest subgraph box holding its middle, other than itself.
  * @returns {Box[]} the boxes, each with `parent`
@@ -170,11 +160,12 @@ export function nest(/** @type {Box[]} */ boxes) {
 }
 
 /**
- * Where Ctrl+Arrow `key` goes from box `at`, by place: among the boxes at its own level (the same subgraph, or the
- * top), those ahead (their middle more than a pixel beyond its middle along the arrow); the ones in its row (or column)
- * first, nearest along it; else the nearest; leftmost or topmost breaking ties. Nothing ahead inside a
- * subgraph: the subgraph's own box. Nothing at all: null; nothing wraps. To go from something with no box (an edge),
- * pass a box of no size at its middle through nest(), which puts it at the level of the subgraph around that point.
+ * The next thing that way from box `at`, by place, for an arrow with no edge that way and for Ctrl's jump: the nearest
+ * node or subgraph box lying wholly that way (going right, its left edge past `at`'s right edge), at any depth,
+ * measured box to box; the topmost wins a tie going sideways, the leftmost going up or down. The subgraphs `at` is
+ * drawn in count by their border on that side, so with nothing nearer inside it, the arrow reaches its subgraph's box.
+ * Nothing that way: null; nothing wraps. To go from something with no box (an edge), pass a box of no size at its
+ * middle through nest().
  * @param {Box[]} boxes from nest()
  * @param {string} at
  * @param {string} key
@@ -185,21 +176,35 @@ export function byPlace(boxes, at, key) {
   const from = boxes.find((b) => b.id === at);
   if (!arrow || !from) return null;
   const [vx, vy] = arrow.v;
-  const alongOf = (/** @type {Box} */ b) => (b.x - from.x) * vx + (b.y - from.y) * vy;
   const horizontal = vx !== 0;
-  // In the same row (or column): one's middle within the other's span across the arrow. A sliver of shared span is
-  // not enough: a box mostly above, a little to the right, is not what Right means.
-  const overlaps = (/** @type {Box} */ b) => (horizontal
-    ? Math.abs(b.y - from.y) < Math.max(b.h, from.h) / 2
-    : Math.abs(b.x - from.x) < Math.max(b.w, from.w) / 2);
-  const tie = (/** @type {Box} */ p, /** @type {Box} */ q) => (horizontal ? p.y - q.y : p.x - q.x);
-  // Ahead by more than a pixel: a box straight below is not to the right for being a fraction across.
-  const ahead = boxes.filter((b) => b.id !== at && (b.parent ?? null) === (from.parent ?? null) && alongOf(b) > 1);
-  const near = ahead.filter(overlaps).sort((p, q) => alongOf(p) - alongOf(q) || tie(p, q));
-  const far = ahead.sort((p, q) => dist(p, from) - dist(q, from) || tie(p, q));
-  const next = near[0] ?? far[0];
-  if (next) return { kind: next.kind, id: next.id };
-  return from.parent ? { kind: 'subgraph', id: from.parent } : null;
+  // A box's near and far edges along the arrow, and its span across it.
+  const ahead = (/** @type {Box} */ b) => (horizontal ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);
+  const behind = (/** @type {Box} */ b) => (horizontal ? vx * b.x + b.w / 2 : vy * b.y + b.h / 2);
+  const across = (/** @type {Box} */ b) => (horizontal ? [b.y - b.h / 2, b.y + b.h / 2] : [b.x - b.w / 2, b.x + b.w / 2]);
+  const parents = new Map(boxes.map((b) => [b.id, b.parent ?? null]));
+  const ancestors = new Set();
+  for (let p = from.parent ?? null; p; p = parents.get(p) ?? null) ancestors.add(p);
+  const [lo, hi] = across(from);
+  /** @type {{ b: Box, d: number }[]} */
+  const found = [];
+  for (const b of boxes) {
+    // What is inside `at` never lies wholly beyond it, so needs no test of its own.
+    if (b === from) continue;
+    if (ancestors.has(b.id)) {
+      // A subgraph around it, by its border on that side.
+      const gap = behind(b) - behind(from);
+      if (gap > 1) found.push({ b, d: gap });
+      continue;
+    }
+    const along = ahead(b) - behind(from);
+    if (along < -1) continue;
+    const [blo, bhi] = across(b);
+    found.push({ b, d: Math.hypot(Math.max(0, along), Math.max(0, blo - hi, lo - bhi)) });
+  }
+  const first = (/** @type {Box} */ b) => (horizontal ? b.y - b.h / 2 : b.x - b.w / 2);
+  found.sort((p, q) => p.d - q.d || first(p.b) - first(q.b));
+  const next = found[0]?.b;
+  return next ? { kind: next.kind, id: next.id } : null;
 }
 
 /** The box whose middle is nearest the point (`x`, `y`), or null when there are none. */
@@ -215,7 +220,8 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 /**
  * A move made by an arrow key, kept so the opposite key can take it back: from `from` to `to` by `key`, with Ctrl or
  * not.
- * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean }} Move
+ * `came`, for a move onto an edge: the node it was reached from and by which arrow, kept while stepping across.
+ * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean, came?: { id: string, key: string } | null }} Move
  */
 
 /**

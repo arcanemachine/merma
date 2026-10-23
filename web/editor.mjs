@@ -9,7 +9,7 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { byPlace, nearest, nest, retrace, skip, walk } from './navigate.mjs';
+import { byPlace, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -585,28 +585,41 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       moveTo(back.from);
       return true;
     }
-    let next = null;
-    if (ctrl) {
-      // Ctrl skips the edge plain would select; with none that way, it jumps by place.
-      next = edgesOk ? skip(graph, here, key) : null;
-      if (!next) {
-        let boxes = graph.boxes, at = here.id;
-        if (here.kind === 'edge') {
-          const e = graph.edges.find((x) => x.id === here.id);
-          if (!e) return true;
-          boxes = nest([...graph.boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]);
-          at = EDGE;
-        }
-        next = byPlace(boxes, at, key);
-        if (!next && key === 'ArrowUp') toTitle(boxes, at);
+    /** The next thing that way by place, from the selection (an edge from its middle); none upwards: the title. */
+    const placed = () => {
+      let boxes = graph.boxes, at = here.id;
+      if (here.kind === 'edge') {
+        const e = graph.edges.find((x) => x.id === here.id);
+        if (!e) return null;
+        boxes = nest([...graph.boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]);
+        at = EDGE;
       }
+      const found = byPlace(boxes, at, key);
+      if (!found && key === 'ArrowUp') toTitle(boxes, at);
+      return found;
+    };
+    let next = null;
+    /** @type {{ id: string, key: string } | null} for a move onto an edge: the node it was reached from */
+    let came = null;
+    if (ctrl) {
+      // Ctrl skips the edge plain would select; with none that way, it goes by place.
+      next = (edgesOk ? skip(graph, here, key) : null) ?? placed();
+    } else if (here.kind === 'edge') {
+      // Across an edge, among the edges of the node it was reached from, which the path keeps while stepping across.
+      const last = path.at(-1);
+      came = last && last.to.kind === 'edge' && last.to.id === here.id ? last.came ?? null : null;
+      // An edge reached any other way (a click, a search): its source, the way it leaves it.
+      const e = graph.edges.find((x) => x.id === here.id);
+      if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
+      next = walk(graph, here, key, came);
+      if (next?.kind !== 'edge') came = null;
     } else {
       if (!edgesOk) {
         ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
         return true;
       }
-      next = walk(graph, here, key);
-      if (!next && key === 'ArrowUp' && here.kind !== 'edge') toTitle(graph.boxes, here.id);
+      // An edge leaving that way, else the next thing that way.
+      next = walk(graph, here, key) ?? placed();
     }
     if (next) {
       // Leaving a subgraph for its own box: I comes back here.
@@ -614,7 +627,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         inside.set(next.id, here.id);
       }
       moveTo(next);
-      path.push({ from: here, to: next, key, ctrl });
+      if (next.kind === 'edge' && here.kind !== 'edge' && !ctrl) came = { id: here.id, key };
+      path.push({ from: here, to: next, key, ctrl, came });
     }
     return true;
   }
