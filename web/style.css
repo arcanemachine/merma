@@ -1,4 +1,12 @@
 html, body { height: 100%; }
+/* The colour words (GLOSSARY): each kind has a background and a text colour that reads on it, as a pair, so a darker
+   background brings a lighter text with it. Notices are info, warning or error; success is the toasts'. */
+:root {
+  --info-bg: #ddf4ff; --info-fg: #0a3069;
+  --success-bg: #dafbe1; --success-fg: #1a7f37;
+  --warning-bg: #fff4d6; --warning-fg: #5c4400;
+  --error-bg: #fde2e2; --error-fg: #7b1d1d;
+}
 /* The notice shares the diagram's row and lies over its top, so it never resizes the diagram: a diagram that moved as
    a notice appeared would put another node under a click aimed just before. */
 /* minmax(0, 1fr): the one column is the window's width, never the width of a long line in it (the header's path). */
@@ -21,9 +29,9 @@ header .right { margin-left: auto; display: flex; flex-direction: column; align-
 header .status { color: #666; white-space: nowrap; }
 /* Fixed below the "updated" line, so it shows wherever the page is scrolled and never moves the page. */
 .toast { position: fixed; top: 26px; right: 16px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.9);
-         color: #1a7f37; font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
+         color: var(--success-fg); font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
 .toast.show { opacity: 1; transition: none; }
-#error { display: none; padding: 8px 16px; background: #fde2e2; color: #7b1d1d; font-family: ui-monospace, monospace;
+#error { display: none; padding: 8px 16px; background: var(--error-bg); color: var(--error-fg); font-family: ui-monospace, monospace;
          font-size: 13px; white-space: pre-wrap; }
 /* The diagram fills the space between header and footer; the wheel zooms it and a drag moves it. Its top padding, with
    the fit's own margin (viewer.mjs), keeps a fitted diagram clear of a one-line notice. */
@@ -95,9 +103,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice { display: none; position: relative; z-index: 1; align-self: start; padding: 8px 16px; font-size: 13px;
           line-height: 16px; white-space: pre-wrap; }
 #notice.show { display: block; }
-#notice.info { background: #ddf4ff; color: #0a3069; }
-#notice.warning { background: #fff4d6; color: #5c4400; }
-#notice.error { background: #fde2e2; color: #7b1d1d; }
+#notice.info { background: var(--info-bg); color: var(--info-fg); }
+#notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
+#notice.error { background: var(--error-bg); color: var(--error-fg); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one is outlined in blue, whatever its
    shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage
