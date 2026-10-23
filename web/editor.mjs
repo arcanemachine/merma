@@ -393,8 +393,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (drawn) editDrawn(change, options); else edit(change, options);
   }
 
-  function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
+  /** A right-click or long-press; or, `byKey`, the menu key or Shift+F10, which open what M opens. */
+  function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, byKey = false) {
     if (!editable) return false;
+    if (byKey) { keys.m(); return true; }
     if (connecting) return true;
     if (swallowClick) { swallowClick = false; return true; }
     const item = itemAt(target);
