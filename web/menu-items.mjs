@@ -74,7 +74,7 @@ export const MENUS = {
   edge: [
     { action: 'edit-label', label: 'Edit label', key: 'l' },
     { action: 'remove-label', label: 'Remove label', key: 'r', applies: (s) => s.hasLabel, why: () => 'This edge has no label to remove.' },
-    { action: 'edit-arrow-type', label: 'Edit arrow type', key: 'p', submenu: 'arrow-types' },
+    { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'v' },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
   ],
