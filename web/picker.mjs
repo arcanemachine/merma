@@ -10,11 +10,19 @@
 
 import { move } from './grid.mjs';
 
+// While Shift is held, the digits Shift picks show dark and the plain ones grey, and the other way round when it is not:
+// the page marks the root, which every picker's digits read (style.css).
+const shiftHeld = (/** @type {boolean} */ on) => document.documentElement.toggleAttribute('data-shift', on);
+document.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld(true); });
+document.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld(false); });
+window.addEventListener('blur', () => shiftHeld(false));
+
 /**
  * One choice. Lists of them (arrow-types.mjs, shapes.mjs) keep a fixed order, so a digit always picks the same one.
  * @typedef {object} PickerEntry
  * @property {string} key what a pick reports
- * @property {string} [digit] the key that picks it; entries past the tenth have none
+ * @property {string} [digit] the key that picks it; entries past the twentieth have none
+ * @property {boolean} [shift] the digit picks it with Shift held (the second ten)
  * @property {string} name
  * @property {string} [meaning] what it stands for, shown after its name: "Diamond (Decision)"
  * @property {() => string} icon an SVG drawing (icons.mjs)
@@ -52,8 +60,8 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     b.type = 'button';
     b.dataset.key = entry.key;
     // The digit shown is part of the name, so a voice user can say what they see (WCAG 2.5.3).
-    b.setAttribute('aria-label', (entry.digit ? `${entry.digit} ` : '') + label(entry));
-    b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit">${entry.digit}</span>` : '');
+    b.setAttribute('aria-label', (entry.digit ? `${entry.shift ? 'Shift ' : ''}${entry.digit} ` : '') + label(entry));
+    b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit${entry.shift ? ' shift' : ''}">${entry.shift ? '⇧' : ''}${entry.digit}</span>` : '');
     b.addEventListener('click', () => {
       // A click moves keyboard focus only when it is in the grid already (a strip's host keeps it in its field).
       if (!strip || grid.contains(document.activeElement)) b.focus();
@@ -113,7 +121,9 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     // The columns as drawn: CSS may lay the grid out with fewer than it was made with (the strip on a narrow screen).
     const across = buttons.filter((b) => b.offsetTop === buttons[0].offsetTop).length;
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
-    const digit = entries.findIndex((entry) => entry.digit && (e.code === `Digit${entry.digit}` || e.code === `Numpad${entry.digit}`));
+    // Shift picks from the second ten; the numpad gives a digit only with Num Lock on (else it is an arrow).
+    const digit = entries.findIndex((entry) => entry.digit && Boolean(entry.shift) === e.shiftKey
+      && (e.code === `Digit${entry.digit}` || (e.code === `Numpad${entry.digit}` && e.key === entry.digit)));
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); buttons[digit].focus(); onPick(entries[digit].key); return; }
     // In a strip, Up from the top row is the way back to its field.
     if (at < 0 || (strip && e.key === 'ArrowUp' && at < across)) return;

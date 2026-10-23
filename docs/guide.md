@@ -132,8 +132,9 @@ away and then Undo. Once the panel an add opened is closed, Undo is the way back
   change shape with its label left empty. Only the label changes, where the node is first given a
   shape; a node that only appears bare gets brackets at its first appearance.
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
-  (wrapping within their row or column), a digit selects one of the first ten, Enter selects the one with the outline
-  and goes back to the label, and Up from the top row or Escape goes back to the label, keeping what was selected.
+  (wrapping within their row or column), a digit selects one of the first ten and Shift+digit one of the next ten
+  (holding Shift turns their digits dark and the first ten's grey), Enter selects the one with the outline and goes
+  back to the label, and Up from the top row or Escape goes back to the label, keeping what was selected.
   The selected shape is filled; the outline is where the arrows are. The line under them names the shape under the
   pointer, else the one the arrows are on, else the selected one ("Current: Rectangle (Process)").
 - **What is written:** the shape changes where Mermaid takes it from, the node's last mention with one, and the label
@@ -154,16 +155,16 @@ away and then Undo. Once the panel an add opened is closed, Undo is the way back
 | 8 | Hexagon | Prepare conditional | `A{{text}}` |
 | 9 | Circle | Start | `A((text))` |
 | 0 | Document | Document | `A@{ shape: doc }` |
-|  | Odd | Odd | `A>text]` |
-|  | Lean left | Data input/output | `A[\text\]` |
-|  | Trapezoid base bottom | Priority action | `A[/text\]` |
-|  | Trapezoid base top | Manual operation | `A[\text/]` |
-|  | Double circle | Stop | `A(((text)))` |
-|  | Stacked document | Multi-document | `A@{ shape: docs }` |
-|  | Sloped rectangle | Manual input | `A@{ shape: sl-rect }` |
-|  | Half-rounded rectangle | Delay | `A@{ shape: delay }` |
-|  | Bow tie rectangle | Stored data | `A@{ shape: bow-rect }` |
-|  | Curved trapezoid | Display | `A@{ shape: curv-trap }` |
+| Shift+1 | Odd | Odd | `A>text]` |
+| Shift+2 | Lean left | Data input/output | `A[\text\]` |
+| Shift+3 | Trapezoid base bottom | Priority action | `A[/text\]` |
+| Shift+4 | Trapezoid base top | Manual operation | `A[\text/]` |
+| Shift+5 | Double circle | Stop | `A(((text)))` |
+| Shift+6 | Stacked document | Multi-document | `A@{ shape: docs }` |
+| Shift+7 | Sloped rectangle | Manual input | `A@{ shape: sl-rect }` |
+| Shift+8 | Half-rounded rectangle | Delay | `A@{ shape: delay }` |
+| Shift+9 | Bow tie rectangle | Stored data | `A@{ shape: bow-rect }` |
+| Shift+0 | Curved trapezoid | Display | `A@{ shape: curv-trap }` |
 
 ## Keys
 
