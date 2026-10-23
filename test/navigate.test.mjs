@@ -126,6 +126,8 @@ const edge = (/** @type {string} */ id) => ({ kind: /** @type {const} */ ('edge'
 test('from a node, forward selects its leftmost outgoing edge, and back its leftmost incoming one', () => {
   assert.equal(edgeStep(tdEdges, node('start'), 'ArrowDown', null)?.id, 'start-check');
   assert.equal(edgeStep(tdEdges, node('record'), 'ArrowUp', null)?.id, 'check-record');
+  // By screen, not file order.
+  assert.equal(edgeStep({ ...tdEdges, edges: [...edgeList].reverse() }, node('record'), 'ArrowUp', null)?.id, 'check-record');
   assert.equal(edgeStep(tdEdges, node('done'), 'ArrowDown', null), null);
   assert.equal(edgeStep(tdEdges, node('start'), 'ArrowRight', null), null);
 });
