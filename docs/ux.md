@@ -103,10 +103,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   starts (the user): the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to
   right. Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached its
   next bend.
-- On an edge, the other two arrows step to the edge beside it among the edges of the node you reached it from, going
-  the way you went (the user: from Retry, Up then Right reaches the other edge at Retry's top, never another node's).
-  An edge clicked or found by search steps among its source's (the node the file writes first: every edge has one).
-  They stop at the last edge rather than wrap: Right always means right.
+- On an edge, the other two arrows step to the edge beside it among the edges at the end you most recently came from,
+  going that way (the user: from Retry, Up then Right reaches the other edge at Retry's top; up to Charge card and
+  back down, they step Charge card's). Alone at that end, the edges beside it are at its other end (the user: from
+  Receipt, Up then Left reaches Paid's other edges), and that end then counts as where you came from. An edge clicked
+  or found by search counts as reached from its source (the node the file writes first: every edge has one). They stop
+  at the last edge rather than wrap: Right always means right.
 - With no edge leaving that way, an arrow goes to the next thing that way (the user: Right from Print label is Boxing,
   the subgraph to its right): the nearest node or subgraph box lying wholly that way, at any depth, measured box to
   box, the topmost (or leftmost) on a tie. The subgraph you are in counts by its border, so with nothing nearer inside,

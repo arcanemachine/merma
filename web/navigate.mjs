@@ -81,7 +81,8 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
  * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
  * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
  * travelling that way (the one end it leaves heading the other way); the other two step to the edge beside it, without
- * wrapping, among the edges leaving the node it was reached from (`from`) that way, else its source's. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
+ * wrapping, among the edges at the end it was reached from (`from`, else its source) that way, or at its other end
+ * when it is alone there. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
  * lies further that way from the edge's middle.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
@@ -106,14 +107,17 @@ export function walk({ boxes, edges }, at, key, from = null) {
   // Along the edge: the end it leaves heading back towards us.
   const along = ends.filter((end) => end.dir === OPPOSITE[key]);
   if (along.length === 1) return box(along[0].id);
-  // Across it: among the edges the node it was reached from has going that way, or, reached any other way, its
-  // source's (the node the file writes first: every edge has one). None beside it: nothing.
-  const src = from ?? { id: edge.from, key: ends[0].dir };
-  if (!along.length && vertical(src.key) !== vertical(key)) {
-    const kind = byId.get(src.id)?.kind;
-    const list = leaving(edges, src.id, src.key, kind === 'subgraph' ? within(boxes, src.id) : undefined);
-    const k = list.indexOf(edge.id) + (key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1);
-    return list.includes(edge.id) && k >= 0 && k < list.length ? { kind: 'edge', id: list[k] } : null;
+  // Across it: among the edges beside it (beside()); nothing there: nothing.
+  if (!along.length) {
+    const set = beside({ boxes, edges }, edge.id, from);
+    if (set && vertical(set.key) !== vertical(key)) {
+      const kind = byId.get(set.id)?.kind;
+      const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
+      const k = list.indexOf(edge.id) + (key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1);
+      return k >= 0 && k < list.length ? { kind: 'edge', id: list[k] } : null;
+    }
+    // Alone at both ends, a cross arrow stops (only a U, with no arrow across it, falls to where the ends lie).
+    if (set || vertical(from ? from.key : ends[0].dir) !== vertical(key)) return null;
   }
   // The end further that way from the middle, if it lies that way at all.
   const [vx, vy] = SIDES[key].v;
@@ -121,6 +125,30 @@ export function walk({ boxes, edges }, at, key, from = null) {
   const ahead = ends.map((end) => byId.get(end.id)).filter((b) => b && beyond(b) > 0)
     .sort((p, q) => beyond(/** @type {Box} */ (q)) - beyond(/** @type {Box} */ (p)));
   return ahead[0] ? box(ahead[0].id) : null;
+}
+
+/**
+ * The edges an edge steps among across it, as the node and heading they leave by: those at the end it was reached
+ * from (`from`; reached any other way, its source, the node the file writes first, which every edge has), when it has
+ * others there; alone there, those at its other end, which is then where it counts as reached from. Null when it is
+ * alone at both.
+ * @param {{ boxes: Box[], edges: Edge[] }} graph
+ * @param {string} id
+ * @param {{ id: string, key: string } | null} [from]
+ * @returns {{ id: string, key: string } | null}
+ */
+export function beside({ boxes, edges }, id, from = null) {
+  const edge = edges.find((e) => e.id === id);
+  if (!edge || edge.from === edge.to) return null;
+  const ends = endsOf(edge);
+  const start = from && ends.some((end) => end.id === from.id) ? from : { id: ends[0].id, key: ends[0].dir };
+  const other = ends.find((end) => end.id !== start.id);
+  for (const set of other ? [start, { id: other.id, key: other.dir }] : [start]) {
+    const kind = boxes.find((b) => b.id === set.id)?.kind;
+    const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
+    if (list.length > 1 && list.includes(id)) return set;
+  }
+  return null;
 }
 
 /**

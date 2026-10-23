@@ -9,7 +9,7 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { byPlace, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
+import { beside, byPlace, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -582,6 +582,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const back = retrace(path, here, key, ctrl);
     if (back) {
       path.pop();
+      // Back onto an edge from a node: it now counts as reached from that node (Left and Right step its edges).
+      const top = path.at(-1);
+      if (top && back.from.kind === 'edge' && here.kind !== 'edge') top.came = { id: here.id, key };
       moveTo(back.from);
       return true;
     }
@@ -612,7 +615,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const e = graph.edges.find((x) => x.id === here.id);
       if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
       next = walk(graph, here, key, came);
-      if (next?.kind !== 'edge') came = null;
+      // Stepped across to another edge: it counts as reached from the end whose edges were stepped through.
+      came = next?.kind === 'edge' ? beside(graph, here.id, came) : null;
     } else {
       if (!edgesOk) {
         ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
