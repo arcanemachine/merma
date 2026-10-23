@@ -86,10 +86,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   since there the item under the pointer is the focused one. Enter in the grid selects and goes back to the
   label; only Enter in the label saves, so each Enter has one meaning. Escape in the grid keeps what was selected
   there. A picker in a menu saves on each pick, so there the item under the pointer takes focus, as in any menu.
-- Outside a field, a menu and Help, the arrows are the diagram's, even with a footer button focused: the page has
-  nothing else for them. Help, while open, keeps them for scrolling.
+- Outside a field, a menu and a dialog, the arrows are the diagram's, even with a footer button focused: the page has
+  nothing else for them. While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
+  answers none.
 - A node reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
-  view moves nothing (the user), for the same reason an edit keeps the view.
+  view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
+  after a drag: a change in the window's size no longer refits it.
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
 
