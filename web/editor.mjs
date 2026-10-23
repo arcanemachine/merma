@@ -751,6 +751,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // it moves, which a touch moves only once it is a tap.
     const at = /** @type {Node} */ (e.target), focused = /** @type {HTMLElement | null} */ (document.activeElement);
     if (labelling && at !== input && !stripBox.contains(at) && (focused === input || stripBox.contains(focused))) focused?.blur();
+    // A press outside the search bar ends the search by the press itself, as for the label box: the old selection comes
+    // back, and a click that follows selects what it hit, whatever order focus and click arrive in on this device.
+    if (finding && !els.find.contains(at)) closeFind(null);
     if (els.diagram.contains(at)) return;
     if (connecting) { connecting = false; ui.hideNotice(); select(selection()); }
     closeMenus();
