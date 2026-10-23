@@ -62,7 +62,8 @@ note where merma had to make one up.
 | **node panel** | A node's label box with the strip under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
 | **strip** | The shape picker laid under a node's label box: click a shape, or Down from the label goes into it. merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
-| **notice** | The bar above the diagram, of three kinds: **info** (blue, what to do next), **warning** (amber, what merma will not do here), **error** (red, what was not saved and why). `docs/ux.md` says which is which. |
+| **notice** | The bar above the diagram, of three kinds: **info** (blue: what to do next, or a harmless no), **warning** (amber: something kept back from what you asked, or a risk to the file), **error** (red: something you tried that did not happen). `docs/ux.md` says which is which. |
+| **colour words** | **info**, **success**, **warning**, **error**: each a background and a text colour that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
 | **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |
