@@ -8,8 +8,9 @@ import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
+import { nearest, step } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
+  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, direction, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
@@ -68,6 +69,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let refused = false;        // the notice shows why a menu item does not apply
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
+  /** @type {{ at: string, trail: import('./navigate.mjs').Trail } | null} the last arrow key's move, while it is selected */
+  let walk = null;
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;
 
@@ -370,12 +373,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
   // opens its History with it); N adds a node (connected to the selected node, or in the selected subgraph); Enter or F2
-  // opens the selected node's panel, or edits the selected edge's label or subgraph's title; Delete or Backspace deletes
-  // the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
+  // opens the selected node's panel, or edits the selected edge's label or subgraph's title, and with nothing selected
+  // selects the node nearest the middle of the view; the arrows move a selected node along the edges; Delete or
+  // Backspace deletes the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
   // diagram; F fits the diagram to the window, whatever is selected or waiting; Escape backs out of whatever is open.
   // F and Escape also work when the diagram is not editable (a sequence diagram still fits).
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
-  /** @type {Record<string, () => unknown>} what each key does; truthy when it was used */
+  /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
     n: () => {
       if (connecting) return false;
@@ -384,7 +388,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       else handlers['add-node']();
       return true;
     },
-    enter: () => selected && !connecting && (editLabelOrTitle(selected), true),
+    enter: () => {
+      if (connecting) return false;
+      if (selected) { editLabelOrTitle(selected); return true; }
+      const r = els.diagram.getBoundingClientRect();
+      const id = nearest(nodeBoxes(), r.left + r.width / 2, r.top + r.height / 2);
+      if (id) selectByKey(id);
+      return Boolean(id);
+    },
     f2: () => selected && !connecting && (editLabelOrTitle(selected), true),
     delete: () => selected && !connecting && (deleteSelected(), true),
     backspace: () => selected && !connecting && (deleteSelected(), true),
@@ -396,6 +407,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     f: () => { viewer.fit(); return true; },
+    arrowup: () => arrow('ArrowUp'),
+    arrowdown: () => arrow('ArrowDown'),
+    arrowleft: () => arrow('ArrowLeft'),
+    arrowright: () => arrow('ArrowRight'),
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
     // goes ahead.
     escape: () => {
@@ -409,6 +424,34 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const VIEW_KEYS = ['f', 'escape'];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
+
+  /** The drawn nodes, as navigate.mjs reads them. */
+  const nodeBoxes = () => drawn('g.node[data-page-node]').map((g) => {
+    const r = g.getBoundingClientRect();
+    return { id: /** @type {string} */ (g.dataset.pageNode), x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
+  });
+  /** An arrow key with a node selected moves the selection along the edges (navigate.mjs). */
+  function arrow(/** @type {string} */ key) {
+    const at = selectedNode();
+    if (connecting || !at) return false;
+    const graph = {
+      boxes: nodeBoxes(),
+      links: edges(shownText).map((e) => ({ from: e.from, to: e.to })),
+      direction: direction(shownText),
+    };
+    const next = step(graph, at, key, walk?.at === at ? walk.trail : null);
+    if (next) { selectByKey(next.id); walk = { at: next.id, trail: next.trail }; }
+    return true;
+  }
+  /** Select a node from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */
+  function selectByKey(/** @type {string} */ id) {
+    const item = /** @type {Item} */ ({ kind: 'node', id });
+    select(item);
+    walk = null;
+    ui.announce(named(item));
+    const el = nodeEl(id);
+    if (el) viewer.reveal(el.getBoundingClientRect());
+  }
 
   // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
   // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
@@ -440,8 +483,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       redo();
       return;
     }
-    if (e.ctrlKey || e.metaKey || e.altKey || !keys[key] || (!editable && !VIEW_KEYS.includes(key))) return;
-    if (keys[key]()) e.preventDefault();
+    // A key's name carries its modifiers: `ctrl+` for Ctrl or Alt (Option on a Mac; either on every system), then
+    // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive.
+    const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
+    const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
+    if (e.metaKey || !keys[name] || (!editable && !VIEW_KEYS.includes(name))) return;
+    // Help, the one popover that leaves keys to the page, scrolls by the arrows while it is open.
+    if (key.startsWith('arrow') && document.querySelector(':popover-open')) return;
+    if (keys[name]()) e.preventDefault();
   });
 
   // --- the label box: editing a label in place -----------------------------------------------------------------

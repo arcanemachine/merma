@@ -34,7 +34,11 @@ header .status { color: #666; white-space: nowrap; }
 /* The hand everywhere on the diagram, labels included, and no text selection while dragging. */
 #diagram, #diagram * { user-select: none; }
 #stage, #stage * { cursor: inherit !important; }
+/* The landmark is only a wrapper: the diagram is the grid item. */
+main { display: contents; }
+/* role="application" on the diagram, so screen readers pass its arrow keys through instead of reading on. */
 #diagram:focus { outline: none; }
+#diagram:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #stage svg { display: block; max-width: none; }
 footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid #ddd; display: flex; justify-content: center;
