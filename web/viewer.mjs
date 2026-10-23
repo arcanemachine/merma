@@ -233,6 +233,21 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
+    /** Move the diagram by a fraction of the area's size, as scrolling would: (1, 0) shows what is to the right. */
+    pan(/** @type {number} */ fx, /** @type {number} */ fy) {
+      const box = diagram.getBoundingClientRect();
+      view.x -= fx * box.width;
+      view.y -= fy * box.height;
+      touched = true;
+      apply();
+    },
+
+    /** Zoom by `factor` about the middle of the diagram area. */
+    zoom(/** @type {number} */ factor) {
+      const box = diagram.getBoundingClientRect();
+      zoomAt(box.width / 2, box.height / 2, factor);
+    },
+
     /**
      * Move the view the least it takes to bring `rect` (client coordinates) inside the diagram area, a margin in from
      * its edges and clear of its top padding, where the notice lies; nothing moves when it is inside already. A rect

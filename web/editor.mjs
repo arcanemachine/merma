@@ -18,6 +18,10 @@ import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
 import { NODE_SHAPES } from './shapes.mjs';
 
+// With nothing selected, an arrow key moves the diagram a tenth of the area's size; + and - zoom by this factor.
+const PAN_STEP = 0.1;
+const ZOOM_STEP = 1.25;
+
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
  * named); `into`: the history entry the edit completes; `after(result)`: the item to select once its text is drawn,
@@ -376,8 +380,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // opens the selected node's panel, or edits the selected edge's label or subgraph's title, and with nothing selected
   // selects the node nearest the middle of the view; the arrows move a selected node along the edges; Delete or
   // Backspace deletes the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
-  // diagram; F fits the diagram to the window, whatever is selected or waiting; Escape backs out of whatever is open.
-  // F and Escape also work when the diagram is not editable (a sequence diagram still fits).
+  // diagram; F fits the diagram to the window, whatever is selected or waiting; with nothing selected the arrows move
+  // the diagram; + (or =) and - zoom; Escape backs out of whatever is open. The view keys (VIEW_KEYS) also work when
+  // the diagram is not editable (a sequence diagram still fits and moves).
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
@@ -407,10 +412,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     f: () => { viewer.fit(); return true; },
-    arrowup: () => arrow('ArrowUp'),
-    arrowdown: () => arrow('ArrowDown'),
-    arrowleft: () => arrow('ArrowLeft'),
-    arrowright: () => arrow('ArrowRight'),
+    arrowup: () => arrow('ArrowUp', 0, -PAN_STEP),
+    arrowdown: () => arrow('ArrowDown', 0, PAN_STEP),
+    arrowleft: () => arrow('ArrowLeft', -PAN_STEP, 0),
+    arrowright: () => arrow('ArrowRight', PAN_STEP, 0),
+    '+': () => { viewer.zoom(ZOOM_STEP); return true; },
+    '=': () => { viewer.zoom(ZOOM_STEP); return true; },
+    '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
     // goes ahead.
     escape: () => {
@@ -421,7 +429,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return had;
     },
   };
-  const VIEW_KEYS = ['f', 'escape'];
+  const VIEW_KEYS = ['f', 'escape', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', '+', '=', '-'];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
 
@@ -430,10 +438,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const r = g.getBoundingClientRect();
     return { id: /** @type {string} */ (g.dataset.pageNode), x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
   });
-  /** An arrow key with a node selected moves the selection along the edges (navigate.mjs). */
-  function arrow(/** @type {string} */ key) {
+  /**
+   * An arrow key: with a node selected it moves the selection along the edges (navigate.mjs); with nothing selected it
+   * moves the diagram, `fx` and `fy` of the area's size.
+   */
+  function arrow(/** @type {string} */ key, /** @type {number} */ fx, /** @type {number} */ fy) {
+    if (connecting) return false;
+    if (!selected) { viewer.pan(fx, fy); return true; }
     const at = selectedNode();
-    if (connecting || !at) return false;
+    if (!at) return false;
     const graph = {
       boxes: nodeBoxes(),
       links: edges(shownText).map((e) => ({ from: e.from, to: e.to })),
