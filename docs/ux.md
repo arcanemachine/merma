@@ -90,9 +90,24 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Outside a field, a menu and a dialog, the arrows are the diagram's, even with a footer button focused: the page has
   nothing else for them. While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
   answers none.
-- A node reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
+- An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
   view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
   after a drag: a change in the window's size no longer refits it.
+- Plain arrows walk the edges, two presses a step: node, edge, node. The edge is where you choose (the user found that
+  jumping straight to "the next node" along edges picked far-off nodes and trapped you in loops). An edge belongs to
+  both its ends and arrowheads play no part (the user: an edge is an edge), so nothing is a dead end that an edge
+  leads out of. A subgraph's box walks its edges like a node, and an edge to a subgraph lands on its box.
+- **A side** of a node is where an edge meets its outline, measured against the node's own half width and half height
+  (the larger of |dx|/half-width and |dy|/half-height wins; equal goes to top or bottom). Not a plain angle: edges
+  spread along the bottom of a wide node meet it far out and only a little down, and are still its bottom; a hexagon's
+  slanted ends are its left and right (the user).
+- Stepping through the edges on a side wraps within that side, never on to another, as a picker's arrows wrap within
+  their row or column: a key always moves along one line.
+- Ctrl+Arrows jump by place, like Ctrl+Arrow jumping a word in text: what lies across from the selection (overlapping
+  it) comes first, since that is what "below" means to the eye; then the nearest; no wrap. A subgraph is a container:
+  they stop at its box going in and coming out, and never jump into one unasked; I and O go in and out.
+- Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
+  user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits.
 

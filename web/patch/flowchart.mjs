@@ -96,13 +96,6 @@ export function setTitle(/** @type {string} */ text, /** @type {string} */ title
   return { text: ls.join('') };
 }
 
-/** A flowchart's top-level direction, from its header (`flowchart LR`): TB (also written TD), BT, LR or RL. */
-export function direction(/** @type {string} */ text) {
-  const ls = lines(text);
-  const d = /^\s*(?:flowchart|graph)\s+(TB|TD|BT|LR|RL)\b/i.exec(ls[headerIndex(ls)] || '')?.[1].toUpperCase();
-  return /** @type {'TB' | 'BT' | 'LR' | 'RL'} */ (!d || d === 'TD' ? 'TB' : d);
-}
-
 /**
  * The line with everything that is not syntax blanked out: quoted strings, shape and edge labels, `@{…}` blocks and
  * comments become spaces. Positions are kept, so an index into the mask is an index into the line.

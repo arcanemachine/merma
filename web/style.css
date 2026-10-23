@@ -103,8 +103,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-selected] > rect { stroke: #0969da !important; stroke-width: 3px !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: #0969da; text-decoration: underline 2px; }
-/* In Connect to…, the node the arrows have reached: dashed, as it is not yet chosen. */
-#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *) { stroke: #0969da !important;
+/* In Connect to…, the node or subgraph the arrows have reached: dashed, as it is not yet chosen. */
+#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.cluster[data-page-candidate] > rect { stroke: #0969da !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
 /* An edge one step wider than its own 2 px or 3.5 px line; a dotted edge keeps its dashes. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: #0969da !important;
