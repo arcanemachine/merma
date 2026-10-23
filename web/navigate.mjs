@@ -82,8 +82,8 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
  * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
  * travelling that way (the one end it leaves heading the other way); the other two step to the edge beside it, without
  * wrapping, among the edges at the end it was reached from (`from`, else its source) that way, or at its other end
- * when it is alone there. Otherwise (a bend that leaves both ends heading the same way, or neither), an arrow goes to the end that
- * lies further that way from the edge's middle.
+ * when it is alone there. Past the last of them, alone at both ends, or on a bend that leaves both ends heading the same
+ * way, an arrow goes to the end that lies further that way from the edge's middle, if either does.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
  * @param {string} key
@@ -114,10 +114,9 @@ export function walk({ boxes, edges }, at, key, from = null) {
       const kind = byId.get(set.id)?.kind;
       const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
       const k = list.indexOf(edge.id) + (key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1);
-      return k >= 0 && k < list.length ? { kind: 'edge', id: list[k] } : null;
-    }
-    // Alone at both ends, a cross arrow stops (only a U, with no arrow across it, falls to where the ends lie).
-    if (set || vertical(from ? from.key : ends[0].dir) !== vertical(key)) return null;
+      if (k >= 0 && k < list.length) return { kind: 'edge', id: list[k] };
+      // Past the last edge beside it, or alone at both ends: on to the end lying that way, below.
+    } else if (set) return null;
   }
   // The end further that way from the middle, if it lies that way at all.
   const [vx, vy] = SIDES[key].v;

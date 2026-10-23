@@ -76,9 +76,11 @@ test('the edges leaving a node one way run left to right (top to bottom sideways
   assert.deepEqual(leaving(edges, 'wait', 'ArrowUp'), ['order-wait']);
 });
 
-test("a diamond's corner edges count as down: Down, then Right steps through all four, and Up goes back", () => {
-  assert.deepEqual(run(at('node', 'paid'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowUp']),
-    ['edge paid-retry', 'edge paid-ship', 'edge paid-mail', 'edge paid-receipt', null, 'node paid']);
+test("a diamond's corner edges count as down: Down, then Right steps through all four, and on to the last one's end", () => {
+  assert.deepEqual(run(at('node', 'paid'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight']),
+    ['edge paid-retry', 'edge paid-ship', 'edge paid-mail', 'edge paid-receipt', 'node receipt']);
+  // At the first edge, Left goes on to its end lying left (the user: Paid, Down, Left is Retry).
+  assert.deepEqual(run(at('node', 'paid'), ['ArrowDown', 'ArrowLeft']), ['edge paid-retry', 'node retry']);
 });
 
 test('on an edge, the arrow along it goes to the end that way', () => {
@@ -88,12 +90,12 @@ test('on an edge, the arrow along it goes to the end that way', () => {
 
 test("across an edge reached from a node: that node's edges going that way; alone there, those at its other end", () => {
   // order-wait is wait's only upward edge: order's downward edges, as from Receipt up to Paid's.
-  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
-    ['edge order-wait', 'edge order-note', null, 'edge order-wait', 'node order']);
+  assert.deepEqual(run(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowLeft', 'ArrowUp']),
+    ['edge order-wait', 'edge order-note', 'edge order-wait', 'node order']);
   assert.deepEqual(run(at('node', 'receipt'), ['ArrowUp', 'ArrowLeft', 'ArrowLeft']),
     ['edge paid-receipt', 'edge paid-mail', 'edge paid-ship']);
-  assert.deepEqual(run(at('node', 'order'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowLeft']),
-    ['edge order-check', 'edge order-wait', 'edge order-note', null, 'edge order-wait']);
+  assert.deepEqual(run(at('node', 'order'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowLeft']),
+    ['edge order-check', 'edge order-wait', 'edge order-note', 'edge order-wait']);
 });
 
 test("across an edge reached any other way (a click): its source's edges going its way", () => {
@@ -107,8 +109,9 @@ test("an edge coming in and one going out of the same side are stepped between",
   // Retry's case: p comes into r's top, and r goes up to c; Up from r, then Right.
   const g = { boxes: nest([node('p', 100, 0), node('c', 0, 0), node('r', 50, 100)]), edges: [
     edge('r', 'c', [40, 85], 'U', [0, 15], 'D'), edge('p', 'r', [100, 15], 'D', [60, 85], 'U')] };
-  assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft'], g),
-    ['edge r-c', 'edge p-r', null, 'edge r-c']);
+  assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowLeft'], g), ['edge r-c', 'edge p-r', 'edge r-c']);
+  // Past the last, on to its end lying that way: p, up and to the right.
+  assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowRight'], g), ['edge r-c', 'edge p-r', 'node p']);
   // Clicked, r-c's source is r: the same two.
   assert.deepEqual(walk(g, at('edge', 'r-c'), 'ArrowRight'), at('edge', 'p-r'));
 });
@@ -201,8 +204,9 @@ test('a loop-back that leaves both ends the same way: Up or Down goes to the end
   // Both ends leave heading down, in a U under them; l sits higher than r.
   const u = { boxes: nest([node('l', 0, 0), node('r', 200, 20)]), edges: [edge('l', 'r', [0, 15], 'D', [200, 35], 'D')] };
   assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowUp'), at('node', 'l'));
-  // Left and Right step edges only: none beside it.
-  assert.equal(walk(u, at('edge', 'l-r'), 'ArrowRight'), null);
+  // None beside it: Right goes on to the end lying right, Left to the one lying left.
+  assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowRight'), at('node', 'r'));
+  assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowLeft'), at('node', 'l'));
 });
 
 test('retrace takes back the last move with its opposite key and the same modifier, and nothing else', () => {
@@ -214,11 +218,13 @@ test('retrace takes back the last move with its opposite key and the same modifi
   assert.equal(retrace([], at('node', 'retry'), 'ArrowUp', false), null);
 });
 
-test('a lone edge: the cross arrows stop, even with an end a little that way', () => {
-  // b sits a few pixels right of the edge's middle.
+test('a lone edge: a cross arrow goes on to an end lying that way from its middle, else nowhere', () => {
+  // b sits a few pixels right of the edge's middle, a a few pixels left.
   const lone = { boxes: nest([node('a', 0, 0), node('b', 6, 100)]), edges: [edge('a', 'b', [0, 15], 'D', [6, 85], 'U')] };
-  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowRight'), null);
-  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
+  assert.deepEqual(walk(lone, at('edge', 'a-b'), 'ArrowRight'), at('node', 'b'));
+  assert.deepEqual(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), at('node', 'a'));
+  const straight = { boxes: nest([node('a', 0, 0), node('b', 0, 100)]), edges: [edge('a', 'b', [0, 15], 'D', [0, 85], 'U')] };
+  assert.equal(walk(straight, at('edge', 'a-b'), 'ArrowRight'), null);
 });
 
 test("a subgraph's box also owns the edges crossing its border from inside, at any depth", () => {
@@ -263,8 +269,8 @@ test("from a subgraph's box, across a crossing edge: the box's set, and alone th
       edge('far', 'log', [310, 15], 'D', [170, 245], 'U'),
     ],
   };
-  // Down from pay: its two crossing edges, not paid's inside one; then nothing.
-  assert.deepEqual(run(at('subgraph', 'pay'), ['ArrowDown', 'ArrowRight', 'ArrowRight'], g), ['edge paid-ship', 'edge paid-log', null]);
+  // Down from pay: its two crossing edges, not paid's inside one; then on to log, the last one's end lying right.
+  assert.deepEqual(run(at('subgraph', 'pay'), ['ArrowDown', 'ArrowRight', 'ArrowRight'], g), ['edge paid-ship', 'edge paid-log', 'node log']);
   // Up from pay: paid-far is its only crossing edge going up: far's edges going down.
   assert.deepEqual(beside(g, 'paid-far', { id: 'pay', key: 'ArrowUp' }), { id: 'far', key: 'ArrowDown' });
 });
