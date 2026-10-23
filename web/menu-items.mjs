@@ -57,7 +57,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * @property {boolean} [separated] set apart from the items above it
  */
 
-/** @type {Record<'node' | 'edge' | 'subgraph' | 'space', MenuItem[]>} */
+/** @type {Record<'node' | 'edge' | 'subgraph' | 'title' | 'space', MenuItem[]>} */
 export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
@@ -77,6 +77,9 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+  ],
+  title: [
+    { action: 'edit-title', label: 'Edit title', key: 't' },
   ],
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
-  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS,
+  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -656,3 +656,20 @@ for (const [name, ids] of Object.entries(NODE_IDS)) {
     });
   }
 }
+
+test('setTitle changes only the frontmatter title line, quoting what YAML would misread', () => {
+  const text = '---\ntitle: Old\nconfig:\n  look: classic\n---\nflowchart TD\n  A --> B\n';
+  assert.equal(setTitle(text, 'New title').text, text.replace('title: Old', 'title: New title'));
+  assert.equal(setTitle(text, 'Step: one').text, text.replace('title: Old', 'title: "Step: one"'));
+  assert.equal(setTitle(text, '#1 "best"').text, text.replace('title: Old', 'title: "#1 \\"best\\""'));
+  assert.equal(setTitle(text, '- item').text, text.replace('title: Old', 'title: "- item"'));
+  assert.equal(setTitle('---\r\ntitle: x\r\n---\r\nflowchart TD\r\n', 'y').text, '---\r\ntitle: y\r\n---\r\nflowchart TD\r\n');
+});
+
+test('setTitle refuses a file with no frontmatter title, or one over several lines', () => {
+  assert.throws(() => setTitle('flowchart TD\n  A\n', 'x'), /no title/);
+  assert.throws(() => setTitle('---\nconfig:\n  look: classic\n---\nflowchart TD\n', 'x'), /no title/);
+  assert.throws(() => setTitle('---\ntitle: >\n  long\n---\nflowchart TD\n', 'x'), /several lines/);
+  // A `title:` line after the frontmatter is not the title.
+  assert.throws(() => setTitle('---\nconfig: {}\n---\ntitle: no\nflowchart TD\n', 'x'), /no title/);
+});
