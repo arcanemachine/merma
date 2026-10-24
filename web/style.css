@@ -36,8 +36,9 @@ header .status { color: #666; white-space: nowrap; }
 #error { display: none; padding: 8px 16px; background: var(--error-bg); color: var(--error-fg); font-family: ui-monospace, monospace;
          font-size: 13px; white-space: pre-wrap; }
 /* The diagram fills the space between header and footer; the wheel zooms it and a drag moves it. Its top padding, with
-   the fit's own margin (viewer.mjs), keeps a fitted diagram clear of a one-line notice. */
-#diagram { padding-top: 8px; position: relative; overflow: hidden; touch-action: none; cursor: grab; }
+   the fit's own margin (viewer.mjs), keeps a fitted diagram clear of a one-line notice. Clipped, not just hidden:
+   focus() and scrollIntoView() still scroll a hidden box, shifting the drawing against its transform. */
+#diagram { padding-top: 8px; position: relative; overflow: hidden; overflow: clip; touch-action: none; cursor: grab; }
 #diagram.dragging, #diagram.dragging * { cursor: grabbing !important; }
 /* No text selection while dragging. */
 #diagram, #diagram * { user-select: none; }
