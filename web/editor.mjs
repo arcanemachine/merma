@@ -82,10 +82,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {import('./navigate.mjs').Move[]} the arrow moves since the selection last changed otherwise, to retrace */
   let path = [];
-  let moving = false;   // an arrow key is selecting: the path goes on
+  let moving = false;   // a key (an arrow, O or I) is selecting: the path and I's memory go on
   /**
-   * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Never pruned: I
-   * checks an entry against what is drawn inside now.
+   * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Kept only while
+   * keys select: a click, a find or an edit forgets it (the user). Never pruned: I checks an entry against what is
+   * drawn inside now.
    * @type {Map<string, string>}
    */
   const inside = new Map();
@@ -309,7 +310,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
-    if (!again && !moving) path = [];   // a click, a search, an edit: the way back starts again
+    // A click, a search, an edit: the way back starts again, and I forgets where you were.
+    if (!again && !moving) { path = []; inside.clear(); }
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) { e.setAttribute('data-page-selected', ''); loosen(e); }
@@ -653,7 +655,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     return true;
   }
-  /** Select by an arrow key, keeping the path to retrace. */
+  /** Select by a key (an arrow, O or I), keeping the path to retrace and I's memory. */
   function moveTo(/** @type {Item} */ item) {
     moving = true;
     try { selectByKey(item); } finally { moving = false; }
@@ -676,7 +678,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!parent) return true;
     const sub = /** @type {Item} */ ({ kind: 'subgraph', id: parent });
     if (from.kind !== 'edge') inside.set(parent, from.id);
-    if (connecting) markCandidate(sub); else selectByKey(sub);
+    if (connecting) markCandidate(sub); else byKey(sub);
     return true;
   }
   /** I: into the selected subgraph (or candidate), to the item last selected there, else its top-left one. */
@@ -689,8 +691,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const first = last ?? children.sort((p, q) => p.y - q.y || p.x - q.x)[0];
     if (!first) return true;
     const item = /** @type {Item} */ ({ kind: first.kind, id: first.id });
-    if (connecting) markCandidate(item); else selectByKey(item);
+    if (connecting) markCandidate(item); else byKey(item);
     return true;
+  }
+  /** O and I select by key, keeping I's memory, but start the way back afresh: they are not arrow moves. */
+  function byKey(/** @type {Item} */ item) {
+    moveTo(item);
+    path = [];
   }
   /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
   function markCandidate(/** @type {Item} */ item) {
@@ -1189,6 +1196,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function edit(change, { afterSave, into = null, after, keep = false } = {}) {
     return exclusively(async () => {
       ui.hideNotice();
+      // After an edit there is no way back, and I forgets where you were (the user), even with the same item selected.
+      path = [];
+      inside.clear();
       clickedMeanwhile = null;
       const base = source.snapshot();
       if (base.text === null || !base.version) return;
