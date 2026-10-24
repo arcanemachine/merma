@@ -483,9 +483,20 @@ test('in, out and in again by the same arrow: going back out of a box keeps the 
   const leftBy = [{ from: at('node', 'label'), to: ship, key: 'ArrowDown', ctrl: false }];
   assert.equal(enter(leftBy, g, ship, 'ArrowDown'), null);
   assert.deepEqual(enter(leftBy, g, ship, 'ArrowUp'), at('node', 'label'));
-  // And from an edge inside it.
+  // And from an edge whose middle lies inside it: one within it, or one crossing its border (Ctrl by place from its
+  // middle reaches the border); a crossing edge with its middle outside comes in.
   const fromEdge = [{ from: at('edge', 'pack-label'), to: ship, key: 'ArrowRight', ctrl: false }];
   assert.equal(enter(fromEdge, g, ship, 'ArrowRight'), null);
+  const crossing = { ...edge('pack', 'far', [30, 50], 'L', [-100, 50], 'R'), mid: P(10, 50) };
+  const outer = { ...edge('label', 'far', [30, 150], 'L', [-100, 150], 'R'), mid: P(-40, 150) };
+  const cg = { boxes: inner, edges: [...g.edges, crossing, outer] };
+  const ctrlLeft = (/** @type {string} */ id) => [{ from: at('edge', id), to: ship, key: 'ArrowLeft', ctrl: true }];
+  assert.equal(enter(ctrlLeft('pack-far'), cg, ship, 'ArrowLeft'), null);
+  assert.deepEqual(enter(ctrlLeft('pack-far'), cg, ship, 'ArrowRight'), at('node', 'pack'));
+  assert.deepEqual(enter([{ from: at('edge', 'label-far'), to: ship, key: 'ArrowRight', ctrl: true }], cg, ship, 'ArrowRight'), at('node', 'pack'));
+  const above = { ...edge('pack', 'sky', [60, 35], 'U', [60, -100], 'D'), mid: P(60, 0) };
+  assert.deepEqual(enter([{ from: at('edge', 'pack-sky'), to: ship, key: 'ArrowDown', ctrl: true }],
+    { boxes: inner, edges: [above] }, ship, 'ArrowDown'), at('node', 'pack'));
   // Reached sideways, by place: Right goes in, and again after coming back out.
   const side = { from: at('node', 'top'), to: ship, key: 'ArrowRight', ctrl: false };
   const again = back({ trail: [side, { ...intoPack, key: 'ArrowRight' }], came: null }, at('node', 'pack'), 'ArrowLeft', false);

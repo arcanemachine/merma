@@ -327,11 +327,15 @@ const INTO = /** @type {Record<string, { axis: 'x' | 'y', sign: 1 | -1 }>} */ ({
 export function enter(trail, graph, at, key) {
   if (at.kind !== 'subgraph' || !INTO[key]) return null;
   const last = trail.at(-1);
-  const inside = within(graph.boxes, at.id);
+  const box = graph.boxes.find((b) => b.id === at.id);
   const edge = last?.from.kind === 'edge' ? graph.edges.find((e) => e.id === last.from.id) : null;
-  // Come out from inside (an item or an edge within it): you are at the side that arrow points to, so only the opposite
-  // goes back in (and that one retraces first).
-  const out = last && (inside.has(last.from.id) || (edge && inside.has(edge.from) && inside.has(edge.to)));
+  // Come out from inside (an item within it, or an edge whose middle lies inside it, as by place reaches the border
+  // from there; the box's own self-loop frames it, so is not inside): you are at the side that arrow points to, so
+  // only the opposite goes back in (and that one retraces first).
+  const out = last && (edge
+    ? box && !(edge.from === at.id && edge.to === at.id)
+      && Math.abs(edge.mid.x - box.x) <= box.w / 2 && Math.abs(edge.mid.y - box.y) <= box.h / 2
+    : within(graph.boxes, at.id).has(last.from.id));
   const arrived = !last || last.to.kind !== at.kind || last.to.id !== at.id ? flow(graph, at.id)
     : out ? OPPOSITE[last.key] : last.key;
   if (key !== arrived) return null;
