@@ -211,6 +211,26 @@ test("a self-loop belongs to its node's edges where it starts; on it, across pag
   assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
   // Nothing to page that way: back to its node.
   assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowUp'), at('node', 'a'));
+  // A loop out of one side and back into another counts at both, reached either way; across, it pages the set it was
+  // reached in; along that set's axis, back to its node.
+  const frame = edge('s', 's', [0, 50], 'D', [5, -50], 'U');
+  const sg = { boxes: nest([sub('s', 0, 0, 100, 100), node('in', 0, 0), node('top', 40, -150), node('low', 40, 150)]),
+    edges: [frame, edge('top', 's', [40, -135], 'D', [40, -50], 'U'), edge('s', 'low', [40, 50], 'D', [40, 135], 'U')] };
+  assert.deepEqual(leaving(sg.edges, 's', 'ArrowUp', within(sg.boxes, 's')), ['s-s', 'top-s']);
+  assert.deepEqual(leaving(sg.edges, 's', 'ArrowDown', within(sg.boxes, 's')), ['s-s', 's-low']);
+  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowUp' }), at('edge', 'top-s'));
+  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowDown' }), at('edge', 's-low'));
+  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowUp', { id: 's', key: 'ArrowDown' }), at('subgraph', 's'));
+  // A loop out of the right side and back into the top, reached in the top's set: Left pages that set.
+  const corner = { boxes: nest([node('q', 0, 0), node('r', -40, -100)]),
+    edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U'), edge('q', 'r', [-10, -15], 'U', [-40, -85], 'D')] };
+  assert.deepEqual(walk(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
+  // Back on the box from its loop: the half of the end the loop was reached at.
+  const box = at('subgraph', 's'), loopEdge = at('edge', 's-s');
+  const trail = (/** @type {string} */ key) => [{ from: box, to: loopEdge, key, ctrl: false, came: { id: 's', key } },
+    { from: loopEdge, to: box, key: 'ArrowLeft', ctrl: false }];
+  assert.equal(half(trail('ArrowDown'), sg, box), 'bottom');
+  assert.equal(half(trail('ArrowUp'), sg, box), 'top');
   // Ctrl has no far end on a loop to skip to: past it, a-b's.
   assert.deepEqual(skip(g, at('node', 'a'), 'ArrowLeft'), at('node', 'b'));
   assert.equal(skip({ boxes: g.boxes, edges: [loop] }, at('node', 'a'), 'ArrowLeft'), null);
