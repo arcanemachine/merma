@@ -44,6 +44,8 @@ const edges = [
 ];
 const graph = { boxes, edges };
 const at = (/** @type {'node' | 'subgraph' | 'edge'} */ kind, /** @type {string} */ id) => ({ kind, id });
+/** Where walk() goes, without the fan it stepped in. */
+const go = (/** @type {Parameters<typeof walk>} */ ...args) => walk(...args)?.to ?? null;
 /**
  * Where each of `keys` goes, pressed one after another from `from`, telling walk() the node an edge was reached from,
  * as the editor does; null where one went nowhere.
@@ -53,9 +55,10 @@ function run(/** @type {{ kind: any, id: string }} */ from, /** @type {string[]}
   /** @type {{ id: string, key: string } | null} */
   let came = null;
   return keys.map((key) => {
-    const next = walk(g, here, key, here.kind === 'edge' ? came : null);
+    const moved = walk(g, here, key, here.kind === 'edge' ? came : null);
+    const next = moved?.to;
     if (next) {
-      if (next.kind === 'edge') came = here.kind === 'edge' ? across(g, here.id, key, came)?.from ?? null : { id: here.id, key };
+      if (next.kind === 'edge') came = moved.fan ?? { id: here.id, key };
       here = next;
     }
     return next ? `${next.kind} ${next.id}` : null;
@@ -100,9 +103,9 @@ test("across an edge reached from a node: that node's edges going that way; alon
 
 test("across an edge reached any other way (a click): its source's edges going its way", () => {
   // order-wait's source is order: its downward edges, whichever way they point.
-  assert.deepEqual(walk(graph, at('edge', 'order-wait'), 'ArrowRight'), at('edge', 'order-note'));
+  assert.deepEqual(go(graph, at('edge', 'order-wait'), 'ArrowRight'), at('edge', 'order-note'));
   // Alone at both ends: nothing.
-  assert.equal(walk(graph, at('edge', 'wait-paid'), 'ArrowRight'), null);
+  assert.equal(go(graph, at('edge', 'wait-paid'), 'ArrowRight'), null);
 });
 
 test("an edge coming in and one going out of the same side are stepped between", () => {
@@ -112,7 +115,7 @@ test("an edge coming in and one going out of the same side are stepped between",
   assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowRight', 'ArrowLeft'], g),
     ['edge r-c', 'edge p-r', null, 'edge r-c']);
   // Clicked, r-c's source is r: the same two.
-  assert.deepEqual(walk(g, at('edge', 'r-c'), 'ArrowRight'), at('edge', 'p-r'));
+  assert.deepEqual(go(g, at('edge', 'r-c'), 'ArrowRight'), at('edge', 'p-r'));
 });
 
 test('an edge that turns: the arrows go to the end that lies that way', () => {
@@ -206,11 +209,11 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   const g = { boxes: nest([node('a', 0, 0), node('b', -200, 40)]), edges: [loop, edge('a', 'b', [-30, 8], 'L', [-170, 40], 'R')] };
   assert.deepEqual(leaving(g.edges, 'a', 'ArrowLeft'), ['a-a', 'a-b']);
   assert.deepEqual(leaving(g.edges, 'a', 'ArrowRight'), []);
-  assert.deepEqual(walk(g, at('node', 'a'), 'ArrowLeft'), at('edge', 'a-a'));
-  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowRight'), at('node', 'a'));
-  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
+  assert.deepEqual(go(g, at('node', 'a'), 'ArrowLeft'), at('edge', 'a-a'));
+  assert.deepEqual(go(g, at('edge', 'a-a'), 'ArrowRight'), at('node', 'a'));
+  assert.deepEqual(go(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
   // Nothing to page that way: nothing, as on any edge.
-  assert.equal(walk(g, at('edge', 'a-a'), 'ArrowUp'), null);
+  assert.equal(go(g, at('edge', 'a-a'), 'ArrowUp'), null);
   // A loop out of one side and back into another counts at both, reached either way; across, it steps through the fan it was
   // reached in; along that fan's axis, back to its node.
   const frame = edge('s', 's', [0, 50], 'D', [5, -50], 'U');
@@ -218,13 +221,13 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
     edges: [frame, edge('top', 's', [40, -135], 'D', [40, -50], 'U'), edge('s', 'low', [40, 50], 'D', [40, 135], 'U')] };
   assert.deepEqual(leaving(sg.edges, 's', 'ArrowUp', within(sg.boxes, 's')), ['s-s', 'top-s']);
   assert.deepEqual(leaving(sg.edges, 's', 'ArrowDown', within(sg.boxes, 's')), ['s-s', 's-low']);
-  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowUp' }), at('edge', 'top-s'));
-  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowDown' }), at('edge', 's-low'));
-  assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowUp', { id: 's', key: 'ArrowDown' }), at('subgraph', 's'));
+  assert.deepEqual(go(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowUp' }), at('edge', 'top-s'));
+  assert.deepEqual(go(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowDown' }), at('edge', 's-low'));
+  assert.deepEqual(go(sg, at('edge', 's-s'), 'ArrowUp', { id: 's', key: 'ArrowDown' }), at('subgraph', 's'));
   // A loop out of the right side and back into the top, reached in the top's fan: Left steps through that fan.
   const corner = { boxes: nest([node('q', 0, 0), node('r', -40, -100)]),
     edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U'), edge('q', 'r', [-10, -15], 'U', [-40, -85], 'D')] };
-  assert.deepEqual(walk(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
+  assert.deepEqual(go(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
   // Back on the box from its own loop, which frames it: by the arrow, as if gone round it that way (the user); with no
   // trail (the box clicked), the top.
   const box = at('subgraph', 's'), loopEdge = at('edge', 's-s');
@@ -234,7 +237,7 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   assert.equal(half(back('ArrowDown'), sg, box), 'top');
   assert.equal(half([], sg, box), 'top');
   // Across a loop with nothing more to page: nothing, as on any edge (the user: not back to its node).
-  assert.equal(walk(sg, at('edge', 's-s'), 'ArrowLeft', { id: 's', key: 'ArrowUp' }), null);
+  assert.equal(go(sg, at('edge', 's-s'), 'ArrowLeft', { id: 's', key: 'ArrowUp' }), null);
   // Ctrl has no far end on a loop to skip to: past it, a-b's.
   assert.deepEqual(skip(g, at('node', 'a'), 'ArrowLeft'), at('node', 'b'));
   assert.equal(skip({ boxes: g.boxes, edges: [loop] }, at('node', 'a'), 'ArrowLeft'), null);
@@ -275,10 +278,10 @@ test('nearest finds the box whose middle is closest, and null with none', () => 
 test('a loop-back that leaves both ends the same way: Up or Down goes to the end further that way', () => {
   // Both ends leave heading down, in a U under them; l sits higher than r.
   const u = { boxes: nest([node('l', 0, 0), node('r', 200, 20)]), edges: [edge('l', 'r', [0, 15], 'D', [200, 35], 'D')] };
-  assert.deepEqual(walk(u, at('edge', 'l-r'), 'ArrowUp'), at('node', 'l'));
+  assert.deepEqual(go(u, at('edge', 'l-r'), 'ArrowUp'), at('node', 'l'));
   // Left and Right page edges only: none beside it.
-  assert.equal(walk(u, at('edge', 'l-r'), 'ArrowRight'), null);
-  assert.equal(walk(u, at('edge', 'l-r'), 'ArrowLeft'), null);
+  assert.equal(go(u, at('edge', 'l-r'), 'ArrowRight'), null);
+  assert.equal(go(u, at('edge', 'l-r'), 'ArrowLeft'), null);
 });
 
 test('retrace takes back the last move with its opposite key and the same modifier, and nothing else', () => {
@@ -293,8 +296,8 @@ test('retrace takes back the last move with its opposite key and the same modifi
 test('a lone edge: the cross arrows stop, even with an end a little that way', () => {
   // b sits a few pixels right of the edge's middle.
   const lone = { boxes: nest([node('a', 0, 0), node('b', 6, 100)]), edges: [edge('a', 'b', [0, 15], 'D', [6, 85], 'U')] };
-  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowRight'), null);
-  assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
+  assert.equal(go(lone, at('edge', 'a-b'), 'ArrowRight'), null);
+  assert.equal(go(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
 });
 
 test("stepping past the last edge at one end carries on among those at the edge's other end, from its place there", () => {
@@ -318,10 +321,10 @@ test("an edge that turns: an arrow along one end's axis steps through the edges 
   const g = { boxes: nest([node('a', 0, 0), node('b', 0, 100), node('s', 100, 60, 60, 80), node('z', 20, 200)]), edges: [
     edge('a', 's', [0, 15], 'D', [70, 40], 'L'), edge('b', 's', [30, 100], 'R', [70, 80], 'L'),
     edge('a', 'z', [10, 15], 'D', [20, 185], 'U')] };
-  assert.deepEqual(walk(g, at('edge', 'a-s'), 'ArrowDown'), at('edge', 'b-s'));
-  assert.deepEqual(walk(g, at('edge', 'b-s'), 'ArrowUp'), at('edge', 'a-s'));
+  assert.deepEqual(go(g, at('edge', 'a-s'), 'ArrowDown'), at('edge', 'b-s'));
+  assert.deepEqual(go(g, at('edge', 'b-s'), 'ArrowUp'), at('edge', 'a-s'));
   // Up along a-s still goes to a, the end it leaves heading down.
-  assert.deepEqual(walk(g, at('edge', 'a-s'), 'ArrowUp'), at('node', 'a'));
+  assert.deepEqual(go(g, at('edge', 'a-s'), 'ArrowUp'), at('node', 'a'));
 });
 
 test("a subgraph's box also owns the edges crossing its border from inside, at any depth", () => {
@@ -337,11 +340,11 @@ test("a subgraph's box also owns the edges crossing its border from inside, at a
     ],
   };
   assert.deepEqual(leaving(g.edges, 'pay', 'ArrowDown', within(g.boxes, 'pay')), ['paid-ship', 'paid-log']);
-  assert.deepEqual(walk(g, at('subgraph', 'pay'), 'ArrowDown'), at('edge', 'paid-ship'));
+  assert.deepEqual(go(g, at('subgraph', 'pay'), 'ArrowDown'), at('edge', 'paid-ship'));
   assert.deepEqual(skip(g, at('subgraph', 'pay'), 'ArrowDown'), at('subgraph', 'ship'));
   // log-tape crosses both box's and ship's borders.
-  assert.deepEqual(walk(g, at('subgraph', 'box'), 'ArrowUp'), at('edge', 'log-tape'));
-  assert.deepEqual(walk(g, at('subgraph', 'ship'), 'ArrowUp'), at('edge', 'paid-ship'));
+  assert.deepEqual(go(g, at('subgraph', 'box'), 'ArrowUp'), at('edge', 'log-tape'));
+  assert.deepEqual(go(g, at('subgraph', 'ship'), 'ArrowUp'), at('edge', 'paid-ship'));
   assert.deepEqual(leaving(g.edges, 'ship', 'ArrowUp', within(g.boxes, 'ship')), ['paid-ship', 'log-tape']);
 });
 

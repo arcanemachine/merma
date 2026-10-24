@@ -83,7 +83,8 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
 }
 
 /**
- * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
+ * Where a plain arrow `key` goes from `at` (`to`), or null for nowhere; `fan`, after a step across, is the end whose
+ * edges it was found among (across()), where the edge now counts as reached from, else null. From a node or a box: the first edge leaving it that
  * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
  * travelling that way (the one end it leaves heading the other way); the other two step across the edges beside it
  * (across()), never to a node. Only on a bend that leaves both ends heading the same way does an arrow go to the end
@@ -92,18 +93,18 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
  * @param {Target} at
  * @param {string} key
  * @param {{ id: string, key: string } | null} [from] how the edge was reached: from node or box `id` by arrow `key`
- * @returns {Target | null}
+ * @returns {{ to: Target, fan: { id: string, key: string } | null } | null}
  */
 export function walk({ boxes, edges }, at, key, from = null) {
   if (!SIDES[key]) return null;
   const byId = new Map(boxes.map((b) => [b.id, b]));
   const box = (/** @type {string} */ id) => {
     const b = byId.get(id);
-    return b ? /** @type {Target} */ ({ kind: b.kind, id }) : null;
+    return b ? { to: /** @type {Target} */ ({ kind: b.kind, id }), fan: null } : null;
   };
   if (at.kind !== 'edge') {
     const first = leaving(edges, at.id, key, at.kind === 'subgraph' ? within(boxes, at.id) : undefined)[0];
-    return first ? { kind: 'edge', id: first } : null;
+    return first ? { to: { kind: 'edge', id: first }, fan: null } : null;
   }
   const edge = edges.find((e) => e.id === at.id);
   if (!edge) return null;
@@ -112,7 +113,8 @@ export function walk({ boxes, edges }, at, key, from = null) {
   if (edge.from === edge.to) {
     const axis = from?.id === edge.from ? from.key : endsOf(edge)[0].dir;
     if (vertical(axis) === vertical(key)) return box(edge.from);
-    return across({ boxes, edges }, edge.id, key, from)?.to ?? null;
+    const step = across({ boxes, edges }, edge.id, key, from);
+    return step ? { to: step.to, fan: step.from } : null;
   }
   const ends = endsOf(edge);
   // Along the edge: the end it leaves heading back towards us.
@@ -120,7 +122,7 @@ export function walk({ boxes, edges }, at, key, from = null) {
   if (along.length === 1) return box(along[0].id);
   if (!along.length) {
     const step = across({ boxes, edges }, edge.id, key, from);
-    if (step) return step.to;
+    if (step) return { to: step.to, fan: step.from };
     // Nothing beside it that way: a cross arrow stops (only a U, both ends one way, falls to where the ends lie).
     if (ends.some((end) => vertical(end.dir) !== vertical(key))) return null;
   }
@@ -177,7 +179,7 @@ export function across({ boxes, edges }, id, key, from = null) {
 export function skip(graph, at, key) {
   let far = null, from = at.id;
   if (at.kind === 'edge') {
-    const end = walk(graph, at, key);
+    const end = walk(graph, at, key)?.to;
     if (!end || end.kind === 'edge') return null;
     const edge = graph.edges.find((e) => e.id === at.id);
     far = end.id;
