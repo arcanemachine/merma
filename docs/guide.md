@@ -230,7 +230,8 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
 - **Into a subgraph.** The arrow that brought you to a subgraph goes on in; the other arrows walk its edges, as a
   node's do, and Ctrl+Arrow skips past it. Down goes in to the leftmost item along its top, Right to the topmost along
   its left side, Up to the rightmost along its bottom, Left to the lowest along its right side. Coming back out, the
-  same arrow goes in again. A subgraph you clicked or found (or reached with O or Enter) goes in the way its contents
+  same arrow goes in again. Reaching a subgraph's box from inside it, the arrow you came out by goes on; the opposite one
+  goes back in. A subgraph you clicked or found (or reached with O or Enter) goes in the way its contents
   are drawn: the way most of the edges inside it head (Right, in a left-right subgraph), else the way the diagram's do,
   else Down.
 - **A self-loop** (a node or a subgraph connected to itself) belongs to its box's fans at both its ends. Along it, an

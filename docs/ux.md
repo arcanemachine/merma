@@ -128,6 +128,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     from the right (the lowest), like reading a page backwards. What lies along a side is what overlaps the item
     nearest it, so a few pixels never decide it. Going back out keeps the arrow that first brought you, so in, out and
     in again is the same arrow each time; back from the box's own self-loop, it is the arrow you went round it by.
+    Reaching the box from inside it (an arrow to its border) is coming out: that arrow walks on, and only the opposite
+    goes back in (Retry, Down reaches the Payment box; Down again goes on to its edges, not back in).
   - A box selected any other way (a click, a find, O, an edit, Enter) goes in the way its contents flow as drawn: the
     way most of the edges inside it head (a top-down diagram's `direction LR` subgraph goes in by Right), else the
     diagram's, else Down. As drawn, never the file's `direction` line: Mermaid ignores it when a node inside links
