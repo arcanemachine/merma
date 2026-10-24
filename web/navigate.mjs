@@ -5,8 +5,9 @@
 
 /** @typedef {{ x: number, y: number }} Point */
 /**
- * A node or a subgraph's box, by its middle and size on screen. `parent` is the subgraph it is drawn in, or null.
- * @typedef {{ kind: 'node' | 'subgraph', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
+ * A node or a subgraph's box, by its middle and size on screen; for byPlace() only, an edge too, as a point at its
+ * middle. `parent` is the subgraph it is drawn in, or null.
+ * @typedef {{ kind: 'node' | 'subgraph' | 'edge', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
  */
 /**
  * A drawn edge: its ends' ids (a node's or a subgraph's), and at each end where it meets it and a point a little way
