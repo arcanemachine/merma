@@ -162,7 +162,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    */
   function refuseUnnamed(/** @type {string} */ id) {
     const why = subgraphRefusal(shownText, id);
-    if (why) ui.notice(why, 'info');
+    if (why) ui.notice(why, 'warning');
     return Boolean(why);
   }
   const shownEdge = (/** @type {string} */ id) => edges(shownText).find((e) => e.svgId === id);
@@ -268,7 +268,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       'arrow-types': arrowPicker,
     },
     onRun: (/** @type {string} */ action) => handlers[action](),
-    onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'info'); },
+    onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
   };
@@ -411,7 +411,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     connecting = false;
     ui.hideNotice();
     if (!to) { deselect(); return; }
-    if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'info'); select(from); return; }
+    if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(from); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
     deselect();
     const names = [named(from), named(to)];
@@ -460,8 +460,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function deleteSelected() {
     const sel = selected;
     if (!sel) return;
-    if (sel.kind === 'subgraph') { ui.notice('Deleting a subgraph is not supported yet; edit it in the file.', 'info'); return; }
-    if (sel.kind === 'title') { ui.notice('Removing the title is not supported; edit it in the file.', 'info'); return; }
+    if (sel.kind === 'subgraph') { ui.notice('Deleting a subgraph is not supported yet; edit it in the file.', 'warning'); return; }
+    if (sel.kind === 'title') { ui.notice('Removing the title is not supported; edit it in the file.', 'warning'); return; }
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
     const name = sel.kind === 'node' && named(sel);
@@ -491,7 +491,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
     enter: () => {
       if (connecting && candidate?.kind === 'edge') {
-        ui.notice('Pick a node or subgraph to connect to: an edge cannot be connected to.', 'info');
+        ui.notice('Pick a node or subgraph to connect to: an edge cannot be connected to.', 'warning');
         return true;
       }
       if (connecting) { if (candidate) connectTo(candidate); return Boolean(candidate); }
@@ -678,7 +678,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       came = next?.kind === 'edge' ? across(graph, at.id, key, came)?.from ?? null : null;
     } else {
       if (!edgesOk) {
-        ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
+        ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'warning');
         return { next: null, trail };
       }
       // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.

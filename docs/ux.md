@@ -159,13 +159,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
-- A notice is one of three kinds, by what it means for you (the user: a warning reads as danger, so a harmless no is
-  not one):
-  - **info** (blue): what to do next ("Click the node the edge goes to"), or a harmless no: a greyed item's key,
-    "Nothing to undo", "Deleting a subgraph is not supported yet". Nothing was at risk.
-  - **warning** (amber): something was kept back from what you asked, or the file is at risk: an emptied label kept
-    on a click away, a node kept because the file changed, merma unable to match the edges (an edit could hit the
-    wrong one).
+- A notice is one of three kinds, by what it means for you; each fits one case only:
+  - **info** (blue): nothing you asked for was refused: what to do next ("Click the node the edge goes to"), or
+    nothing to do ("Nothing to undo").
+  - **warning** (amber): you asked, and it was refused, or kept back, with nothing lost (the user: trying something
+    not allowed is not just information): a greyed item's key or click, Enter on an edge in Connect to…, "Deleting a
+    subgraph is not supported yet", an emptied label kept on a click away, a node kept because the file changed;
+    merma unable to match the edges, so an edit could hit the wrong one (the file at risk).
   - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
     empty label on Enter, a press while another edit saves.
 - The colours come in pairs, a background and a text colour that reads on it, one pair per kind; `success` (green)
