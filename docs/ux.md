@@ -120,12 +120,18 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     so with nothing nearer inside you reach its box. The price: a node off every row and column, with no edges, is
     reached only by a click or a find.
   - A subgraph's box walks its own edges like a node, including those crossing its border from a node inside it, so no
-    way out of a subgraph is hidden from its box. Into a subgraph (the user): you are at its top or its bottom, by where
-    you came from against its middle (an edge where it meets it), at the top after any selection the arrows did not make
-    (a click, a find, O, an edit, Enter; the user weighed a click's position, and chose not: nothing on screen would
-    show the line), and back from the box's own self-loop by the arrow, as if gone round it. At the top Down goes in, to
-    the top row's leftmost; at the bottom Up goes in, to the bottom row's rightmost, like reading a page backwards. A
-    row is what overlaps the item inside nearest the side, so a few pixels never decide it. Left and Right never go in.
+    way out of a subgraph is hidden from its box. Into a subgraph (the user): the arrow that brought you to its box goes
+    on in, and the other three walk its edges; Ctrl+Arrow is the way past. So a left-right diagram is walked by Right
+    as a top-down one is by Down (the user tried left-right flowcharts, where only Down went in, at the top, and Right
+    walked past everything inside). It goes in to the item nearest the side it enters by, first in reading order along
+    that side: from the top the leftmost, from the left the topmost, and backwards from the bottom (the rightmost) and
+    from the right (the lowest), like reading a page backwards. What lies along a side is what overlaps the item
+    nearest it, so a few pixels never decide it. Going back out keeps the arrow that first brought you, so in, out and
+    in again is the same arrow each time; back from the box's own self-loop, it is the arrow you went round it by.
+  - A box selected any other way (a click, a find, O, an edit, Enter) goes in the way its contents flow as drawn: the
+    way most of the edges inside it head (a top-down diagram's `direction LR` subgraph goes in by Right), else the
+    diagram's, else Down. As drawn, never the file's `direction` line: Mermaid ignores it when a node inside links
+    outside. The user weighed a click's position, and chose not: nothing on screen would show the line.
   - The opposite arrow goes back the way you came (the user): it takes back the latest move into where you are, past
     any steps across, which it never undoes, and what came after that move is gone. Every other key follows the rules
     from where you are; a click, a find, O, I, an edit or Escape starts afresh. An edge counts as reached from the item
