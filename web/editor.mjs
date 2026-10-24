@@ -84,6 +84,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @type {WeakMap<import('./history.mjs').Entry, { before: Item | null, after: { item: Item, others?: Item[] } | null }>}
    */
   const selections = new WeakMap();
+  /** @type {Item | null} what the last edit, undo or redo left selected: redo moves the selection only from there */
+  let settled = null;
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   /** @type {(Item & { entry: import('./history.mjs').Entry }) | null} while what was just added is named: its name belongs to its add */
   let naming = null;
@@ -1325,6 +1327,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // An add's label box does not open on what was clicked instead, so what it added is not being named.
       if (clickedAway) naming = null;
       await display(result.text);
+      settled = selected;
     });
   }
 
@@ -1342,12 +1345,19 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const entry = history.nextRedo;
       if (!(await save(redoing.text, base.version))) return;
       history.redone();
+      // Redo selects what its edit did only if you have not moved since (the user: it does not pull you away); else
+      // your selection stays, or, when the redo takes it away, goes where the edit's would.
+      const sel = entry && selections.get(entry)?.after;
+      const was = selected;
+      const stayed = same(was, settled);
+      const chain = sel ? [sel.item, ...(sel.others ?? [])] : [];
       deselect();
       closeLabelBox();
-      const sel = entry && selections.get(entry)?.after;
-      pending = sel ? { text: redoing.text, ...sel, reveal: true, say: 'Redone' } : null;
+      if (stayed) pending = sel ? { text: redoing.text, ...sel, reveal: true, say: 'Redone' } : null;
+      else pending = was ? { text: redoing.text, item: was, others: chain } : null;
       await display(redoing.text);
-      if (!selected) ui.announce('Redone');
+      if (!(stayed && sel && selected)) ui.announce('Redone');
+      settled = selected;
     });
   }
 
@@ -1371,6 +1381,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       pending = sel ? { text: undoing.text, item: sel, reveal: true, say: 'Undone' } : null;
       await display(undoing.text);
       if (!selected) ui.announce('Undone');
+      settled = selected;
     });
   }
 
