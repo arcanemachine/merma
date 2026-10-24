@@ -408,6 +408,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     keptClick = false;
   }
 
+  /** Leave Connect to… with nothing connected: by Escape, by a click away, or by C, the key that started it. */
+  function cancelConnect() {
+    connecting = false;
+    ui.hideNotice();
+    select(selection());
+  }
+
   /** End Connect to… on `to`, a click's or Enter's: an edge from the selection to it, or nothing for null. */
   function connectTo(/** @type {Item | null} */ to) {
     const from = selection();   // Connect to… starts from the selection
@@ -494,9 +501,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is greyed there; while
-    // connecting, it ends it, as Escape does (the user: the key that starts a wait also ends it).
+    // connecting, it ends it (the user: the key that starts a wait also ends it).
     c: () => {
-      if (connecting) { connecting = false; ui.hideNotice(); select(selection()); return true; }
+      if (connecting) { cancelConnect(); return true; }
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
       const item = MENUS[selected.kind].find((i) => i.action === 'connect');
       const state = menuState();
@@ -551,7 +558,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
     // goes ahead.
     escape: () => {
-      if (connecting) { connecting = false; ui.hideNotice(); select(selection()); return true; }
+      if (connecting) { cancelConnect(); return true; }
       const had = Boolean(selected);
       if (selected) cleared = selected;
       deselect();
@@ -885,7 +892,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // back, and a click that follows selects what it hit, whatever order focus and click arrive in on this device.
     if (finding && !els.find.contains(at)) closeFind(null);
     if (els.diagram.contains(at)) return;
-    if (connecting) { connecting = false; ui.hideNotice(); select(selection()); }
+    if (connecting) cancelConnect();
     closeMenus();
   });
   document.addEventListener('keydown', (e) => {
