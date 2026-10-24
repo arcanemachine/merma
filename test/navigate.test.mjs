@@ -79,7 +79,7 @@ test('the edges leaving a node one way run left to right (top to bottom sideways
 test("a diamond's corner edges count as down: Down, then Right steps through all four, and Up goes back", () => {
   assert.deepEqual(run(at('node', 'paid'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowRight', 'ArrowUp']),
     ['edge paid-retry', 'edge paid-ship', 'edge paid-mail', 'edge paid-receipt', null, 'node paid']);
-  // Paging never lands on a node (the user): Retry has no other edge at its top, so Left finds nothing.
+  // Stepping across never lands on a node (the user): Retry has no other edge at its top, so Left finds nothing.
   assert.deepEqual(run(at('node', 'paid'), ['ArrowDown', 'ArrowLeft']), ['edge paid-retry', null]);
 });
 
@@ -200,7 +200,7 @@ test("Ctrl lands on the outermost box around the far end that the place you leav
   assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
 });
 
-test("a self-loop belongs to its node's edges at its ends; on it, along goes back to its node, across pages or stops", () => {
+test("a self-loop belongs to its node's edges at its ends; on it, along goes back to its node, across steps or stops", () => {
   // a's loop leaves its left side; a-b also leaves a heading left, lower down.
   const loop = edge('a', 'a', [-30, -5], 'L', [-30, 5], 'L');
   const g = { boxes: nest([node('a', 0, 0), node('b', -200, 40)]), edges: [loop, edge('a', 'b', [-30, 8], 'L', [-170, 40], 'R')] };
@@ -211,8 +211,8 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
   // Nothing to page that way: nothing, as on any edge.
   assert.equal(walk(g, at('edge', 'a-a'), 'ArrowUp'), null);
-  // A loop out of one side and back into another counts at both, reached either way; across, it pages the set it was
-  // reached in; along that set's axis, back to its node.
+  // A loop out of one side and back into another counts at both, reached either way; across, it steps through the fan it was
+  // reached in; along that fan's axis, back to its node.
   const frame = edge('s', 's', [0, 50], 'D', [5, -50], 'U');
   const sg = { boxes: nest([sub('s', 0, 0, 100, 100), node('in', 0, 0), node('top', 40, -150), node('low', 40, 150)]),
     edges: [frame, edge('top', 's', [40, -135], 'D', [40, -50], 'U'), edge('s', 'low', [40, 50], 'D', [40, 135], 'U')] };
@@ -221,7 +221,7 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowUp' }), at('edge', 'top-s'));
   assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowRight', { id: 's', key: 'ArrowDown' }), at('edge', 's-low'));
   assert.deepEqual(walk(sg, at('edge', 's-s'), 'ArrowUp', { id: 's', key: 'ArrowDown' }), at('subgraph', 's'));
-  // A loop out of the right side and back into the top, reached in the top's set: Left pages that set.
+  // A loop out of the right side and back into the top, reached in the top's fan: Left steps through that fan.
   const corner = { boxes: nest([node('q', 0, 0), node('r', -40, -100)]),
     edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U'), edge('q', 'r', [-10, -15], 'U', [-40, -85], 'D')] };
   assert.deepEqual(walk(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
@@ -297,7 +297,7 @@ test('a lone edge: the cross arrows stop, even with an end a little that way', (
   assert.equal(walk(lone, at('edge', 'a-b'), 'ArrowLeft'), null);
 });
 
-test("paging past the last edge at one end carries on among those at the edge's other end, from its place there", () => {
+test("stepping past the last edge at one end carries on among those at the edge's other end, from its place there", () => {
   // The demo's Paid and Retry: p's down edges are p-r and p-x; r's top edges are r-c (up to c) and p-r.
   const g = { boxes: nest([node('p', 100, 0), node('c', 0, 0), node('r', 50, 100), node('x', 150, 100)]), edges: [
     edge('r', 'c', [40, 85], 'U', [0, 15], 'D'), edge('p', 'r', [95, 15], 'D', [60, 85], 'U'),
@@ -305,14 +305,14 @@ test("paging past the last edge at one end carries on among those at the edge's 
   // The user: Paid, Down, Left → Retry's edge to Charge card; Right → back; Right → Paid's next; Right: nothing.
   assert.deepEqual(run(at('node', 'p'), ['ArrowDown', 'ArrowLeft', 'ArrowLeft', 'ArrowRight', 'ArrowRight', 'ArrowRight'], g),
     ['edge p-r', 'edge r-c', null, 'edge p-r', 'edge p-x', null]);
-  // From Retry: Up, Right → p-r; Right carries on into p's set.
+  // From Retry: Up, Right → p-r; Right carries on into p's fan.
   assert.deepEqual(run(at('node', 'r'), ['ArrowUp', 'ArrowRight', 'ArrowRight'], g), ['edge r-c', 'edge p-r', 'edge p-x']);
-  // The set it was found among is where it now counts as reached from.
+  // The fan it was found among is where it now counts as reached from.
   assert.deepEqual(across(g, 'p-r', 'ArrowLeft', { id: 'p', key: 'ArrowDown' }),
     { to: at('edge', 'r-c'), from: { id: 'r', key: 'ArrowUp' } });
 });
 
-test("an edge that turns: an arrow along one end's axis pages the edges at the other end", () => {
+test("an edge that turns: an arrow along one end's axis steps through the edges at the other end", () => {
   // a-s leaves a heading down and comes into s's left side; b-s comes into s's left side lower down. a-z also leaves
   // a heading down: Down does not page a's down edges, which head along it.
   const g = { boxes: nest([node('a', 0, 0), node('b', 0, 100), node('s', 100, 60, 60, 80), node('z', 20, 200)]), edges: [
@@ -353,12 +353,12 @@ test('across: the end reached from when it lands there, else the other end, whic
   assert.equal(across(graph, 'wait-paid', 'ArrowRight'), null);
 });
 
-test("from a subgraph's box, across a crossing edge: the box's set, and alone there, the outside end's", () => {
+test("from a subgraph's box, across a crossing edge: the box's fan, and alone there, the outside end's", () => {
   const g = {
     boxes: nest([sub('pay', 100, 100, 200, 100), node('paid', 100, 100), node('retry', 60, 130),
       node('ship', 60, 260), node('log', 160, 260), node('far', 300, 0)]),
     edges: [
-      // The inside edge leaves paid rightmost, so paid's own set goes on past the box's.
+      // The inside edge leaves paid rightmost, so paid's own fan goes on past the box's.
       edge('paid', 'retry', [112, 115], 'D', [60, 115], 'U'),
       edge('paid', 'ship', [95, 115], 'D', [60, 245], 'U'),
       edge('paid', 'log', [105, 115], 'D', [160, 245], 'U'),
@@ -371,7 +371,7 @@ test("from a subgraph's box, across a crossing edge: the box's set, and alone th
     ['edge paid-ship', 'edge paid-log', 'edge far-log', null]);
   // Up from pay: paid-far is its only crossing edge going up: far's edges going down.
   assert.deepEqual(across(g, 'paid-far', 'ArrowRight', { id: 'pay', key: 'ArrowUp' })?.from, { id: 'far', key: 'ArrowDown' });
-  // An edge not among the box's: the box's edges land nothing, so it pages only at its own far end (last there).
+  // An edge not among the box's: the box's edges land nothing, so it steps only at its own far end (last there).
   assert.equal(across(g, 'far-log', 'ArrowRight', { id: 'pay', key: 'ArrowDown' }), null);
 });
 

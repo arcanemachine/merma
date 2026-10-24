@@ -99,34 +99,53 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
   view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
   after a drag: a change in the window's size no longer refits it.
-- The arrows are screen directions (the user): Up is up, Right is right, wherever you are. Plain arrows walk the edges,
-  two presses a step, node, edge, node, so the edge is where you choose (the user found jumping straight to "the next
-  node" picked far-off nodes and trapped you in loops). An edge belongs to both its ends and arrowheads play no part
-  (the user: an edge is an edge).
-- An edge heads the way it goes just after it leaves a node, measured 20 px along its line, not where on the outline it
-  starts (the user): the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to
-  right. Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached its
-  next bend.
-- On an edge, the other two arrows step to the edge beside it among the edges at the end you most recently came from,
-  going that way (the user: from Retry, Up then Right reaches the other edge at Retry's top; up to Charge card and
-  back down, they step Charge card's). Alone at that end, the edges beside it are at its other end (the user: from
-  Receipt, Up then Left reaches Paid's other edges), and that end then counts as where you came from. An edge clicked
-  or found by search counts as reached from its source (the node the file writes first: every edge has one). They stop
-  at the last edge rather than wrap: Right always means right.
-- With no edge leaving that way, an arrow goes to the next thing that way (the user: Right from Print label is Boxing,
-  the subgraph to its right): the nearest node or subgraph box lying wholly that way, at any depth, measured box to
-  box, the topmost (or leftmost) on a tie. The subgraph you are in counts by its border, so with nothing nearer inside,
-  you reach its box: Charge card, Up, is Payment. Wholly that way: a node below and to the right that overlaps you
-  sideways is not to the right. Nearest, not same row: a near node up and to the right beats a far one straight right.
-- A subgraph's box walks its own edges like a node, including those crossing its border from a node inside it (the
-  user: from Payment, Down should reach the edge leaving it), heading as they leave that node, so no way out of a
-  subgraph is hidden from its box.
-- The opposite arrow retraces your last move (the user: you should be able to go back the way you came). Every other
-  key follows the rules from where you are, so the same key on the same node leads the same way unless you are going
-  back; a click or a search starts the way back afresh.
-- Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user); with no edge that way they go to the next thing
-  that way, as a plain arrow does. From outside a subgraph its box is always nearer than anything inside it, so they
-  stop at the box rather than jump in; I and O go in and out.
+- Moving by keyboard, as one model (the user settled each rule in UAT, case by case, as "press X, get Y"):
+  - The arrows are screen directions: Up is up, Right is right, wherever you are. Plain arrows walk the edges, two
+    presses a step, node, edge, node, so the edge is where you choose (the user found jumping straight to "the next
+    node" picked far-off nodes and trapped you in loops). An edge belongs to both its ends, and arrowheads play no
+    part (the user: an edge is an edge); a self-loop too belongs to its node at both its ends.
+  - An edge heads the way it goes just after it leaves a node, measured 20 px along its line, not where on the outline
+    it starts: the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to
+    right. Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached
+    its next bend. A node's or box's edges leaving one way are its fan that way.
+  - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
+    between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end, from
+    its place there, so every edge sharing a node with it is reachable sideways. An edge clicked or found counts as
+    reached from its source (the node the file writes first: every edge has one). They stop at the last edge rather
+    than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried
+    it and chose stepping across.
+  - With no edge leaving that way, an arrow goes to the nearest node or box straight that way, else nothing (the user
+    tried nearest-anywhere and edges-by-place, and disliked both: Boxing, Down reached Send, off to the side; Shipping,
+    Right reached Wait for stock, far up). A subgraph you are in counts by its border, always straight ahead, so with
+    nothing nearer inside you reach its box. The price: a node off every row and column, with no edges, is reached
+    only by a click or a find.
+  - A box walks its own edges like a node, including those crossing its border from a node inside it, so no way out of
+    a subgraph is hidden from its box. Into a box (the user): you are at its top or its bottom, by where you came from
+    against its middle (an edge where it meets the box), at the top after a click, a find or O (the user weighed a
+    click's position, and chose not: nothing on screen would show the line), and back from the box's own self-loop
+    by the arrow, as if gone round it. At the top Down goes in, to the top row's leftmost; at the bottom Up goes in,
+    to the bottom row's rightmost, like reading a page backwards. A row is what overlaps the item inside nearest the side,
+    so a few pixels never decide it. Left and Right never go in.
+  - The opposite arrow retraces your last move (the user: you should be able to go back the way you came). Every other
+    key follows the rules from where you are. Coming back onto an edge from a node starts a fresh trail from that node
+    (the user: from Order log, Left should step through Order log's edges, not undo an earlier step), and a click, a find, O,
+    I, an edit or Escape starts afresh. Planned: retrace by arrival, so that stepping across never undoes and the
+    opposite arrow goes back the way you first came, past any steps across.
+  - Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user); with no edge that way they go straight that
+    way by place. A far end inside subgraphs you are not in lands on the outermost of their boxes (the user: from
+    Shipping, Ctrl+Up should be Payment, as from In stock, Ctrl+Down is), so Ctrl goes in a level a press; I and O go
+    in and out.
+  - I goes back to the item you last left a subgraph by, while keys select; a click, a find or an edit forgets it (the
+    user: keeping it across a click was backwards). It is not the trail: one item per subgraph, not a list of steps.
+  - Escape clears the selection, and Enter brings it back; a click on empty space forgets it (the user: you lose your
+    place otherwise). With nothing to bring back, Enter selects the middle node.
+  - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an
+    edge's source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so
+    you see what came back; redo selects what the edit selected only if you have not moved since (the user: it should
+    not pull you away).
+  - F fits the diagram; with an item selected it centres it at the zoom it has (the user), the title excepted.
+  - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
+    item itself, so Enter at once makes a self-loop.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
   user: a notice there is clutter).
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so

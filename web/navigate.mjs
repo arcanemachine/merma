@@ -84,7 +84,7 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
 /**
  * Where a plain arrow `key` goes from `at`, or null for nowhere. From a node or a box: the first edge leaving it that
  * way; none: null, and the caller goes by place. From an edge: the arrow along it goes to the end you arrive at
- * travelling that way (the one end it leaves heading the other way); the other two page across the edges beside it
+ * travelling that way (the one end it leaves heading the other way); the other two step across the edges beside it
  * (across()), never to a node. Only on a bend that leaves both ends heading the same way does an arrow go to the end
  * lying further that way from the edge's middle.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
@@ -132,10 +132,10 @@ export function walk({ boxes, edges }, at, key, from = null) {
 }
 
 /**
- * Paging across edge `id` with arrow `key`: the edge beside it that way, without wrapping, among the edges at the end it
+ * Stepping across edge `id` with arrow `key`: the edge beside it that way, without wrapping, among the edges at the end it
  * was reached from that leave heading as it does there (`from`; reached any other way, its source, the node the file
  * writes first, which every edge has); past the last of them, on among those at its other end, from its place there.
- * Edges heading along `key`'s axis are not paged by it. Returns the edge and the end whose edges it was found among
+ * Edges heading along `key`'s axis are not stepped across by it. Returns the edge and the end whose edges it was found among
  * (where it now counts as reached from), or null.
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {string} id
@@ -153,12 +153,12 @@ export function across({ boxes, edges }, id, key, from = null) {
   const start = from && (box || ends.some((end) => end.id === from.id)) ? from : { id: ends[0].id, key: ends[0].dir };
   const other = ends.find((end) => (outside ? !outside.has(end.id) && end.id !== start.id : end.id !== start.id));
   const forward = key === 'ArrowRight' || key === 'ArrowDown' ? 1 : -1;
-  for (const set of other ? [start, { id: other.id, key: other.dir }] : [start]) {
-    if (vertical(set.key) === vertical(key)) continue;
-    const kind = boxes.find((b) => b.id === set.id)?.kind;
-    const list = leaving(edges, set.id, set.key, kind === 'subgraph' ? within(boxes, set.id) : undefined);
+  for (const fan of other ? [start, { id: other.id, key: other.dir }] : [start]) {
+    if (vertical(fan.key) === vertical(key)) continue;
+    const kind = boxes.find((b) => b.id === fan.id)?.kind;
+    const list = leaving(edges, fan.id, fan.key, kind === 'subgraph' ? within(boxes, fan.id) : undefined);
     const k = list.indexOf(id);
-    if (k >= 0 && k + forward >= 0 && k + forward < list.length) return { to: { kind: 'edge', id: list[k + forward] }, from: set };
+    if (k >= 0 && k + forward >= 0 && k + forward < list.length) return { to: { kind: 'edge', id: list[k + forward] }, from: fan };
   }
   return null;
 }
@@ -280,13 +280,13 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
  * Which half of subgraph box `at` you are at: where the item you came from lies against the box's middle (an edge
  * where it meets the box, else at its middle), "top" on a tie; with no move that ended here (a click, a find, O, an
  * edit), the top; from the box's own self-loop, by the arrow: Up the bottom, else the top.
- * @param {Move[]} path
+ * @param {Move[]} trail
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
  * @returns {'top' | 'bottom'}
  */
-export function half(path, { boxes, edges }, at) {
-  const last = path.at(-1);
+export function half(trail, { boxes, edges }, at) {
+  const last = trail.at(-1);
   const box = boxes.find((b) => b.id === at.id);
   if (!box || !last || last.to.kind !== at.kind || last.to.id !== at.id) return 'top';
   let y = null;
@@ -306,22 +306,22 @@ export function half(path, { boxes, edges }, at) {
 
 /**
  * Where plain arrow `key` goes from subgraph box `at` into it: at its top (half()), Down goes in at the top row's
- * leftmost child; at its bottom, Up goes in at the bottom row's rightmost, like reading a page backwards. Null for any
- * other key or half (the box walks its edges), and for an empty box. A row is the children overlapping the child
+ * leftmost item inside; at its bottom, Up goes in at the bottom row's rightmost, like reading a page backwards. Null for any
+ * other key or half (the box walks its edges), and for an empty box. A row is the items inside overlapping the one
  * nearest the side entered (only overlap with that one counts).
- * @param {Move[]} path
+ * @param {Move[]} trail
  * @param {{ boxes: Box[], edges: Edge[] }} graph boxes from nest()
  * @param {Target} at
  * @param {string} key
  * @returns {Target | null}
  */
-export function enter(path, graph, at, key) {
+export function enter(trail, graph, at, key) {
   if (at.kind !== 'subgraph') return null;
-  const where = half(path, graph, at);
+  const where = half(trail, graph, at);
   const down = key === 'ArrowDown';
   if (!(down && where === 'top') && !(key === 'ArrowUp' && where === 'bottom')) return null;
   const children = graph.boxes.filter((b) => b.parent === at.id);
-  // A child's edge facing the side entered, measured going in; its span up and down.
+  // An item's edge facing the side entered, measured going in; its span up and down.
   const depth = (/** @type {Box} */ b) => (down ? b.y - b.h / 2 : -(b.y + b.h / 2));
   const nearest = children.sort((p, q) => depth(p) - depth(q))[0];
   if (!nearest) return null;
@@ -342,13 +342,13 @@ export function enter(path, graph, at, key) {
 /**
  * The move that `key` (with Ctrl or not) takes back from `at`: the last one, when it ended at `at` and `key` is its
  * opposite with the same modifier; else null, and the rules decide.
- * @param {Move[]} path
+ * @param {Move[]} trail
  * @param {Target} at
  * @param {string} key
  * @param {boolean} ctrl
  */
-export function retrace(path, at, key, ctrl) {
-  const last = path.at(-1);
+export function retrace(trail, at, key, ctrl) {
+  const last = trail.at(-1);
   return last && last.to.kind === at.kind && last.to.id === at.id && key === OPPOSITE[last.key] && ctrl === last.ctrl
     ? last : null;
 }

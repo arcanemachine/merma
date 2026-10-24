@@ -6,7 +6,7 @@ html, body { height: 100%; }
   --success-bg: #dafbe1; --success-fg: #1a7f37;
   --warning-bg: #fff4d6; --warning-fg: #5c4400;
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
-  /* Search's marks: amber, apart from the selection's blue. */
+  /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
 }
 /* The notice shares the diagram's row and lies over its top, so it never resizes the diagram: a diagram that moved as
@@ -105,13 +105,13 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #notice { display: none; position: relative; z-index: 1; align-self: start; padding: 8px 16px; font-size: 13px;
           line-height: 16px; white-space: pre-wrap; }
 #notice.show { display: block; }
-/* Search on /: a bar over the diagram's top, as the notice lies, so the diagram never moves. */
+/* Find on /: a bar over the diagram's top, as the notice lies, so the diagram never moves. */
 #find { position: relative; z-index: 2; align-self: start; display: flex; gap: 8px; align-items: center;
         padding: 6px 16px; font-size: 13px; background: var(--find-bg); color: #222; }
 #find[hidden] { display: none; }
 #find input { font: inherit; padding: 2px 6px; border: 1px solid #888; border-radius: 4px; min-width: 12em; }
 #find .find-keys { color: #57606a; margin-left: auto; }
-/* What search finds: every match outlined, the one Enter picks filled. */
+/* What find finds: every match outlined, the one Enter picks filled. */
 #stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),

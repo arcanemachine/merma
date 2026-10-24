@@ -34,6 +34,8 @@ Mermaid syntax.
 | **chain** | Several edges in one statement: `A --> B --> C`. |
 | **`&` group** | Several nodes on one side of a connector: `A & B --> C`, which is two edges. |
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
+| **box** | A node or a subgraph's box: what an edge can join, and what the arrows land on besides edges. merma's own: Mermaid has no word for the two together. |
+| **self-loop** | An edge from a node or a subgraph back to itself: `A --> A`. |
 | **contents** | What a subgraph holds: its nodes and nested subgraphs, as Mermaid draws them. Never "children": parent and child are words for edges. |
 | **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |
@@ -54,6 +56,12 @@ note where merma had to make one up.
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
 | **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in the code means a DOM element. |
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
+| **fan** | The edges leaving a node or a box one way (by their heading), left to right, or top to bottom: Down from a node selects the first of its down fan. merma's own. |
+| **step across** | What the cross arrows do on an edge: to the edge beside it in a fan, never onto a node. Not "page", which is merma in the browser. merma's own. |
+| **trail** | The arrow moves since the selection was last set another way: the opposite arrow retraces them, and a click, a find, O, I, an edit or Escape starts a new one. merma's own. |
+| **top**, **bottom** (of a box) | Which side of a subgraph's box you are at, by where you came from: Down goes in at the top, Up at the bottom (`docs/ux.md`). |
+| **place inside** | For each subgraph, the item you last left it by, which I goes back to; kept while keys select, forgotten on a click, a find or an edit. Not the trail. merma's own. |
+| **find** | The / box: every item on screen holding what you typed is marked, and Enter selects the best. The browser's word for the same thing (Find in page); not "search". |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types and the shapes. Shows the current one. |
