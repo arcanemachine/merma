@@ -200,6 +200,22 @@ test("Ctrl lands on the outermost box around the far end that the place you leav
   assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
 });
 
+test("a self-loop belongs to its node's edges where it starts; on it, across pages them, any other arrow goes back", () => {
+  // a's loop leaves its left side; a-b also leaves a heading left, lower down.
+  const loop = edge('a', 'a', [-30, -5], 'L', [-30, 5], 'L');
+  const g = { boxes: nest([node('a', 0, 0), node('b', -200, 40)]), edges: [loop, edge('a', 'b', [-30, 8], 'L', [-170, 40], 'R')] };
+  assert.deepEqual(leaving(g.edges, 'a', 'ArrowLeft'), ['a-a', 'a-b']);
+  assert.deepEqual(leaving(g.edges, 'a', 'ArrowRight'), []);
+  assert.deepEqual(walk(g, at('node', 'a'), 'ArrowLeft'), at('edge', 'a-a'));
+  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowRight'), at('node', 'a'));
+  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
+  // Nothing to page that way: back to its node.
+  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowUp'), at('node', 'a'));
+  // Ctrl has no far end on a loop to skip to: past it, a-b's.
+  assert.deepEqual(skip(g, at('node', 'a'), 'ArrowLeft'), at('node', 'b'));
+  assert.equal(skip({ boxes: g.boxes, edges: [loop] }, at('node', 'a'), 'ArrowLeft'), null);
+});
+
 test('by place: nothing that way, nowhere (no wrap)', () => {
   const two = nest([node('a', 0, 0), node('b', 20, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));

@@ -13,6 +13,7 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
  */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
+  r: ['reverse-edge'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -47,7 +48,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * What a menu needs to know to grey its items.
  * @typedef {object} MenuState
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
- * @property {boolean} hasLabel the selected edge has a label
+ * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  */
 
@@ -73,10 +74,9 @@ export const MENUS = {
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
   ],
   edge: [
-    { action: 'edit-label', label: 'Edit label', key: 'l' },
-    { action: 'remove-label', label: 'Remove label', key: 'r', applies: (s) => s.hasLabel, why: () => 'This edge has no label to remove.' },
+    { action: 'edit-label', label: 'Edit label', key: 'e' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
-    { action: 'reverse-edge', label: 'Reverse edge', key: 'v' },
+    { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
   ],
   subgraph: [
