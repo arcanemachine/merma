@@ -59,7 +59,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
   that moved as Connect to… asked for a click would put another node under the click aimed at.
   For the same reason an edit keeps the view (the user): the diagram is fitted when the page opens, and again only on
-  Fit to window or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
+  a fit (F, Fit to window) or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
   past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
   pointer whenever a pick resizes the node.
@@ -155,7 +155,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see
     what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
     you away).
-  - F fits the diagram; with an item selected it centres it at the zoom it has (the user), the title excepted.
+  - F fits the diagram; with an item selected it centres it at the zoom it has (the user), the title excepted, and F
+    again fits. Straight after a fit, F puts back the view the fit replaced (the user: zoom out to see it all, then
+    back in), and so do Fit to window and the double-click on empty space, mouse and keyboard alike: one view is
+    remembered, forgotten when the selection changes, and a pan or zoom since makes the next F fit afresh.
   - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
     item itself, so Enter at once makes a self-loop.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
