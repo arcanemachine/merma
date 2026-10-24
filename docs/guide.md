@@ -10,7 +10,8 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
   with nothing selected fits the diagram to the window; F with an item selected centres it instead, at the zoom it
-  has (the title is fitted with the diagram). The diagram is fitted when the page opens; after that, edits keep the view as it
+  has (the title is fitted with the diagram), and F again fits. Each of them, straight after a fit, puts back the view
+  you had, so you can zoom out to see it all and back in; when the view is already fitted, they do nothing. The diagram is fitted when the page opens; after that, edits keep the view as it
   is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
   size fits it again; once you have, a reload of the tab keeps your view too.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
@@ -118,7 +119,8 @@ Removing the title is not supported: Delete or Backspace on it says so.
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
-**Fit to window**, last, fits the diagram to the window, as F does with nothing selected.
+**Fit to window**, last, fits the diagram to the window, as F does with nothing selected; again, it puts back the view
+you had.
 
 ## The node panel
 
@@ -193,7 +195,7 @@ here does just what it does in the selected item's menu:
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
-| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, centre it instead |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, centre it first. Straight after a fit, put back the view you had |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
@@ -255,7 +257,7 @@ top, or with nothing inside, they do nothing.
 Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, selects the diagram's title,
 when there is one; Down from the title goes to the box nearest below it.
 
-**Ways out**, wherever you are: F then / (F fits the whole diagram, so find sees all of it), Ctrl+Arrows (they jump),
+**Ways out**, wherever you are: F (until it fits) then / (a fit shows the whole diagram, so find sees all of it), Ctrl+Arrows (they jump),
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back.
 
 **Find** with /: type, and every node, edge label, subgraph and title on screen holding what you typed (ignoring

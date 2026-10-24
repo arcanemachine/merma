@@ -50,6 +50,13 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   const view = { x: 0, y: 0, k: 1 };
   let size = { w: 0, h: 0 };
   let touched = false;
+  // F and its kin toggle between a view and the whole diagram (the user): `fitted` is the view the last fit made, and
+  // `before` the view a toggle's fit replaced, put back by the next toggle while the view is still the fitted one. Only
+  // that one view is remembered, so fit, back, fit, back always comes back to it.
+  /** @type {{ x: number, y: number, k: number } | null} */
+  let fitted = null;
+  /** @type {{ x: number, y: number, k: number, touched: boolean } | null} */
+  let before = null;
   let n = 0;
   /** @type {string | null} */
   let renderId = null;
@@ -74,7 +81,22 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     view.x = (box.width - size.w * view.k) / 2;
     view.y = top + (box.height - top - size.h * view.k) / 2;
     touched = false;
+    fitted = { ...view };
     apply();
+  }
+  /** Whether the view is still the one the last fit made: a pan or a zoom since moves it off. */
+  const atFit = () => Boolean(fitted && Math.abs(view.x - fitted.x) < 0.5 && Math.abs(view.y - fitted.y) < 0.5
+    && view.k === fitted.k);
+  /** Fit, remembering the view it replaces; at that fit still, put the remembered view back instead. */
+  function toggleFit() {
+    if (before && atFit()) {
+      ({ x: view.x, y: view.y, k: view.k, touched } = before);
+      before = null;
+      apply();
+      return;
+    }
+    before = { ...view, touched };
+    fit();
   }
 
   /** Zoom by `factor` about the point (`px`, `py`) of the diagram area. */
@@ -219,7 +241,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   });
   /** A double-click or double-tap on what the last click pressed: whoever wired the viewer handles it, or it fits. */
   function doubled() {
-    if (!(clicked?.isConnected && onDoubleClick(clicked))) fit();
+    if (!(clicked?.isConnected && onDoubleClick(clicked))) toggleFit();
   }
   // Refit when the diagram's box changes (window resize, the header growing when the host path arrives, an error
   // message appearing above it).
@@ -227,6 +249,13 @@ export function createViewer({ diagram, stage }, hooks = {}) {
 
   return {
     fit,
+    toggleFit,
+
+    /** Whether the next toggleFit() puts a view back, rather than fitting. */
+    canGoBack: () => Boolean(before && atFit()),
+
+    /** The selection changed: the next toggle fits afresh. */
+    forgetFit() { before = null; },
 
     /** The current zoom and offset, and whether the user has moved it (if not, the view follows the window). */
     getView: () => ({ ...view, touched }),
@@ -272,15 +301,20 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
-    /** Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
-     * padding, at the zoom it has. */
+    /**
+     * Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
+     * padding, at the zoom it has. Returns false, moving nothing, when it is there already (within a pixel).
+     */
     centre(/** @type {number} */ x, /** @type {number} */ y) {
       const box = diagram.getBoundingClientRect();
       const top = box.top + (parseFloat(getComputedStyle(diagram).paddingTop) || 0);
-      view.x += box.left + box.width / 2 - x;
-      view.y += (top + box.bottom) / 2 - y;
+      const dx = box.left + box.width / 2 - x, dy = (top + box.bottom) / 2 - y;
+      if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) return false;
+      view.x += dx;
+      view.y += dy;
       touched = true;
       apply();
+      return true;
     },
 
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
