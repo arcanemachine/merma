@@ -1,4 +1,4 @@
-// Search on /: which items match what was typed, best first. No DOM: the editor passes in what is drawn on screen.
+// Find on /: which items match what was typed, best first. No DOM: the editor passes in what is drawn on screen.
 
 /**
  * An item that can be found: a node's label, an edge's label, a subgraph's or the diagram's title, with its middle on
