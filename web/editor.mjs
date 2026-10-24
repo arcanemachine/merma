@@ -34,7 +34,7 @@ const ZOOM_STEP = 1.25;
  * @typedef {object} EditOptions
  * @property {(result: any, entry: import('./history.mjs').Entry) => void} [afterSave]
  * @property {import('./history.mjs').Entry | null} [into]
- * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean } | null)} [after]
+ * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean, others?: Item[], reveal?: boolean } | null)} [after]
  * @property {boolean} [keep]
  */
 
@@ -71,8 +71,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
-   * whose menu opens even though the edit closed every menu.
-   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean } | null}
+   * whose menu opens even though the edit closed every menu. `others`: where to go instead, in order, when `item` is
+   * not drawn; `reveal`: brought into view and read out, as a key's selection is.
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean } | null}
    */
   let pending = null;
   const history = createHistory();
@@ -193,9 +194,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       candidateTrail = [];
       // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
       markCandidate(selection(), { quiet: true });
-      const loop = selection().kind === 'node' ? ' (on this one, a self-loop)' : '';
       ui.notice('Click the node or subgraph the edge goes to, or move the dashed outline to it with the arrows and press '
-        + `Enter${loop}. Click away, or press Escape or C, to cancel.`, 'info');
+        + 'Enter (on this one, a self-loop). Click away or press Escape to cancel.', 'info');
     },
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
@@ -408,7 +408,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     keptClick = false;
   }
 
-  /** Leave Connect to… with nothing connected: by Escape, by a click away, or by C, the key that started it. */
+  /** Leave Connect to… with nothing connected: by Escape or a click away. */
   function cancelConnect() {
     connecting = false;
     ui.hideNotice();
@@ -421,8 +421,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     connecting = false;
     ui.hideNotice();
     if (!to) { deselect(); return; }
-    // A node connected to itself is a self-loop; a subgraph cannot be one.
-    if (same(to, from) && to.kind === 'subgraph') { ui.notice('A subgraph cannot be connected to itself.', 'warning'); select(from); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
     deselect();
     const names = [named(from), named(to)];
@@ -476,10 +474,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
     const name = sel.kind === 'node' && named(sel);
-    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), { afterSave: (result) => {
-      if (sel.kind === 'edge') ui.announce('Deleted the edge');
-      else ui.announce(`Deleted ${name}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
-    } });
+    // Where the keyboard goes after (the user: it keeps its place): back along the trail to the first item still
+    // drawn; with no trail, an edge's source (a node clicked: nothing). Taken now: the edit starts the trail afresh.
+    const back = /** @type {Item[]} */ (path.map((m) => m.from).reverse().filter((i) => !same(i, sel)));
+    const source = sel.kind === 'edge' ? shownEdge(sel.id)?.from : null;
+    if (source) back.push({ kind: subgraphs(shownText).some((g) => g.id === source) ? 'subgraph' : 'node', id: source });
+    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), {
+      after: () => (back.length ? { item: back[0], others: back.slice(1), reveal: true } : null),
+      afterSave: (result) => {
+        if (sel.kind === 'edge') ui.announce('Deleted the edge');
+        else ui.announce(`Deleted ${name}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
+      },
+    });
   }
 
   // Keys (GLOBAL_KEYS): Ctrl+Z (Cmd+Z) undoes; Ctrl+Shift+Z (Cmd+Shift+Z) or Ctrl+Y redoes (not Cmd+Y: Chrome on macOS
@@ -500,10 +506,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       else handlers['add-node']();
       return true;
     },
-    // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is greyed there; while
-    // connecting, it ends it (the user: the key that starts a wait also ends it).
+    // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is greyed there. While
+    // connecting it does nothing: Escape or a click away is the way out of every wait (the user), as the notice says.
     c: () => {
-      if (connecting) { cancelConnect(); return true; }
+      if (connecting) return true;
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
       const item = MENUS[selected.kind].find((i) => i.action === 'connect');
       const state = menuState();
@@ -544,7 +550,21 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       openSpaceMenu(r.left + r.width / 2, r.top + r.height / 2);
       return true;
     },
-    f: () => { viewer.fit(); return true; },
+    // F fits the diagram; with an item selected, it centres it at the zoom it has instead (the user). The title, at
+    // the diagram's top, is fitted with it.
+    f: () => {
+      if (!selected || selected.kind === 'title') { viewer.fit(); return true; }
+      let at = null;
+      if (selected.kind === 'edge') {
+        const id = selected.id;
+        at = layout().edges.find((e) => e.id === id)?.mid ?? null;
+      } else {
+        const r = elsOf(selected)[0]?.getBoundingClientRect();
+        if (r) at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      if (at) viewer.centre(at.x, at.y); else viewer.fit();
+      return true;
+    },
     ...Object.fromEntries(['Up', 'Down', 'Left', 'Right'].flatMap((d) => {
       const key = `Arrow${d}`, name = key.toLowerCase();
       return [[name, () => arrow(key, 'plain')], [`ctrl+${name}`, () => arrow(key, 'ctrl')], [`shift+${name}`, () => arrow(key, 'shift')]];
@@ -1409,11 +1429,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const sel = selected;
       const next = pending;
       pending = null;
-      if (next && text === next.text && elsOf(next.item).length) {
+      const item = next && text === next.text ? [next.item, ...(next.others ?? [])].find((i) => elsOf(i).length) : null;
+      if (next && item) {
         // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
         // meanwhile, with its menu.
-        select(next.item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
-        if (next.label) openLabelBox(next.item);
+        if (next.reveal) selectByKey(item);
+        else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
+        if (next.label) openLabelBox(item);
         return;
       }
       const kept = sel && elsOf(sel).length
