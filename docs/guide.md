@@ -235,9 +235,10 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
 - **A self-loop** (a node or a subgraph connected to itself) belongs to its box's fans at both its ends. Along it, an
   arrow goes back to its node; across it, the arrows step, or do nothing.
 
-**The trail**: the opposite arrow takes your last move back, and again the one before, so you can retrace your steps.
-Coming back onto an edge from a node starts a fresh trail there, so that Left and Right step through that node's edges. A
-click, a find, O, I, an edit or Escape starts the trail afresh.
+**The trail**: the opposite arrow takes back the move that brought you where you are, and again the one before, so you
+can retrace your steps; steps across edges are passed over, never undone. An edge you step to has no way back of its own:
+the arrow along it goes on to its end. Coming back onto an edge from a node, Left and Right step through that node's
+edges. A click, a find, O, I, an edit or Escape starts the trail afresh.
 
 **Ctrl+Arrows skip the edge** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
 box at the far end of the edge the plain arrow would select, else the next thing straight that way. A far end

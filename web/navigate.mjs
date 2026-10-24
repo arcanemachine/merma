@@ -338,20 +338,48 @@ export function enter(trail, graph, at, key) {
 /**
  * A move made by an arrow key, kept so the opposite key can take it back: from `from` to `to` by `key`, with Ctrl or
  * not.
- * `came`, for a move onto an edge: the node it was reached from and by which arrow, kept while stepping across.
- * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean, came?: { id: string, key: string } | null }} Move
+ * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean }} Move
+ */
+/** A box whose fan an edge is stepped across in, and the way that fan heads. @typedef {{ id: string, key: string }} Fan */
+/**
+ * Where a cursor (the selection, or Connect to…'s candidate) came from: `trail`, the arrow moves that the opposite
+ * arrow can take back, steps across left out; `came`, on an edge, the fan it counts as reached from (null: its
+ * source's, as for an edge clicked).
+ * @typedef {{ trail: Move[], came: Fan | null }} Cursor
  */
 
+/** A cursor with nothing behind it: a click, a find, an edit, O or I. */
+export const FRESH = /** @type {Cursor} */ (Object.freeze({ trail: [], came: null }));
+
 /**
- * The move that `key` (with Ctrl or not) takes back from `at`: the last one, when it ended at `at` and `key` is its
- * opposite with the same modifier; else null, and the rules decide.
- * @param {Move[]} trail
+ * The opposite arrow takes back the latest move into `at` (the user: you go back the way you came, past any steps
+ * across): when `key` is that move's opposite, with the same Ctrl, it goes to where that move came from, and the trail
+ * is cut to before it; else null, and the rules decide. Back on an edge, it counts as reached from `at`, the item just
+ * left: its fan is the one the cross arrows step (from Order log, Left steps Order log's edges).
+ * @param {Cursor} cursor
  * @param {Target} at
  * @param {string} key
  * @param {boolean} ctrl
+ * @returns {{ to: Target, cursor: Cursor } | null}
  */
-export function retrace(trail, at, key, ctrl) {
-  const last = trail.at(-1);
-  return last && last.to.kind === at.kind && last.to.id === at.id && key === OPPOSITE[last.key] && ctrl === last.ctrl
-    ? last : null;
+export function back({ trail }, at, key, ctrl) {
+  let i = trail.length - 1;
+  while (i >= 0 && !(trail[i].to.kind === at.kind && trail[i].to.id === at.id)) i--;
+  const m = trail[i];
+  if (!m || key !== OPPOSITE[m.key] || ctrl !== m.ctrl) return null;
+  return { to: m.from, cursor: { trail: trail.slice(0, i), came: m.from.kind === 'edge' ? { id: at.id, key } : null } };
+}
+
+/**
+ * The cursor after `move`. A step across (`fan`, from walk()) stays off the trail, and the edge reached counts as
+ * reached from that fan; any other move goes on the trail, and an edge it lands on counts as reached from where it
+ * came, by its arrow.
+ * @param {Cursor} cursor
+ * @param {Move} move
+ * @param {Fan | null} [fan]
+ * @returns {Cursor}
+ */
+export function moved({ trail }, move, fan = null) {
+  if (fan) return { trail, came: fan };
+  return { trail: [...trail, move], came: move.to.kind === 'edge' ? { id: move.from.id, key: move.key } : null };
 }
