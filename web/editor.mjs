@@ -282,10 +282,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- selection -----------------------------------------------------------------------------------------------
 
-  // Mermaid writes classDef, style and linkStyle colours inline with !important, which no stylesheet rule beats: while
-  // an item is selected, its inline colours lose the !important (the original kept in data-page-style), so the
-  // selection's colours show.
-  const loosen = (/** @type {Element} */ el) => {
+  // The page's marks: the selection, Connect to…'s candidate, find's matches and its current one. Mermaid writes
+  // classDef, style and linkStyle colours inline with !important, which no stylesheet rule beats: while an item is
+  // marked, its inline colours lose the !important (the original kept in data-page-style), so the mark's colours show.
+  const MARKED = '[data-page-selected], [data-page-candidate], [data-page-match], [data-page-current]';
+  /** Give `el` the mark `attr`, loosening its inline colours. */
+  const mark = (/** @type {Element} */ el, /** @type {string} */ attr) => {
+    el.setAttribute(attr, '');
     for (const e of [el, ...el.querySelectorAll('[style*="important"]')]) {
       const style = e.getAttribute('style');
       if (!style?.includes('important')) continue;
@@ -293,13 +296,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.setAttribute('style', style.replaceAll('!important', ''));
     }
   };
-  const unmark = () => {
+  /** Take the marks `attrs` off everything, giving Mermaid's colours back where no mark is left. */
+  const clearMarks = (/** @type {string[]} */ ...attrs) => {
+    for (const attr of attrs) for (const e of drawn(`[${attr}]`)) e.removeAttribute(attr);
     for (const e of drawn('[data-page-style]')) {
+      if (e.closest(MARKED)) continue;
       e.setAttribute('style', e.getAttribute('data-page-style') ?? '');
       e.removeAttribute('data-page-style');
     }
-    for (const e of drawn('[data-page-selected]')) e.removeAttribute('data-page-selected');
-    for (const e of drawn('[data-page-candidate]')) e.removeAttribute('data-page-candidate');
+  };
+  const unmark = () => {
+    clearMarks('data-page-selected', 'data-page-candidate');
     candidate = null;
   };
 
@@ -314,7 +321,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!again && !moving) { path = []; inside.clear(); }
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
-    for (const e of elsOf(sel)) { e.setAttribute('data-page-selected', ''); loosen(e); }
+    for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (!keepMode) connecting = false;
     if (!menu || connecting) return;
     if (sel.kind === 'edge') {
@@ -701,10 +708,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
   function markCandidate(/** @type {Item} */ item) {
-    for (const e of drawn('[data-page-candidate]')) e.removeAttribute('data-page-candidate');
+    clearMarks('data-page-candidate');
     candidate = item;
     const el = elsOf(item)[0];
-    el?.setAttribute('data-page-candidate', '');
+    if (el) mark(el, 'data-page-candidate');
     ui.announce(`${named(item)}: press Enter to connect`);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
@@ -754,13 +761,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     ? edgeEls(item.id).find((e) => e.matches('g.edgeLabel'))
     : elsOf(item)[0]);
   function markMatches() {
-    for (const e of drawn('[data-page-match], [data-page-current]')) { e.removeAttribute('data-page-match'); e.removeAttribute('data-page-current'); }
+    clearMarks('data-page-match', 'data-page-current');
     if (!finding) return;
     const { matches, at } = finding;
     matches.forEach((m, k) => {
       const el = markEl(m);
-      el?.setAttribute('data-page-match', '');
-      if (k === at) el?.setAttribute('data-page-current', '');
+      if (el) mark(el, 'data-page-match');
+      if (el && k === at) mark(el, 'data-page-current');
     });
     els.findCount.textContent = findBox.value.trim() ? (matches.length ? `${at + 1} of ${matches.length}` : 'No match') : '';
   }

@@ -305,7 +305,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       const copy = /** @type {SVGSVGElement} */ (svg.cloneNode(true));
       for (const e of copy.querySelectorAll('[data-page-only]')) e.remove();
       for (const e of [copy, ...copy.querySelectorAll('*')]) {
-        // A selected item's inline colours, set aside while selected (editor.mjs), go back as Mermaid drew them.
+        // A marked item's inline colours, set aside while marked (editor.mjs), go back as Mermaid drew them.
         const style = e.getAttribute('data-page-style');
         if (style !== null) e.setAttribute('style', style);
         for (const a of [...e.attributes]) if (a.name.startsWith('data-page-')) e.removeAttribute(a.name);
