@@ -265,45 +265,53 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 }
 
 /**
- * Where plain arrow `key` goes from subgraph box `at` when you entered it by that arrow from outside: on into it,
- * through the side you entered. A box selected without arrows (a click, a find, O), or reached by an arrow climbing out
- * of it, counts as entered from the top, for Down. Null otherwise (the box walks its edges), and for an empty box.
- * Which child: like reading a page, forwards from the top or the left, backwards from the bottom or the right. The
- * near row is the children overlapping the child nearest the side entered (only overlap with that one counts); in it,
- * from the top the leftmost, from the bottom the rightmost, from the left the topmost, from the right the bottommost.
+ * Which half of subgraph box `at` you are at: where the item you came from lies against the box's middle (an edge
+ * where it meets the box, else at its middle), "top" on a tie; with no move that ended here (a click, a find, O, an
+ * edit), the top.
+ * @param {Move[]} path
+ * @param {{ boxes: Box[], edges: Edge[] }} graph
+ * @param {Target} at
+ * @returns {'top' | 'bottom'}
+ */
+export function half(path, { boxes, edges }, at) {
+  const last = path.at(-1);
+  const box = boxes.find((b) => b.id === at.id);
+  if (!box || !last || last.to.kind !== at.kind || last.to.id !== at.id) return 'top';
+  let y = null;
+  if (last.from.kind === 'edge') {
+    const e = edges.find((x) => x.id === last.from.id);
+    if (e) y = e.to === at.id ? e.end.y : e.from === at.id ? e.start.y : e.mid.y;
+  } else {
+    y = boxes.find((b) => b.id === last.from.id)?.y ?? null;
+  }
+  return y !== null && y > box.y ? 'bottom' : 'top';
+}
+
+/**
+ * Where plain arrow `key` goes from subgraph box `at` into it: at its top (half()), Down goes in at the top row's
+ * leftmost child; at its bottom, Up goes in at the bottom row's rightmost, like reading a page backwards. Null for any
+ * other key or half (the box walks its edges), and for an empty box. A row is the children overlapping the child
+ * nearest the side entered (only overlap with that one counts).
  * @param {Move[]} path
  * @param {{ boxes: Box[], edges: Edge[] }} graph boxes from nest()
  * @param {Target} at
  * @param {string} key
  * @returns {Target | null}
  */
-export function enter(path, { boxes, edges }, at, key) {
-  const arrow = SIDES[key];
-  if (at.kind !== 'subgraph' || !arrow) return null;
-  const last = path.at(-1);
-  const arrived = last && last.to.kind === 'subgraph' && last.to.id === at.id ? last : null;
-  const inside = within(boxes, at.id);
-  // From an edge with an end inside (a climb by place from its middle, or a crossing edge): from inside.
-  const from = arrived?.from.kind === 'edge' ? edges.find((e) => e.id === arrived.from.id) : null;
-  const fromInside = arrived && (arrived.from.id === at.id || inside.has(arrived.from.id)
-    || (from && (inside.has(from.from) || inside.has(from.to))));
-  if ((!arrived || fromInside) ? key !== 'ArrowDown' : arrived.key !== key) return null;
-  const [vx, vy] = arrow.v;
-  const horizontal = vx !== 0;
-  const children = boxes.filter((b) => b.parent === at.id);
-  // A child's side facing the way you came in, measured going in; its span along that way.
-  const depth = (/** @type {Box} */ b) => (horizontal ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);
-  const span = (/** @type {Box} */ b) => (horizontal ? [b.x - b.w / 2, b.x + b.w / 2] : [b.y - b.h / 2, b.y + b.h / 2]);
+export function enter(path, graph, at, key) {
+  if (at.kind !== 'subgraph') return null;
+  const where = half(path, graph, at);
+  const down = key === 'ArrowDown';
+  if (!(down && where === 'top') && !(key === 'ArrowUp' && where === 'bottom')) return null;
+  const children = graph.boxes.filter((b) => b.parent === at.id);
+  // A child's edge facing the side entered, measured going in; its span up and down.
+  const depth = (/** @type {Box} */ b) => (down ? b.y - b.h / 2 : -(b.y + b.h / 2));
   const nearest = children.sort((p, q) => depth(p) - depth(q))[0];
   if (!nearest) return null;
-  const [lo, hi] = span(nearest);
-  const row = children.filter((b) => { const [blo, bhi] = span(b); return blo <= hi + 1 && bhi >= lo - 1; });
-  // Forwards (Down, Right): the lowest leading edge across; backwards (Up, Left): the highest trailing edge.
-  const forwards = key === 'ArrowDown' || key === 'ArrowRight';
-  const across = (/** @type {Box} */ b) => (horizontal
-    ? (forwards ? b.y - b.h / 2 : -(b.y + b.h / 2))
-    : (forwards ? b.x - b.w / 2 : -(b.x + b.w / 2)));
-  const first = row.sort((p, q) => across(p) - across(q))[0];
+  const [lo, hi] = [nearest.y - nearest.h / 2, nearest.y + nearest.h / 2];
+  const row = children.filter((b) => b.y - b.h / 2 <= hi + 1 && b.y + b.h / 2 >= lo - 1);
+  // From the top, the least left edge; from the bottom, the greatest right edge.
+  const first = row.sort((p, q) => (down ? (p.x - p.w / 2) - (q.x - q.w / 2) : (q.x + q.w / 2) - (p.x + p.w / 2)))[0];
   return { kind: first.kind, id: first.id };
 }
 
