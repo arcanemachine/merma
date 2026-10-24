@@ -45,8 +45,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
-  edge, as the edge menu's R does. So a letter never means two things. One addition: the key that starts a wait also
-  ends it (the user): C starts Connect to…, and C while connecting cancels it, as Escape does.
+  edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
+  other key does the job (the user): Enter and F2 edit, Delete deletes, so E and D stay in menus; R, C and N have no
+  other key. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which
@@ -162,6 +163,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
+- merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id in the file,
+  which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
+  user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though
+  Mermaid draws it as a frame round the box and may rearrange what is inside.
 - A notice is one of three kinds, by what it means for you; each fits one case only:
   - **info** (blue): nothing you asked for was refused: what to do next ("Click the node the edge goes to"), or
     nothing to do ("Nothing to undo").

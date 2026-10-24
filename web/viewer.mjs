@@ -272,6 +272,17 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
+    /** Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
+     * padding, at the zoom it has. */
+    centre(/** @type {number} */ x, /** @type {number} */ y) {
+      const box = diagram.getBoundingClientRect();
+      const top = box.top + (parseFloat(getComputedStyle(diagram).paddingTop) || 0);
+      view.x += box.left + box.width / 2 - x;
+      view.y += (top + box.bottom) / 2 - y;
+      touched = true;
+      apply();
+    },
+
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 

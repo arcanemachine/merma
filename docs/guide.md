@@ -9,7 +9,8 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
-  fits the diagram to the window. The diagram is fitted when the page opens; after that, edits keep the view as it
+  with nothing selected fits the diagram to the window; F with an item selected centres it instead, at the zoom it
+  has (the title is fitted with the diagram). The diagram is fitted when the page opens; after that, edits keep the view as it
   is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
   size fits it again; once you have, a reload of the tab keeps your view too.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
@@ -53,12 +54,13 @@ another click on it closes it.
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on a node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click on the node itself adds a
-  self-loop, `<a> --> <a>`. A click anywhere else, Escape, or C cancels. By keyboard, a dashed outline starts on the
+  self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. By keyboard, a dashed outline starts on the
   node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
   keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
-  `class` lines. Greyed without an edge match.
+  `class` lines. Greyed without an edge match. Reached by the arrows, the item you came from is selected after it
+  (the first one still there); clicked, nothing is.
 
 ### Edge menu
 
@@ -85,7 +87,8 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Greyed on a self-loop (a node connected
   to itself), which has no direction to reverse.
-- **Delete edge** removes it. Its nodes stay.
+- **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
+  source node.
 
 ### Subgraph menu
 
@@ -115,7 +118,7 @@ Removing the title is not supported: Delete or Backspace on it says so.
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
-**Fit to window**, last, fits the diagram to the window, as F does anywhere.
+**Fit to window**, last, fits the diagram to the window, as F does with nothing selected.
 
 ## The node panel
 
@@ -177,7 +180,7 @@ here does just what it does in the selected item's menu:
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | R with an edge selected | Reverse it |
-| C with a node or subgraph selected | Connect to… (C again cancels it) |
+| C with a node or subgraph selected | Connect to… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; with none, the next thing that way; the opposite arrow goes back (below) |
@@ -190,7 +193,7 @@ here does just what it does in the selected item's menu:
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
-| F | Fit the diagram to the window (in any diagram, not only flowcharts) |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, centre it instead |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
