@@ -58,6 +58,10 @@ export function createHistory() {
 
     get redoSize() { return undone.length; },
 
+    /** The entry undo would take back next, and the one redo would put back next: the editor keys what it selected by them. */
+    get newest() { return entries.at(-1) ?? null; },
+    get nextRedo() { return undone.at(-1) ?? null; },
+
     /**
      * What redoing the last undone edit would put back, given the file's text now. When the file has changed since
      * that undo, nothing can be redone safely, so the redo stack is cleared.

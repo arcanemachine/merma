@@ -72,11 +72,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
    * whose menu opens even though the edit closed every menu. `others`: where to go instead, in order, when `item` is
-   * not drawn; `reveal`: brought into view and read out, as a key's selection is.
-   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean } | null}
+   * not drawn; `reveal`: brought into view and read out, as a key's selection is, after `say` (what was done) in one
+   * line.
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string } | null}
    */
   let pending = null;
   const history = createHistory();
+  /**
+   * For each history entry, what was selected just before its edit, and what its edit selected after (with where to go
+   * instead): undo selects the first, redo the second, each against exactly the text it puts back.
+   * @type {WeakMap<import('./history.mjs').Entry, { before: Item | null, after: { item: Item, others?: Item[] } | null }>}
+   */
+  const selections = new WeakMap();
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
   /** @type {(Item & { entry: import('./history.mjs').Entry }) | null} while what was just added is named: its name belongs to its add */
   let naming = null;
@@ -798,9 +805,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
   /** Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */
-  function selectByKey(/** @type {Item} */ item) {
+  function selectByKey(/** @type {Item} */ item, /** @type {string | undefined} */ said = undefined) {
     select(item);
-    ui.announce(`${named(item)} selected`);
+    ui.announce(`${said ? `${said}; ` : ''}${named(item)} selected`);
     const el = elsOf(item)[0];
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
@@ -1284,6 +1291,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    */
   function edit(change, { afterSave, into = null, after, keep = false } = {}) {
     return exclusively(async () => {
+      const was = selected;
       ui.hideNotice();
       // After an edit there is no way back, and I forgets where you were (the user), even with the same item selected.
       path = [];
@@ -1307,6 +1315,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       clickedMeanwhile = null;
       const next = clickedAway ?? after?.(result);
       pending = next ? { text: result.text, ...next } : null;
+      // An edit that completes another (naming an add) keeps that one's selection before.
+      selections.set(entry, {
+        before: selections.get(entry)?.before ?? was,
+        after: next && !clickedAway ? { item: next.item, others: 'others' in next ? next.others : undefined } : null,
+      });
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
       // An add's label box does not open on what was clicked instead, so what it added is not being named.
@@ -1326,12 +1339,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         else ui.notice('Cannot redo: the file has changed since.', 'error');
         return;
       }
+      const entry = history.nextRedo;
       if (!(await save(redoing.text, base.version))) return;
       history.redone();
       deselect();
       closeLabelBox();
+      const sel = entry && selections.get(entry)?.after;
+      pending = sel ? { text: redoing.text, ...sel, reveal: true, say: 'Redone' } : null;
       await display(redoing.text);
-      ui.announce('Redone');
+      if (!selected) ui.announce('Redone');
     });
   }
 
@@ -1346,12 +1362,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         else ui.notice('Cannot undo: the file has changed since that edit.', 'error');
         return;
       }
+      const entry = history.newest;
       if (!(await save(undoing.text, base.version))) return;
       history.pop();
       deselect();
       closeLabelBox();
+      const sel = entry && selections.get(entry)?.before;
+      pending = sel ? { text: undoing.text, item: sel, reveal: true, say: 'Undone' } : null;
       await display(undoing.text);
-      ui.announce('Undone');
+      if (!selected) ui.announce('Undone');
     });
   }
 
@@ -1433,7 +1452,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (next && item) {
         // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
         // meanwhile, with its menu.
-        if (next.reveal) selectByKey(item);
+        if (next.reveal) selectByKey(item, next.say);
         else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
         if (next.label) openLabelBox(item);
         return;
