@@ -279,7 +279,7 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 /**
  * Which half of subgraph box `at` you are at: where the item you came from lies against the box's middle (an edge
  * where it meets the box, else at its middle), "top" on a tie; with no move that ended here (a click, a find, O, an
- * edit), or from the box's own self-loop, the top.
+ * edit), the top; from the box's own self-loop, by the arrow: Up the bottom, else the top.
  * @param {Move[]} path
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
@@ -292,8 +292,9 @@ export function half(path, { boxes, edges }, at) {
   let y = null;
   if (last.from.kind === 'edge') {
     const e = edges.find((x) => x.id === last.from.id);
-    // From the box's own self-loop, which frames it and has no half: the top, as after a click.
-    if (e && e.from === e.to && e.from === at.id) return 'top';
+    // From the box's own self-loop, which frames it and has no position to read: by the arrow, as if gone round the
+    // loop that way (the user): Up comes in at the bottom, else at the top.
+    if (e && e.from === e.to && e.from === at.id) return last.key === 'ArrowUp' ? 'bottom' : 'top';
     if (e) {
       y = e.to === at.id ? e.end.y : e.from === at.id ? e.start.y : e.mid.y;
     }
