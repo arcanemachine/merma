@@ -257,7 +257,7 @@ when there is one; Down from the title goes to the box nearest below it.
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back.
 
 **Find** with /: type, and every node, edge label, subgraph and title on screen holding what you typed (ignoring
-case) is outlined in amber; the best match is filled, and Tab and Shift+Tab move to the next and the one before.
+case) is outlined in amber (a found edge label's line too); the best match is filled, and Tab and Shift+Tab move to the next and the one before.
 Enter selects it, and so does a click on it (or on anything else in the diagram); Escape, a click outside the diagram,
 or Enter with nothing found, closes the find and puts back what was selected. The best match is the whole text, then
 one starting with it, then a word starting with it, then any; higher on screen first. Find never moves the view: what
