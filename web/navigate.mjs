@@ -5,7 +5,8 @@
 
 /** @typedef {{ x: number, y: number }} Point */
 /**
- * A node or a subgraph's box, by its middle and size on screen. `parent` is the subgraph it is drawn in, or null.
+ * A node or a subgraph's box, by its middle and size on screen (GLOSSARY's box: either one). `parent` is the subgraph it
+ * is drawn in, or null.
  * @typedef {{ kind: 'node' | 'subgraph', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
  */
 /**
