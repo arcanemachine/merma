@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { across, byPlace, enter, half, heading, leaving, nearest, nest, retrace, skip, walk, within } from '../web/navigate.mjs';
+import { FRESH, across, back, byPlace, enter, half, heading, leaving, moved, nearest, nest, skip, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -212,6 +212,8 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   assert.deepEqual(go(g, at('node', 'a'), 'ArrowLeft'), at('edge', 'a-a'));
   assert.deepEqual(go(g, at('edge', 'a-a'), 'ArrowRight'), at('node', 'a'));
   assert.deepEqual(go(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
+  // A step across a loop says the fan it stepped in, as on any edge.
+  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown')?.fan, { id: 'a', key: 'ArrowLeft' });
   // Nothing to page that way: nothing, as on any edge.
   assert.equal(go(g, at('edge', 'a-a'), 'ArrowUp'), null);
   // A loop out of one side and back into another counts at both, reached either way; across, it steps through the fan it was
@@ -231,10 +233,10 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   // Back on the box from its own loop, which frames it: by the arrow, as if gone round it that way (the user); with no
   // trail (the box clicked), the top.
   const box = at('subgraph', 's'), loopEdge = at('edge', 's-s');
-  const back = (/** @type {string} */ key) => [{ from: box, to: loopEdge, key: 'ArrowDown', ctrl: false, came: { id: 's', key: 'ArrowDown' } },
+  const round = (/** @type {string} */ key) => [{ from: box, to: loopEdge, key: 'ArrowDown', ctrl: false },
     { from: loopEdge, to: box, key, ctrl: false }];
-  assert.equal(half(back('ArrowUp'), sg, box), 'bottom');
-  assert.equal(half(back('ArrowDown'), sg, box), 'top');
+  assert.equal(half(round('ArrowUp'), sg, box), 'bottom');
+  assert.equal(half(round('ArrowDown'), sg, box), 'top');
   assert.equal(half([], sg, box), 'top');
   // Across a loop with nothing more to page: nothing, as on any edge (the user: not back to its node).
   assert.equal(go(sg, at('edge', 's-s'), 'ArrowLeft', { id: 's', key: 'ArrowUp' }), null);
@@ -284,13 +286,72 @@ test('a loop-back that leaves both ends the same way: Up or Down goes to the end
   assert.equal(go(u, at('edge', 'l-r'), 'ArrowLeft'), null);
 });
 
-test('retrace takes back the last move with its opposite key and the same modifier, and nothing else', () => {
-  const move = { from: at('edge', 'paid-retry'), to: at('node', 'retry'), key: 'ArrowDown', ctrl: false };
-  assert.equal(retrace([move], at('node', 'retry'), 'ArrowUp', false), move);
-  assert.equal(retrace([move], at('node', 'retry'), 'ArrowUp', true), null);
-  assert.equal(retrace([move], at('node', 'retry'), 'ArrowLeft', false), null);
-  assert.equal(retrace([move], at('node', 'paid'), 'ArrowUp', false), null);
-  assert.equal(retrace([], at('node', 'retry'), 'ArrowUp', false), null);
+test('back takes back the latest move into here, with its opposite key and the same modifier, and cuts the trail before it', () => {
+  const down = { from: at('node', 'wait'), to: at('edge', 'wait-paid'), key: 'ArrowDown', ctrl: false };
+  const onto = { from: at('edge', 'wait-paid'), to: at('node', 'paid'), key: 'ArrowDown', ctrl: false };
+  const away = { from: at('node', 'paid'), to: at('edge', 'paid-retry'), key: 'ArrowDown', ctrl: false };
+  const cursor = { trail: [down, onto, away], came: null };
+  // Found deeper than the last move: back to where it came from, the moves after it gone.
+  assert.deepEqual(back(cursor, at('edge', 'wait-paid'), 'ArrowUp', false),
+    { to: at('node', 'wait'), cursor: { trail: [], came: null } });
+  // Back onto an edge: it counts as reached from the item just left, by this arrow.
+  assert.deepEqual(back({ trail: [down, onto], came: null }, at('node', 'paid'), 'ArrowUp', false),
+    { to: at('edge', 'wait-paid'), cursor: { trail: [down], came: { id: 'paid', key: 'ArrowUp' } } });
+  assert.equal(back(cursor, at('edge', 'paid-retry'), 'ArrowUp', true), null);
+  assert.equal(back(cursor, at('edge', 'paid-retry'), 'ArrowLeft', false), null);
+  assert.equal(back(cursor, at('node', 'retry'), 'ArrowUp', false), null);
+  assert.equal(back(FRESH, at('node', 'paid'), 'ArrowUp', false), null);
+  // Reached twice, the latest by another key: that one is how you got here, so the older is not retraced.
+  const again = { from: at('node', 'check'), to: at('node', 'paid'), key: 'ArrowRight', ctrl: false };
+  assert.equal(back({ trail: [down, onto, again], came: null }, at('node', 'paid'), 'ArrowUp', false), null);
+});
+
+test('moved: a step across stays off the trail and counts from its fan; any other move goes on it', () => {
+  const onto = { from: at('node', 'paid'), to: at('edge', 'paid-retry'), key: 'ArrowDown', ctrl: false };
+  const one = moved(FRESH, onto);
+  assert.deepEqual(one, { trail: [onto], came: { id: 'paid', key: 'ArrowDown' } });
+  const fan = { id: 'paid', key: 'ArrowDown' };
+  assert.deepEqual(moved(one, { from: at('edge', 'paid-retry'), to: at('edge', 'paid-ship'), key: 'ArrowRight', ctrl: false }, fan),
+    { trail: [onto], came: fan });
+  const off = { from: at('edge', 'paid-retry'), to: at('node', 'retry'), key: 'ArrowDown', ctrl: false };
+  assert.deepEqual(moved(one, off), { trail: [onto, off], came: null });
+});
+
+/**
+ * Where each of `keys` goes from `from`, as the editor's cursor goes: back() first, else walk(), the cursor after each
+ * by moved(); null where one went nowhere.
+ */
+function press(/** @type {{ kind: any, id: string }} */ from, /** @type {string[]} */ keys, g = graph) {
+  let here = from;
+  /** @type {import('../web/navigate.mjs').Cursor} */
+  let cursor = FRESH;
+  return keys.map((key) => {
+    const retraced = back(cursor, here, key, false);
+    if (retraced) {
+      here = retraced.to;
+      cursor = retraced.cursor;
+      return `${here.kind} ${here.id}`;
+    }
+    const went = walk(g, here, key, here.kind === 'edge' ? cursor.came : null);
+    if (!went) return null;
+    cursor = moved(cursor, { from: here, to: went.to, key, ctrl: false }, went.fan);
+    here = went.to;
+    return `${here.kind} ${here.id}`;
+  });
+}
+
+test('the opposite arrow goes back the way you came, past steps across, which it never undoes', () => {
+  // Stepped across to paid-ship, then up and down again: back on paid-ship every time (the user found the second time
+  // went to paid-retry, when coming back onto an edge restarted the trail).
+  assert.deepEqual(press(at('node', 'paid'), ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'ArrowUp', 'ArrowDown', 'ArrowUp', 'ArrowDown']),
+    ['edge paid-retry', 'edge paid-ship', 'node paid', 'edge paid-ship', 'node paid', 'edge paid-ship', 'node paid', 'edge paid-ship']);
+  // Back up a step across to the edge first reached in that fan, then on back the way you came.
+  assert.deepEqual(press(at('node', 'wait'), ['ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'ArrowUp', 'ArrowUp']),
+    ['edge wait-paid', 'node paid', 'edge paid-retry', 'edge paid-ship', 'node paid', 'edge paid-ship', 'edge paid-retry', 'node paid', 'edge wait-paid', 'node wait']);
+  // An edge reached by a step has no way back of its own: from its end and back onto it, Up walks on (the user: back
+  // from Order log, you are in its fan).
+  assert.deepEqual(press(at('node', 'paid'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowDown', 'ArrowUp', 'ArrowUp']),
+    ['edge paid-retry', 'edge paid-ship', 'edge paid-mail', 'node mail', 'edge paid-mail', 'node paid']);
 });
 
 test('a lone edge: the cross arrows stop, even with an end a little that way', () => {
