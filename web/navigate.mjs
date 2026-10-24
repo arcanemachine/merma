@@ -154,24 +154,39 @@ export function across({ boxes, edges }, id, key, from = null) {
 
 /**
  * Where Ctrl+Arrow `key` goes from `at`: past the edge plain `key` would select, to its far end; from an edge, to the
- * end that way. With no edge that way, null: the caller jumps by place instead.
- * @param {{ boxes: Box[], edges: Edge[] }} graph
+ * end that way. An end inside subgraphs that the place you leave is not in (from an edge, the end you leave) lands on
+ * the outermost of their boxes, as a box is nearer than anything inside it: Ctrl goes in a level a press. With no edge
+ * that way, null: the caller jumps by place instead.
+ * @param {{ boxes: Box[], edges: Edge[] }} graph boxes from nest()
  * @param {Target} at
  * @param {string} key
  * @returns {Target | null}
  */
 export function skip(graph, at, key) {
+  let far = null, from = at.id;
   if (at.kind === 'edge') {
     const end = walk(graph, at, key);
-    return end?.kind === 'edge' ? null : end;
+    if (!end || end.kind === 'edge') return null;
+    const edge = graph.edges.find((e) => e.id === at.id);
+    far = end.id;
+    from = edge?.from === far ? edge.to : edge?.from ?? far;
+  } else {
+    const inside = at.kind === 'subgraph' ? within(graph.boxes, at.id) : new Set();
+    const first = leaving(graph.edges, at.id, key, inside)[0];
+    const edge = graph.edges.find((e) => e.id === first);
+    if (!edge) return null;
+    far = edge.from === at.id || inside.has(edge.from) ? edge.to : edge.from;
   }
-  const inside = at.kind === 'subgraph' ? within(graph.boxes, at.id) : new Set();
-  const first = leaving(graph.edges, at.id, key, inside)[0];
-  const edge = graph.edges.find((e) => e.id === first);
-  if (!edge) return null;
-  const far = edge.from === at.id || inside.has(edge.from) ? edge.to : edge.from;
-  const b = graph.boxes.find((x) => x.id === far);
-  return b ? { kind: b.kind, id: far } : null;
+  const parent = new Map(graph.boxes.map((b) => [b.id, b.parent ?? null]));
+  const around = (/** @type {string} */ id) => {
+    const out = [];
+    for (let p = parent.get(id); p; p = parent.get(p) ?? null) out.push(p);
+    return out;
+  };
+  const mine = new Set([from, ...around(from)]);
+  const land = around(far).filter((p) => !mine.has(p)).at(-1) ?? far;
+  const b = graph.boxes.find((x) => x.id === land);
+  return b ? { kind: b.kind, id: land } : null;
 }
 
 /**
