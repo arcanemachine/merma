@@ -711,18 +711,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     add(TITLE, titleEl(), titleEl()?.textContent ?? '');
     return out;
   }
-  /** The element find marks for an item: an edge's label, else what is drawn for it. */
-  const markEl = (/** @type {Item} */ item) => (item.kind === 'edge'
-    ? edgeEls(item.id).find((e) => e.matches('g.edgeLabel'))
-    : elsOf(item)[0]);
   function markMatches() {
     clearMarks('data-page-match', 'data-page-current');
     if (!finding) return;
     const { matches, at } = finding;
+    // All that is drawn for it, as the selection marks: for an edge, its line as well as its label.
     matches.forEach((m, k) => {
-      const el = markEl(m);
-      if (el) mark(el, 'data-page-match');
-      if (el && k === at) mark(el, 'data-page-current');
+      for (const el of elsOf(m)) {
+        mark(el, 'data-page-match');
+        if (k === at) mark(el, 'data-page-current');
+      }
     });
     els.findCount.textContent = findBox.value.trim() ? (matches.length ? `${at + 1} of ${matches.length}` : 'No match') : '';
   }
