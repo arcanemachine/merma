@@ -250,10 +250,12 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 }
 
 /**
- * Where plain arrow `key` goes from subgraph box `at` when the last move brought you to it by that same arrow from
- * outside it: on into it, through the side you entered, to its child nearest that side (Down: the topmost, leftmost on
- * a tie; Right: the leftmost, topmost on a tie). Null otherwise (a click, O, or a climb from inside: the box walks its
- * edges), and for an empty box.
+ * Where plain arrow `key` goes from subgraph box `at` when you entered it by that arrow from outside: on into it,
+ * through the side you entered. A box selected without arrows (a click, a find, O), or reached by an arrow climbing out
+ * of it, counts as entered from the top, for Down. Null otherwise (the box walks its edges), and for an empty box.
+ * Which child: like reading a page, forwards from the top or the left, backwards from the bottom or the right. The
+ * near row is the children overlapping the child nearest the side entered (only overlap with that one counts); in it,
+ * from the top the leftmost, from the bottom the rightmost, from the left the topmost, from the right the bottommost.
  * @param {Move[]} path
  * @param {{ boxes: Box[], edges: Edge[] }} graph boxes from nest()
  * @param {Target} at
@@ -261,21 +263,33 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
  * @returns {Target | null}
  */
 export function enter(path, { boxes, edges }, at, key) {
-  const last = path.at(-1);
   const arrow = SIDES[key];
-  if (at.kind !== 'subgraph' || !arrow || !last || last.key !== key || last.to.kind !== 'subgraph' || last.to.id !== at.id) {
-    return null;
-  }
+  if (at.kind !== 'subgraph' || !arrow) return null;
+  const last = path.at(-1);
+  const arrived = last && last.to.kind === 'subgraph' && last.to.id === at.id ? last : null;
   const inside = within(boxes, at.id);
   // From an edge with an end inside (a climb by place from its middle, or a crossing edge): from inside.
-  const from = last.from.kind === 'edge' ? edges.find((e) => e.id === last.from.id) : null;
-  if (last.from.id === at.id || inside.has(last.from.id) || (from && (inside.has(from.from) || inside.has(from.to)))) return null;
+  const from = arrived?.from.kind === 'edge' ? edges.find((e) => e.id === arrived.from.id) : null;
+  const fromInside = arrived && (arrived.from.id === at.id || inside.has(arrived.from.id)
+    || (from && (inside.has(from.from) || inside.has(from.to))));
+  if (!arrived || fromInside ? key !== 'ArrowDown' : arrived.key !== key) return null;
   const [vx, vy] = arrow.v;
-  // How far a child's entered side lies from the side you came in by, and its place across the way you go.
-  const depth = (/** @type {Box} */ b) => (vx ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);
-  const across = (/** @type {Box} */ b) => (vx ? b.y - b.h / 2 : b.x - b.w / 2);
-  const first = boxes.filter((b) => b.parent === at.id).sort((p, q) => depth(p) - depth(q) || across(p) - across(q))[0];
-  return first ? { kind: first.kind, id: first.id } : null;
+  const horizontal = vx !== 0;
+  const children = boxes.filter((b) => b.parent === at.id);
+  // A child's side facing the way you came in, measured going in; its span along that way.
+  const depth = (/** @type {Box} */ b) => (horizontal ? vx * b.x - b.w / 2 : vy * b.y - b.h / 2);
+  const span = (/** @type {Box} */ b) => (horizontal ? [b.x - b.w / 2, b.x + b.w / 2] : [b.y - b.h / 2, b.y + b.h / 2]);
+  const nearest = children.sort((p, q) => depth(p) - depth(q))[0];
+  if (!nearest) return null;
+  const [lo, hi] = span(nearest);
+  const row = children.filter((b) => { const [blo, bhi] = span(b); return blo <= hi + 1 && bhi >= lo - 1; });
+  // Forwards (Down, Right): the lowest leading edge across; backwards (Up, Left): the highest trailing edge.
+  const forwards = key === 'ArrowDown' || key === 'ArrowRight';
+  const across = (/** @type {Box} */ b) => (horizontal
+    ? (forwards ? b.y - b.h / 2 : -(b.y + b.h / 2))
+    : (forwards ? b.x - b.w / 2 : -(b.x + b.w / 2)));
+  const first = row.sort((p, q) => across(p) - across(q))[0];
+  return { kind: first.kind, id: first.id };
 }
 
 /**

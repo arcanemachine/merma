@@ -329,16 +329,28 @@ test('the arrow that brought you to a box from outside carries you on into it, t
   assert.deepEqual(enter([move(at('node', 'done'), 'ArrowUp')], g, at('subgraph', 'ship'), 'ArrowUp'), at('node', 'label'));
   assert.deepEqual(enter([move(edgeIn, 'ArrowRight')], g, at('subgraph', 'ship'), 'ArrowRight'), at('node', 'pack'));
   assert.deepEqual(enter([move(edgeIn, 'ArrowLeft')], g, at('subgraph', 'ship'), 'ArrowLeft'), at('node', 'tape'));
-  // Another arrow, a click (no path), or a climb from inside: the box walks its edges.
+  // Another arrow: the box walks its edges.
   assert.equal(enter([move(edgeIn, 'ArrowDown')], g, at('subgraph', 'ship'), 'ArrowRight'), null);
-  assert.equal(enter([], g, at('subgraph', 'ship'), 'ArrowDown'), null);
+  // Selected without arrows (a click, a find, O), or climbed out of: as if entered from the top, for Down only.
+  assert.deepEqual(enter([], g, at('subgraph', 'ship'), 'ArrowDown'), at('node', 'pack'));
+  assert.equal(enter([], g, at('subgraph', 'ship'), 'ArrowUp'), null);
+  assert.deepEqual(enter([move(at('node', 'label'), 'ArrowUp')], g, at('subgraph', 'ship'), 'ArrowDown'), at('node', 'pack'));
   assert.equal(enter([move(at('node', 'label'), 'ArrowUp')], g, at('subgraph', 'ship'), 'ArrowUp'), null);
-  // A climb by place from an edge inside it: its edges, not back in.
+  // A climb by place from an edge inside it counts as from inside too, not as entering by its arrow.
   assert.equal(enter([move(at('edge', 'pack-label'), 'ArrowLeft')], g, at('subgraph', 'ship'), 'ArrowLeft'), null);
-  // Level with each other: the leftmost going down.
-  const level = nest([sub('row', 100, 100, 200, 100), node('r', 160, 80), node('l', 40, 80)]);
-  const down = [{ from: at('node', 'top'), to: at('subgraph', 'row'), key: 'ArrowDown', ctrl: false }];
-  assert.deepEqual(enter(down, { boxes: level, edges: [] }, at('subgraph', 'row'), 'ArrowDown'), at('node', 'l'));
+  // A row is what overlaps the nearest child: read forwards from the top, backwards from the bottom.
+  const level = nest([sub('row', 100, 100, 200, 100), node('r', 160, 82, 60, 34), node('l', 40, 80)]);
+  const by = (/** @type {string} */ key) => [{ from: at('node', 'top'), to: at('subgraph', 'row'), key, ctrl: false }];
+  const lg = { boxes: level, edges: [] };
+  assert.deepEqual(enter(by('ArrowDown'), lg, at('subgraph', 'row'), 'ArrowDown'), at('node', 'l'));
+  // r's bottom is lower by a few pixels, but they are one row: the rightmost, not the lowest.
+  assert.deepEqual(enter(by('ArrowUp'), lg, at('subgraph', 'row'), 'ArrowUp'), at('node', 'r'));
+  // Two in a column, entered from the left: the topmost; from the right: the bottommost.
+  const col = nest([sub('col', 100, 100, 100, 200), node('a', 100, 40), node('b', 105, 150)]);
+  const cg = { boxes: col, edges: [] };
+  const into = (/** @type {string} */ key) => [{ from: at('node', 'top'), to: at('subgraph', 'col'), key, ctrl: false }];
+  assert.deepEqual(enter(into('ArrowRight'), cg, at('subgraph', 'col'), 'ArrowRight'), at('node', 'a'));
+  assert.deepEqual(enter(into('ArrowLeft'), cg, at('subgraph', 'col'), 'ArrowLeft'), at('node', 'b'));
   // Only from the box the last move ended at.
   assert.equal(enter([move(edgeIn, 'ArrowDown')], g, at('node', 'done'), 'ArrowDown'), null);
 });
