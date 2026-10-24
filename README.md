@@ -27,13 +27,13 @@ merma serve [port] [host]       # defaults 63762, 127.0.0.1
 Then open `http://localhost:<port>/?f=<absolute path to a .mmd file>`. With no `?f=`, the page shows a scratch
 diagram, `/tmp/mermaid-diagrams/scratch.mmd`, created on start if missing.
 
-Either way the server stops on its own a while after the last page is closed (`MERMA_IDLE`).
+Either way the server runs until you stop it (Ctrl+C), unless `MERMA_IDLE` is set.
 
 | Setting | What it does |
 |---|---|
 | `MERMA_ROOTS` | For `serve`: folders whose `.mmd` files may be served, comma-separated. Default `/tmp/mermaid-diagrams/` |
 | `MERMA_PATH_MAP` | `server=host` path prefixes, comma-separated. The page shows a file's host path, for a server in a container |
-| `MERMA_IDLE` | Seconds with no requests before the server exits. Default 300. An open page polls every second, so the server runs while any tab is open |
+| `MERMA_IDLE` | Seconds with no requests before the server exits. Unset or 0: it runs until stopped. An open page polls every second, but a browser may freeze or unload a tab left in the background, which then stops asking |
 | `BROWSER` | For `merma <file>`: a command to open the page with, arguments allowed (`firefox --new-tab`). Unset: the address is only printed |
 | `MERMA_HOSTS` | Host names the page may be opened under, besides `localhost`, `127.0.0.1` and `[::1]` (and the bound address, when it is a single one), comma-separated. Requests addressed to any other name are refused, which stops DNS rebinding |
 

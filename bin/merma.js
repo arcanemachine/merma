@@ -16,7 +16,7 @@ const USAGE = `Usage:
 Settings, from the environment:
   MERMA_ROOTS     for serve: folders whose .mmd files may be served, comma-separated (default /tmp/mermaid-diagrams/)
   MERMA_PATH_MAP  server=host path prefixes, comma-separated, to show a file's host path
-  MERMA_IDLE      seconds with no requests before the server exits (default 300)
+  MERMA_IDLE      seconds with no requests before the server exits (unset or 0: it runs until stopped)
   MERMA_HOSTS     host names the page may be opened under besides localhost, 127.0.0.1 and [::1], comma-separated
   BROWSER         for merma <file>: a command to open the page with, arguments allowed (unset: the address is printed)`;
 
@@ -99,12 +99,18 @@ function start(/** @type {string[]} */ roots, /** @type {string} */ port, /** @t
   if (!['0.0.0.0', '::'].includes(host)) hosts.push(host.includes(':') ? `[${host}]` : host);
   const server = createServer({ files, script: realpathSync(fileURLToPath(import.meta.url)), hosts });
 
-  // An open page polls every second, so the server lives while any tab is open; the idle time also covers the gap
-  // between starting it and opening the page.
-  const idleMs = Number(process.env.MERMA_IDLE || 300) * 1000;
-  setInterval(() => {
-    if (Date.now() - server.lastRequest >= idleMs) process.exit(0);
-  }, Math.min(5000, idleMs)).unref();
+  // Only with MERMA_IDLE does the server stop on its own, that many seconds after the last request. An open page polls
+  // every second, but a browser may freeze or unload a tab left in the background, so the time is not a page count.
+  const idle = Number(process.env.MERMA_IDLE || 0);
+  if (!(idle >= 0)) {
+    console.error(`merma: MERMA_IDLE must be a number of seconds, not ${process.env.MERMA_IDLE}`);
+    process.exit(2);
+  }
+  if (idle > 0) {
+    setInterval(() => {
+      if (Date.now() - server.lastRequest >= idle * 1000) process.exit(0);
+    }, Math.min(5000, idle * 1000)).unref();
+  }
 
   server.on('error', (/** @type {NodeJS.ErrnoException} */ e) => {
     console.error(`merma: ${e.code === 'EADDRINUSE' ? `port ${port} is held by something else` : e.message}`);

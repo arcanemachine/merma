@@ -92,3 +92,19 @@ test('the refusal quotes a path a shell would split', async () => {
   const res = await fetch(`${new URL(url).origin}/source?f=${encodeURIComponent(odd)}`);
   assert.match(await res.text(), new RegExp(`run: merma '${DIR}/it'\\\\''s here\\.mmd'$`));
 });
+
+test('MERMA_IDLE: unset or 0, the server runs until stopped; N, it stops N seconds after the last request', async () => {
+  const one = file('idle.mmd');
+  const kept = await Promise.all([run([one]), run([one], { MERMA_IDLE: '0' })]);
+  const stops = await run([one], { MERMA_IDLE: '1' });
+  const exited = new Promise((resolve) => stops.child.on('exit', resolve));
+  await new Promise((r) => setTimeout(r, 2500));
+  for (const { child } of kept) assert.equal(child.exitCode, null);
+  assert.equal(await exited, 0);
+});
+
+test('MERMA_IDLE that is not a number of seconds is refused', () => {
+  const r = spawnSync(process.execPath, [BIN, file('bad.mmd')], { env: { ...process.env, BROWSER: '', MERMA_IDLE: 'soon' } });
+  assert.equal(r.status, 2);
+  assert.match(String(r.stderr), /MERMA_IDLE must be a number of seconds/);
+});
