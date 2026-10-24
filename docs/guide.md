@@ -213,26 +213,26 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
 
 **Plain arrows walk the edges**, two presses a step (node, edge, node), and always mean their direction on screen.
 
-- **From a node or a box** (a node or a subgraph's box), an arrow selects the first edge leaving it that way: Down an
+- **From a box** (a node, or a subgraph's box), an arrow selects the first edge leaving it that way: Down an
   edge that heads down as it leaves (whichever way it points, and wherever on the outline it starts: the edges out of
   a diamond's lower corners head down), Right one that heads right, and so on; the leftmost first (for Left and Right,
-  the topmost). A box's edges include those crossing its border from a node inside it. These edges, all leaving one
-  node or box the same way, are its **fan** that way.
-- **On an edge**, the arrow along it goes to the node or box at that end. The other two **step** across: to the edge
+  the topmost). A subgraph's edges include those crossing its border from a node inside it. These edges, all leaving
+  one box the same way, are its **fan** that way.
+- **On an edge**, the arrow along it goes to the box at that end. The other two **step** across: to the edge
   beside it in the fan at the end you came from (for an edge you clicked or found, its source, the node written first
   in the file), and past the last one there, on into the fan at its other end, from its place there. They never land on
   a node, and stop at the last edge. From "Paid?", Down, then Right, Right, Right steps through its four edges; from the
   edge labelled no, Left steps on to Retry's edge to Charge card.
-- **With no edge that way**, an arrow goes to the nearest node or box straight that way (overlapping you across the
+- **With no edge that way**, an arrow goes to the nearest box straight that way (overlapping you across the
   arrow, nested or not; the topmost or leftmost on a tie), else nothing: nothing off to the side. The subgraph you are
   in counts by its border, so with nothing nearer inside, you reach its box: from Print label, Right is Boxing; from
   Charge card, Up is Payment.
-- **Into a box.** You are at a box's top or its bottom: by where you came from (above its middle, the top; below it,
-  the bottom; an edge counts where it meets the box), at the top after a click, a find or O, and, back from the box's
-  own self-loop, by the arrow (Up: the bottom). At the top, Down goes in, to the leftmost of its top row; at the
-  bottom, Up goes in, to the rightmost of its bottom row. Otherwise a box walks its edges, as a node does; Left and
+- **Into a subgraph.** You are at a subgraph's top or its bottom: by where you came from (above its middle, the top;
+  below it, the bottom; an edge counts where it meets the subgraph), at the top after any selection the arrows did not
+  make (a click, a find, O, an edit, Enter), and, back from its own self-loop, by the arrow (Up: the bottom). At the
+  top, Down goes in, to the leftmost of its top row; at the bottom, Up goes in, to the rightmost of its bottom row. Otherwise a subgraph walks its edges, as a node does; Left and
   Right never go in.
-- **A self-loop** (a node or a subgraph connected to itself) belongs to its node's fans at both its ends. Along it, an
+- **A self-loop** (a node or a subgraph connected to itself) belongs to its box's fans at both its ends. Along it, an
   arrow goes back to its node; across it, the arrows step, or do nothing.
 
 **The trail**: the opposite arrow takes your last move back, and again the one before, so you can retrace your steps.
@@ -240,7 +240,7 @@ Coming back onto an edge from a node starts a fresh trail there, so that Left an
 click, a find, O, I, an edit or Escape starts the trail afresh.
 
 **Ctrl+Arrows skip the edge** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
-node or box at the far end of the edge the plain arrow would select, else the next thing straight that way. A far end
+box at the far end of the edge the plain arrow would select, else the next thing straight that way. A far end
 inside subgraphs you are not in lands on the outermost of their boxes, so Ctrl goes in a level a press. From an edge,
 Ctrl+Arrow goes to the end that way. With nothing selected, Alt+Left and Alt+Right are the browser's (back and
 forward).
@@ -249,8 +249,8 @@ forward).
 item you last left it by with O or an arrow, else its top-left one. A click, a find or an edit forgets that. At the
 top, or with nothing inside, they do nothing.
 
-Up (or Ctrl+Up) from a node or box with nowhere else to go, and nothing drawn above it, selects the diagram's title,
-when there is one; Down from the title goes to the node or box nearest below it.
+Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, selects the diagram's title,
+when there is one; Down from the title goes to the box nearest below it.
 
 **Ways out**, wherever you are: F then / (F fits the whole diagram, so find sees all of it), Ctrl+Arrows (they jump),
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back.

@@ -114,15 +114,15 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     reached from its source (the node the file writes first: every edge has one). They stop at the last edge rather
     than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried
     it and chose stepping across.
-  - With no edge leaving that way, an arrow goes to the nearest node or box straight that way, else nothing (the user
+  - With no edge leaving that way, an arrow goes to the nearest box (node or subgraph) straight that way, else nothing (the user
     tried nearest-anywhere and edges-by-place, and disliked both: Boxing, Down reached Send, off to the side; Shipping,
     Right reached Wait for stock, far up). A subgraph you are in counts by its border, always straight ahead, so with
     nothing nearer inside you reach its box. The price: a node off every row and column, with no edges, is reached
     only by a click or a find.
-  - A box walks its own edges like a node, including those crossing its border from a node inside it, so no way out of
-    a subgraph is hidden from its box. Into a box (the user): you are at its top or its bottom, by where you came from
-    against its middle (an edge where it meets the box), at the top after a click, a find or O (the user weighed a
-    click's position, and chose not: nothing on screen would show the line), and back from the box's own self-loop
+  - A subgraph's box walks its own edges like a node, including those crossing its border from a node inside it, so no way out of
+    a subgraph is hidden from its box. Into a subgraph (the user): you are at its top or its bottom, by where you came from
+    against its middle (an edge where it meets it), at the top after any selection the arrows did not make (a click, a
+    find, O, an edit, Enter; the user weighed a click's position, and chose not: nothing on screen would show the line), and back from the box's own self-loop
     by the arrow, as if gone round it. At the top Down goes in, to the top row's leftmost; at the bottom Up goes in,
     to the bottom row's rightmost, like reading a page backwards. A row is what overlaps the item inside nearest the side,
     so a few pixels never decide it. Left and Right never go in.
