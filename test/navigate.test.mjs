@@ -184,6 +184,22 @@ test('by place: straight ahead first, however far, then the nearest off to the s
   assert.deepEqual(byPlace(weigh, 'weigh', 'ArrowLeft'), at('subgraph', 'box'));
 });
 
+test("Ctrl lands on the outermost box around the far end that the place you leave is not in: a level a press", () => {
+  // o holds m and box b, which holds k and n; s is outside, above. Edges s→n, m→n, k→n, each coming down into n.
+  const boxes = nest([node('s', 100, -100), sub('o', 100, 100, 300, 240), node('m', 0, 40), sub('b', 150, 120, 140, 120),
+    node('k', 150, 90, 40, 20), node('n', 150, 150, 40, 20)]);
+  const g = { boxes, edges: [edge('s', 'n', [100, -85], 'D', [140, 140], 'U'), edge('m', 'n', [0, 55], 'D', [150, 140], 'U'),
+    edge('k', 'n', [150, 100], 'D', [160, 140], 'U')] };
+  assert.deepEqual(skip(g, at('node', 's'), 'ArrowDown'), at('subgraph', 'o'));
+  assert.deepEqual(skip(g, at('node', 'm'), 'ArrowDown'), at('subgraph', 'b'));
+  assert.deepEqual(skip(g, at('node', 'k'), 'ArrowDown'), at('node', 'n'));
+  // From an edge: the end it leaves is where it stands; the yes edge from Paid to Shipping, Ctrl+Up, is the box.
+  assert.deepEqual(skip(g, at('edge', 's-n'), 'ArrowDown'), at('subgraph', 'o'));
+  assert.deepEqual(skip(g, at('edge', 'k-n'), 'ArrowDown'), at('node', 'n'));
+  // From the box o, Up: s-n crosses its border from n inside; the far end, s, is outside every subgraph.
+  assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
+});
+
 test('by place: nothing that way, nowhere (no wrap)', () => {
   const two = nest([node('a', 0, 0), node('b', 200, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));
