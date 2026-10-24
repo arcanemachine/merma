@@ -45,7 +45,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
-  edge, as the edge menu's R does. So a letter never means two things.
+  edge, as the edge menu's R does. So a letter never means two things. One addition: the key that starts a wait also
+  ends it (the user): C starts Connect to…, and C while connecting cancels it, as Escape does.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which

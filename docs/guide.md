@@ -53,9 +53,9 @@ another click on it closes it.
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on a node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click on the node itself adds a
-  self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. By keyboard, the arrows move a dashed outline
-  by the same rules as the selection (Moving by keyboard, below), read out as it goes, and Enter connects to it; on an
-  edge, Enter is refused.
+  self-loop, `<a> --> <a>`. A click anywhere else, Escape, or C cancels. By keyboard, a dashed outline starts on the
+  node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
+  keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
@@ -177,6 +177,7 @@ here does just what it does in the selected item's menu:
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | R with an edge selected | Reverse it |
+| C with a node or subgraph selected | Connect to… (C again cancels it) |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; with none, the next thing that way; the opposite arrow goes back (below) |
@@ -192,7 +193,7 @@ here does just what it does in the selected item's menu:
 | F | Fit the diagram to the window (in any diagram, not only flowcharts) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
-| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram) |
+| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 
