@@ -287,7 +287,7 @@ export function enter(path, { boxes, edges }, at, key) {
   const from = arrived?.from.kind === 'edge' ? edges.find((e) => e.id === arrived.from.id) : null;
   const fromInside = arrived && (arrived.from.id === at.id || inside.has(arrived.from.id)
     || (from && (inside.has(from.from) || inside.has(from.to))));
-  if (!arrived || fromInside ? key !== 'ArrowDown' : arrived.key !== key) return null;
+  if ((!arrived || fromInside) ? key !== 'ArrowDown' : arrived.key !== key) return null;
   const [vx, vy] = arrow.v;
   const horizontal = vx !== 0;
   const children = boxes.filter((b) => b.parent === at.id);
