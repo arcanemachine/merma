@@ -13,6 +13,7 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
  */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
+  c: ['connect'],
   r: ['reverse-edge'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],

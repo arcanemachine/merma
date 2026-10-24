@@ -33,15 +33,18 @@ test('keys are unique within a menu and are a letter of their label', () => {
   }
 });
 
+// The letter rule is about the selected item's menu; Export's menu, opened from the footer, is not one.
+const itemMenus = items.filter(({ menu }) => menu !== 'export');
+
 test('a menu key that the page also answers outside menus runs the same action there', () => {
-  for (const { item } of items) {
+  for (const { item } of itemMenus) {
     const global = GLOBAL_KEYS[item.key];
     if (global) assert.ok(global.includes(item.action), `${item.action} uses ${item.key}, which outside menus is ${global}`);
   }
 });
 
 test('an action that a letter key runs outside menus has that letter in menus too', () => {
-  for (const { item } of items) {
+  for (const { item } of itemMenus) {
     const letters = Object.entries(GLOBAL_KEYS).filter(([k, acts]) => /^[a-z]$/.test(k) && acts.includes(item.action));
     for (const [k] of letters) assert.equal(item.key, k, `${item.action}: ${k} outside menus, ${item.key} in them`);
   }

@@ -191,8 +191,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'connect': () => {
       connecting = true;
       candidateTrail = [];
-      ui.notice('Click the node or subgraph the edge goes to, or reach it with the arrows and press Enter. Click away or '
-        + 'press Escape to cancel.', 'info');
+      // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
+      markCandidate(selection(), { quiet: true });
+      const loop = selection().kind === 'node' ? ' (on this one, a self-loop)' : '';
+      ui.notice('Click the node or subgraph the edge goes to, or move the dashed outline to it with the arrows and press '
+        + `Enter${loop}. Click away, or press Escape or C, to cancel.`, 'info');
     },
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
@@ -490,6 +493,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       else handlers['add-node']();
       return true;
     },
+    // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is greyed there; while
+    // connecting, it ends it, as Escape does (the user: the key that starts a wait also ends it).
+    c: () => {
+      if (connecting) { connecting = false; ui.hideNotice(); select(selection()); return true; }
+      if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
+      const item = MENUS[selected.kind].find((i) => i.action === 'connect');
+      const state = menuState();
+      if (item?.applies && !item.applies(state)) { ui.notice(item.why?.(state) ?? '', 'warning'); return true; }
+      handlers.connect();
+      return true;
+    },
     // R reverses a selected edge, as the edge menu's R does, and is refused as it is greyed there.
     r: () => {
       if (connecting || selected?.kind !== 'edge') return false;
@@ -744,13 +758,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     path = [];
   }
   /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
-  function markCandidate(/** @type {Item} */ item) {
+  function markCandidate(/** @type {Item} */ item, { quiet = false } = {}) {
     clearMarks('data-page-candidate');
     candidate = item;
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const el = elsOf(item)[0];
     const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
+    // At the start the notice says it all; a screen reader hears that one line.
+    if (quiet) return;
     ui.announce(`${named(item)}: ${what}`);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
