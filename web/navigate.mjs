@@ -5,9 +5,8 @@
 
 /** @typedef {{ x: number, y: number }} Point */
 /**
- * A node or a subgraph's box, by its middle and size on screen; for byPlace() only, an edge too, as a point at its
- * middle. `parent` is the subgraph it is drawn in, or null.
- * @typedef {{ kind: 'node' | 'subgraph' | 'edge', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
+ * A node or a subgraph's box, by its middle and size on screen. `parent` is the subgraph it is drawn in, or null.
+ * @typedef {{ kind: 'node' | 'subgraph', id: string, x: number, y: number, w: number, h: number, parent?: string | null }} Box
  */
 /**
  * A drawn edge: its ends' ids (a node's or a subgraph's), and at each end where it meets it and a point a little way
@@ -207,9 +206,9 @@ export function nest(/** @type {Box[]} */ boxes) {
 /**
  * The next thing that way from box `at`, by place, for an arrow with no edge that way and for Ctrl's jump: the nearest
  * node or subgraph box lying wholly that way (going right, its left edge past `at`'s right edge), at any depth,
- * measured box to box, straight ahead first (overlapping `at` across the arrow: straight below, going down), then off
- * to the side; the topmost wins a tie going sideways, the leftmost going up or down. The subgraphs `at` is drawn in
- * count by their border on that side, which is always straight ahead, so with nothing nearer straight ahead inside it,
+ * measured box to box, straight ahead only (overlapping `at` across the arrow: straight below, going down; nothing
+ * off to the side, the user); the topmost wins a tie going sideways, the leftmost going up or down. The subgraphs `at`
+ * is drawn in count by their border on that side, which is always straight ahead, so with nothing nearer inside it,
  * the arrow reaches its subgraph's box.
  * Nothing that way: null; nothing wraps. To go from something with no box (an edge), pass a box of no size at its
  * middle through nest().
@@ -250,8 +249,8 @@ export function byPlace(boxes, at, key) {
     found.push({ b, d: Math.hypot(Math.max(0, along), aside), straight: aside <= 1 });
   }
   const first = (/** @type {Box} */ b) => (horizontal ? b.y - b.h / 2 : b.x - b.w / 2);
-  found.sort((p, q) => Number(q.straight) - Number(p.straight) || p.d - q.d || first(p.b) - first(q.b));
-  const next = found[0]?.b;
+  found.sort((p, q) => p.d - q.d || first(p.b) - first(q.b));
+  const next = found.find((f) => f.straight)?.b;
   return next ? { kind: next.kind, id: next.id } : null;
 }
 

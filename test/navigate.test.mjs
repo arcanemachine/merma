@@ -168,16 +168,16 @@ test('by place: the subgraph around it counts by its border, when nothing inside
   assert.deepEqual(byPlace(placed, 'pay', 'ArrowUp'), at('node', 'check'));
 });
 
-test('by place: straight ahead first, however far, then the nearest off to the side', () => {
+test('by place: straight ahead only, however far; nothing straight, nothing', () => {
   // The demo's Boxing, inside Shipping: Send is nearer, below and to the left; Shipping's border is straight below.
   const nested = nest([sub('ship', 100, 100, 200, 160), sub('box', 150, 80, 60, 60), node('send', 70, 130, 40, 10)]);
   assert.deepEqual(byPlace(nested, 'box', 'ArrowDown'), at('subgraph', 'ship'));
   // A far node straight right beats a near one up and to the right.
   const row = nest([node('here', 0, 0, 40, 20), node('near', 60, -40, 40, 20), node('far', 400, 0, 40, 20)]);
   assert.deepEqual(byPlace(row, 'here', 'ArrowRight'), at('node', 'far'));
-  // Nothing straight ahead: the nearest to the side.
+  // Nothing straight ahead: nothing, however near something off to the side is (the user).
   const off = nest([node('here', 0, 0, 40, 20), node('near', 60, -40, 40, 20), node('far', 400, 60, 40, 20)]);
-  assert.deepEqual(byPlace(off, 'here', 'ArrowRight'), at('node', 'near'));
+  assert.equal(byPlace(off, 'here', 'ArrowRight'), null);
   // Weigh parcel, Left: its own subgraph's border is straight ahead and nearer than Print label outside it.
   const weigh = nest([sub('ship', 100, 100, 240, 160), node('label', 20, 100, 40, 20), sub('box', 150, 100, 60, 60),
     node('weigh', 155, 110, 40, 10)]);
@@ -200,17 +200,8 @@ test("Ctrl lands on the outermost box around the far end that the place you leav
   assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
 });
 
-test('by place: an edge given as a point at its middle is found like a node; one inside where you are is not', () => {
-  // The demo's Shipping: the edge from Paid to Order log runs down just right of it; Wait for stock is far up-right.
-  const placed = nest([sub('ship', 100, 100, 120, 100), node('wait', 260, -40),
-    { kind: /** @type {const} */ ('edge'), id: 'paid-log', x: 180, y: 120, w: 0, h: 0 },
-    { kind: /** @type {const} */ ('edge'), id: 'pack-tape', x: 120, y: 110, w: 0, h: 0 }]);
-  assert.deepEqual(byPlace(placed, 'ship', 'ArrowRight'), at('edge', 'paid-log'));
-  assert.deepEqual(byPlace(placed.filter((b) => b.id !== 'paid-log'), 'ship', 'ArrowRight'), at('node', 'wait'));
-});
-
 test('by place: nothing that way, nowhere (no wrap)', () => {
-  const two = nest([node('a', 0, 0), node('b', 200, 100)]);
+  const two = nest([node('a', 0, 0), node('b', 20, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));
   assert.equal(byPlace(two, 'b', 'ArrowDown'), null);
 });
@@ -223,8 +214,9 @@ test('by place: a box straight below is not to the side for being a fraction acr
 test('by place breaks a tie by leftmost (topmost going sideways)', () => {
   const overlapping = nest([node('a', 100, 0), node('l', 50, 100), node('r', 150, 100)]);
   assert.deepEqual(byPlace(overlapping, 'a', 'ArrowDown'), at('node', 'l'));
+  // Both off to the side: neither.
   const apart = nest([node('a', 100, 0), node('r', 200, 100), node('l', 0, 100)]);
-  assert.deepEqual(byPlace(apart, 'a', 'ArrowDown'), at('node', 'l'));
+  assert.equal(byPlace(apart, 'a', 'ArrowDown'), null);
 });
 
 test("by place from an edge goes from its middle's level, not its start's", () => {

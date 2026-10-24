@@ -643,19 +643,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         : trail.slice(0, -1);
       return { next: back.from, trail: rest };
     }
-    /**
-     * The next thing that way by place, from `here` (an edge from its middle); with `withEdges`, edges count too, each
-     * at its middle, all but the invisible ones (nothing is drawn there). None upwards, and nothing at all drawn above:
-     * the title.
-     */
-    const placed = (/** @type {boolean} */ withEdges) => {
-      /** @type {import('./navigate.mjs').Box[]} */
+    /** The next thing that way by place, from `here` (an edge from its middle); none upwards, and nothing at all drawn above: the title. */
+    const placed = () => {
       let boxes = graph.boxes, from = at.id;
-      if (withEdges) {
-        const hidden = new Set(edges(shownText).filter((e) => e.arrow.includes('~~~')).map((e) => e.svgId));
-        boxes = [...boxes, ...graph.edges.filter((e) => e.id !== at.id && !hidden.has(e.id))
-          .map((e) => ({ kind: /** @type {const} */ ('edge'), id: e.id, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }))];
-      }
       if (at.kind === 'edge') {
         const e = graph.edges.find((x) => x.id === at.id);
         if (!e) return null;
@@ -674,13 +664,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     /** @type {{ id: string, key: string } | null} for a move onto an edge: the node it was reached from */
     let came = null;
     if (ctrl) {
-      // Ctrl skips the edge plain would select; with none that way, it goes by place, to nodes and boxes only.
-      next = (edgesOk ? skip(graph, at, key) : null) ?? placed(false);
+      // Ctrl skips the edge plain would select; with none that way, it goes by place.
+      next = (edgesOk ? skip(graph, at, key) : null) ?? placed();
     } else if (at.kind === 'edge') {
       // Across an edge, among the edges of the node it was reached from, which the trail keeps while stepping across.
       const last = trail.at(-1);
       came = last && last.to.kind === 'edge' && last.to.id === at.id ? last.came ?? null : null;
-      // An edge reached any other way (a click, a search, by place): its source, the way it leaves it.
+      // An edge reached any other way (a click, a search): its source, the way it leaves it.
       const e = graph.edges.find((x) => x.id === at.id);
       if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
       next = walk(graph, at, key, came);
@@ -694,7 +684,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.
       next = enter(trail, graph, at, key) ?? walk(graph, at, key);
       if (next?.kind === 'edge') came = { id: at.id, key };
-      next ??= placed(true);
+      next ??= placed();
     }
     if (!next) return { next: null, trail };
     // Leaving a subgraph for its own box: I comes back here.
