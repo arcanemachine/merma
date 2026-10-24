@@ -147,6 +147,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!e) return 'the edge';
       const end = (/** @type {string} */ id) => /** @type {string} */ (named({ kind: nodeEl(id) ? 'node' : 'subgraph', id }));
       const label = edgeEls(sel.id).find((x) => x.matches('g.edgeLabel'))?.textContent?.trim();
+      if (e.from === e.to) return `the self-loop ${label ? `"${label}" ` : ''}on ${end(e.from)}`;
       return `the edge ${label ? `"${label}" ` : ''}from ${end(e.from)} to ${end(e.to)}`;
     }
     return `"${(labelEl(sel)?.innerText ?? sel.id).trim().replace(/\s+/g, ' ') || sel.id}"`;
@@ -198,7 +199,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
-    'remove-label': () => { const id = selection().id; editDrawn((text) => setEdgeLabel(text, id, ''), { after: sameEdge(id) }); },
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
     'add-node': () => {
       const subgraph = selectedSubgraph();
@@ -280,7 +280,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function menuState() {
     return {
       edgesOk,
-      hasLabel: selected?.kind === 'edge' && Boolean(shownEdge(selected.id)?.label),
+      selfLoop: selected?.kind === 'edge' && shownEdge(selected.id)?.from === shownEdge(selected.id)?.to,
       nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
     };
   }
@@ -411,7 +411,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     connecting = false;
     ui.hideNotice();
     if (!to) { deselect(); return; }
-    if (same(to, from)) { ui.notice('Pick a different node or subgraph to connect to.', 'warning'); select(from); return; }
+    // A node connected to itself is a self-loop; a subgraph cannot be one.
+    if (same(to, from) && to.kind === 'subgraph') { ui.notice('A subgraph cannot be connected to itself.', 'warning'); select(from); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
     deselect();
     const names = [named(from), named(to)];
@@ -487,6 +488,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const from = selectedNode();
       if (from) addAndName((text) => addConnected(text, from));
       else handlers['add-node']();
+      return true;
+    },
+    // R reverses a selected edge, as the edge menu's R does, and is refused as it is greyed there.
+    r: () => {
+      if (connecting || selected?.kind !== 'edge') return false;
+      const item = MENUS.edge.find((i) => i.action === 'reverse-edge');
+      const state = menuState();
+      if (item?.applies && !item.applies(state)) { ui.notice(item.why?.(state) ?? '', 'warning'); return true; }
+      handlers['reverse-edge']();
       return true;
     },
     enter: () => {
@@ -739,7 +749,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     candidate = item;
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const el = elsOf(item)[0];
-    ui.announce(item.kind === 'edge' ? `${named(item)}: an edge, cannot be connected to` : `${named(item)}: press Enter to connect`);
+    const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
+      : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
+    ui.announce(`${named(item)}: ${what}`);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
   /** Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */

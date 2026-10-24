@@ -224,7 +224,7 @@ const exportMenu = createMenu(EXPORT_MENU, {
 });
 exportButton.addEventListener('click', () => {
   if (exportMenu.isOpen()) { exportMenu.close(); return; }
-  exportMenu.open(exportButton.getBoundingClientRect(), { edgesOk: true, hasLabel: false, nameWhy: null }, { gap: 4 });
+  exportMenu.open(exportButton.getBoundingClientRect(), { edgesOk: true, selfLoop: false, nameWhy: null }, { gap: 4 });
   exportButton.setAttribute('aria-expanded', 'true');
 });
 // A press anywhere else closes it, the diagram included, as for the diagram's own menus.

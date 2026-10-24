@@ -8,8 +8,8 @@ import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
 const STATES = [
-  { edgesOk: true, hasLabel: true, nameWhy: null },
-  { edgesOk: false, hasLabel: false, nameWhy: 'This subgraph has no id in the file…' },
+  { edgesOk: true, selfLoop: true, nameWhy: null },
+  { edgesOk: false, selfLoop: false, nameWhy: 'This subgraph has no id in the file…' },
 ];
 const ALL_MENUS = { ...MENUS, export: EXPORT_MENU };
 const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));

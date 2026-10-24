@@ -57,15 +57,18 @@ export function within(/** @type {Box[]} */ boxes, /** @type {string} */ id) {
  * The edges leaving `id` heading `key` (for a subgraph, with `inside` from within(): also those crossing its border
  * from inside), in order across that way by where they meet it (two out of a diamond's
  * corners are told apart there): left to right for up and down, top to bottom for left and right. An edge belongs to
- * both its ends, whichever way it points. Self-loops are left out.
+ * both its ends, whichever way it points; a self-loop belongs to its node once, where it starts, heading as it leaves.
  */
 export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /** @type {string} */ key, inside = new Set()) {
   const across = vertical(key) ? 'x' : 'y';
   /** @type {{ id: string, at: Point }[]} */
   const found = [];
   for (const e of edges) {
-    if (e.from === e.to) continue;
     const [a, b] = endsOf(e);
+    if (e.from === e.to) {
+      if (a.id === id && a.dir === key) found.push({ id: e.id, at: a.at });
+      continue;
+    }
     for (const [end, other] of [[a, b], [b, a]]) {
       // A subgraph's own edges, and those crossing its border from a node inside it, which head as they leave that node
       // (not as they cross the border: should a line that leaves sideways and bends out through the bottom surprise,
@@ -101,7 +104,12 @@ export function walk({ boxes, edges }, at, key, from = null) {
     return first ? { kind: 'edge', id: first } : null;
   }
   const edge = edges.find((e) => e.id === at.id);
-  if (!edge || edge.from === edge.to) return null;
+  if (!edge) return null;
+  // A self-loop: across it, its node's other edges leaving that way; any other arrow, back to its node.
+  if (edge.from === edge.to) {
+    const step = vertical(endsOf(edge)[0].dir) === vertical(key) ? null : across({ boxes, edges }, edge.id, key, from);
+    return step ? step.to : box(edge.from);
+  }
   const ends = endsOf(edge);
   // Along the edge: the end it leaves heading back towards us.
   const along = ends.filter((end) => end.dir === OPPOSITE[key]);
@@ -134,7 +142,7 @@ export function walk({ boxes, edges }, at, key, from = null) {
  */
 export function across({ boxes, edges }, id, key, from = null) {
   const edge = edges.find((e) => e.id === id);
-  if (!edge || edge.from === edge.to || !SIDES[key]) return null;
+  if (!edge || !SIDES[key]) return null;
   const ends = endsOf(edge);
   // Reached from a subgraph's box by an edge crossing its border: the box, whose other end is the one outside it.
   const box = from && boxes.find((b) => b.id === from.id && b.kind === 'subgraph');
@@ -172,7 +180,8 @@ export function skip(graph, at, key) {
     from = edge?.from === far ? edge.to : edge?.from ?? far;
   } else {
     const inside = at.kind === 'subgraph' ? within(graph.boxes, at.id) : new Set();
-    const first = leaving(graph.edges, at.id, key, inside)[0];
+    // A self-loop has no far end to skip to.
+    const first = leaving(graph.edges, at.id, key, inside).find((id) => graph.edges.some((e) => e.id === id && e.from !== e.to));
     const edge = graph.edges.find((e) => e.id === first);
     if (!edge) return null;
     far = edge.from === at.id || inside.has(edge.from) ? edge.to : edge.from;

@@ -51,10 +51,11 @@ another click on it closes it.
 - **Add connected node** adds a new node with an edge from this one, then opens the node panel on it. The edge is
   appended at the end of the file; if the node's last statement is inside a subgraph, the new node is declared there,
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
-- **Connect to…**, then a click on another node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
-  subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click anywhere else, or Escape,
-  cancels. By keyboard, the arrows reach the node or subgraph to connect to, by place (outlined dashed, and read
-  out), and Enter connects to it (Moving by keyboard, below).
+- **Connect to…**, then a click on a node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
+  subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click on the node itself adds a
+  self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. By keyboard, the arrows move a dashed outline
+  by the same rules as the selection (Moving by keyboard, below), read out as it goes, and Enter connects to it; on an
+  edge, Enter is refused.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Greyed without an edge match.
@@ -62,8 +63,7 @@ another click on it closes it.
 ### Edge menu
 
 - **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
-  Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`.
-- **Remove label** removes it. Greyed when the edge has none.
+  Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
 - **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the strip names shapes; click one
   or press its digit, and the picker stays open on the new arrow type for another pick, until a click away or Escape;
   each pick is its own change and undo step. The arrow changes and keeps its label and its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
@@ -83,7 +83,8 @@ another click on it closes it.
   | 0 | Invisible | `~~~` |
 
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
-  partly by the order it first meets them, so the layout may shift a little.
+  partly by the order it first meets them, so the layout may shift a little. Greyed on a self-loop (a node connected
+  to itself), which has no direction to reverse.
 - **Delete edge** removes it. Its nodes stay.
 
 ### Subgraph menu
@@ -169,11 +170,13 @@ away and then Undo. Once the panel an add opened is closed, Undo is the way back
 
 ## Keys
 
-Outside menus, and not while typing in the label box. Keys are case-insensitive, here and in menus:
+Outside menus, and not while typing in the label box. Keys are case-insensitive, here and in menus, and a letter
+here does just what it does in the selected item's menu:
 
 | Key | Does |
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
+| R with an edge selected | Reverse it |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; with none, the next thing that way; the opposite arrow goes back (below) |

@@ -30,7 +30,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   |---|---|---|
   | Add | makes a new thing | Add node, Add connected node |
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
-  | Remove | clears a property; the thing stays | Remove label |
+  | Remove | clears a property; the thing stays | (none yet: emptying a label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
   | Fit | changes the view, not the file | Fit to window |
@@ -44,6 +44,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
+- A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
+  edge, as the edge menu's R does. So a letter never means two things.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which
