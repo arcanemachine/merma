@@ -107,7 +107,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - An edge heads the way it goes just after it leaves a node, measured 20 px along its line, not where on the outline
     it starts: the edges out of a diamond's lower corners head down, and Down from it offers all of them, left to right.
     Twenty pixels, because a curve leaving a corner has turned by then, and a short edge has not yet reached its next
-    bend. A node's or box's edges leaving one way are its fan that way.
+    bend. A box's edges leaving one way are its fan that way.
   - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
     from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked or found counts as
