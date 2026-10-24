@@ -9,7 +9,8 @@ import { createHistory } from './history.mjs';
 import { find } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
-import { across, byPlace, enter, heading, nearest, nest, retrace, skip, walk } from './navigate.mjs';
+import { createKeys } from './keys.mjs';
+import { nearest, nest } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -64,8 +65,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
   /** @type {Item | null} while connecting by keys: the node or subgraph the arrows have reached, which Enter connects to */
   let candidate = null;
-  /** @type {import('./navigate.mjs').Move[]} the candidate's arrow moves, to retrace, as `trail` is the selection's */
-  let candidateTrail = [];
   /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
   let cleared = null;
   /**
@@ -94,16 +93,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let refused = false;        // the notice shows why a menu item does not apply
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
-  /** @type {import('./navigate.mjs').Move[]} the arrow moves since the selection last changed otherwise, to retrace */
-  let trail = [];
-  let moving = false;   // a key (an arrow, O or I) is selecting: the trail and I's place inside go on
-  /**
-   * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Kept only while
-   * keys select: a click, a find or an edit forgets it (the user). Never pruned: I checks an entry against what is
-   * drawn inside now.
-   * @type {Map<string, string>}
-   */
-  const inside = new Map();
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
   let clickedMeanwhile = null;
 
@@ -200,7 +189,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => {
       connecting = true;
-      candidateTrail = [];
+      moves.forgetCandidate();
       // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
       markCandidate(selection(), { quiet: true });
       ui.notice('Click the node or subgraph the edge goes to, or move the dashed outline to it with the arrows and press '
@@ -328,14 +317,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
 
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
-  function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean }} */ { keepMode = false, menu = false } = {}) {
+  function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean, moving?: boolean }} */ { keepMode = false, menu = false, moving = false } = {}) {
     unmark();
     // An item no longer drawn (the file changed under an open label box) cannot be selected.
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
-    // A click, a find, an edit: the trail starts again, and I forgets where you were.
-    if (!again && !moving) { trail = []; inside.clear(); }
+    // A click, a find, an edit (not `moving`: a key, which keeps them): the trail starts again, and I forgets where you
+    // were.
+    if (!again && !moving) moves.forget();
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
@@ -485,7 +475,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const name = sel.kind === 'node' && named(sel);
     // Where the keyboard goes after (the user: it keeps its place): back along the trail to the first item still
     // drawn; with no trail, an edge's source (a node clicked: nothing). Taken now: the edit starts the trail afresh.
-    const back = /** @type {Item[]} */ (trail.map((m) => m.from).reverse().filter((i) => !same(i, sel)));
+    const back = moves.fallback(sel);
     const source = sel.kind === 'edge' ? shownEdge(sel.id)?.from : null;
     if (source) back.push({ kind: subgraphs(shownText).some((g) => g.id === source) ? 'subgraph' : 'node', id: source });
     editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), {
@@ -578,8 +568,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const key = `Arrow${d}`, name = key.toLowerCase();
       return [[name, () => arrow(key, 'plain')], [`ctrl+${name}`, () => arrow(key, 'ctrl')], [`shift+${name}`, () => arrow(key, 'shift')]];
     })),
-    o: () => out(),
-    i: () => into(),
+    o: () => moves.out(),
+    i: () => moves.into(),
     '/': () => { if (connecting) return false; openFind(); return true; },
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
@@ -640,13 +630,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     return { boxes, edges: lines };
   }
-  /** A selected edge as a box for moving by place: its middle, in the innermost subgraph around it. */
-  const EDGE = '\0edge';
-
   /**
    * An arrow key, `how`: plain, with Ctrl (or Alt), or with Shift. With nothing selected it moves the diagram: plain a
-   * tenth of the view, Ctrl half, Shift a fiftieth. In Connect to…, plain and Ctrl move the candidate by place. With
-   * something selected, plain walks the edges and Ctrl jumps by place (navigate.mjs); Shift does nothing yet.
+   * tenth of the view, Ctrl half, Shift a fiftieth. With something selected (or in Connect to…, the candidate), plain
+   * walks the edges and Ctrl jumps by place (keys.mjs); Shift does nothing yet.
    */
   function arrow(/** @type {string} */ key, /** @type {'plain' | 'ctrl' | 'shift'} */ how) {
     const [vx, vy] = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[key] ?? [0, 0];
@@ -656,143 +643,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     }
     if (how === 'shift') return false;
-    const graph = layout();
-    if (connecting) {
-      // The candidate moves by the same rules as the selection, with a trail of its own; it may rest on an edge, which
-      // Enter refuses, but never on the title.
-      const moved = step(graph, candidate ?? selection(), candidateTrail, key, how === 'ctrl');
-      if (moved.next && moved.next.kind !== 'title') { candidateTrail = moved.trail; markCandidate(moved.next); }
-      return true;
-    }
-    const moved = step(graph, selected, trail, key, how === 'ctrl');
-    if (moved.next) {
-      moveTo(moved.next);
-      trail = moved.trail;
-    }
+    moves.arrow(key, how === 'ctrl');
     return true;
   }
-
-  /**
-   * Where arrow `key` (with Ctrl or not) takes a cursor, the selection or Connect to…'s candidate, from `here` with the
-   * arrow moves `trail` behind it (navigate.mjs gives the rules): the item it reaches, or null, and the trail after the
-   * move. Leaving a subgraph for its own box sets where I goes back to there.
-   * @param {{ boxes: import('./navigate.mjs').Box[], edges: import('./navigate.mjs').Edge[] }} graph
-   * @param {Item} here
-   * @param {import('./navigate.mjs').Move[]} trail
-   * @param {string} key
-   * @param {boolean} ctrl
-   * @returns {{ next: Item | null, trail: import('./navigate.mjs').Move[] }}
-   */
-  function step(graph, here, trail, key, ctrl) {
-    if (here.kind === 'title') {
-      // Down from the title goes to the nearest node or box below it.
-      const t = titleEl()?.getBoundingClientRect();
-      const below = graph.boxes.filter((b) => !b.parent && t && b.y > t.bottom);
-      const id = t && key === 'ArrowDown' && nearest(below, t.left + t.width / 2, t.bottom);
-      const hit = id && below.find((b) => b.id === id);
-      return { next: hit ? { kind: hit.kind, id: hit.id } : null, trail: [] };
-    }
-    const at = /** @type {import('./navigate.mjs').Target} */ (here);
-    // The opposite key takes the last move back, retracing the way it came.
-    const back = retrace(trail, at, key, ctrl);
-    if (back) {
-      // Back onto an edge from a node: it now counts as reached from that node by this arrow, so Left and Right step
-      // that node's edges rather than take back the steps before it (the user).
-      const rest = back.from.kind === 'edge' && at.kind !== 'edge'
-        ? [{ from: at, to: back.from, key, ctrl, came: { id: at.id, key } }]
-        : trail.slice(0, -1);
-      return { next: back.from, trail: rest };
-    }
-    /** The next thing that way by place, from `here` (an edge from its middle); none upwards, and nothing at all drawn above: the title. */
-    const placed = () => {
-      let boxes = graph.boxes, from = at.id;
-      if (at.kind === 'edge') {
-        const e = graph.edges.find((x) => x.id === at.id);
-        if (!e) return null;
-        boxes = [...boxes, { kind: /** @type {const} */ ('node'), id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }];
-        from = EDGE;
-      }
-      boxes = nest(boxes);
-      const found = byPlace(boxes, from, key);
-      if (found || key !== 'ArrowUp' || !titleEl()) return found;
-      const self = boxes.find((b) => b.id === from);
-      const above = self && boxes.some((b) => b !== self && b.kind === 'node' && b.y < self.y - self.h / 2);
-      return self && !above ? TITLE : null;
-    };
-    /** @type {Item | null} */
-    let next = null;
-    /** @type {{ id: string, key: string } | null} for a move onto an edge: the node it was reached from */
-    let came = null;
-    if (ctrl) {
-      // Ctrl skips the edge plain would select; with none that way, it goes by place.
-      next = (edgesOk ? skip(graph, at, key) : null) ?? placed();
-    } else if (at.kind === 'edge') {
-      // Across an edge, among the edges of the node it was reached from, which the trail keeps while stepping across.
-      const last = trail.at(-1);
-      came = last && last.to.kind === 'edge' && last.to.id === at.id ? last.came ?? null : null;
-      // An edge reached any other way (a click, a find): its source, the way it leaves it.
-      const e = graph.edges.find((x) => x.id === at.id);
-      if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
-      next = walk(graph, at, key, came);
-      // Stepped across to another edge: it counts as reached from the end whose edges it was found among.
-      came = next?.kind === 'edge' ? across(graph, at.id, key, came)?.from ?? null : null;
-    } else {
-      if (!edgesOk) {
-        ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'warning');
-        return { next: null, trail };
-      }
-      // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.
-      next = enter(trail, graph, at, key) ?? walk(graph, at, key);
-      if (next?.kind === 'edge') came = { id: at.id, key };
-      next ??= placed();
-    }
-    if (!next) return { next: null, trail };
-    // Leaving a subgraph for its own box: I comes back here.
-    if (next.kind === 'subgraph' && at.kind !== 'edge' && graph.boxes.find((b) => b.id === at.id)?.parent === next.id) {
-      inside.set(next.id, at.id);
-    }
-    if (next.kind === 'title') return { next, trail: [] };
-    return { next, trail: [...trail, { from: at, to: /** @type {import('./navigate.mjs').Target} */ (next), key, ctrl, came }] };
-  }
-  /** Select by a key (an arrow, O or I), keeping the trail to retrace and I's place inside. */
-  function moveTo(/** @type {Item} */ item) {
-    moving = true;
-    try { selectByKey(item); } finally { moving = false; }
-  }
-  /** O: the subgraph the selection (or, in Connect to…, the candidate) is drawn in; at the top, nothing. */
-  function out() {
-    const from = connecting ? candidate ?? selection() : selected;
-    if (!from || from.kind === 'title') return false;
-    const { boxes, edges: lines } = layout();
-    let parent = boxes.find((b) => b.id === from.id && b.kind === from.kind)?.parent;
-    if (from.kind === 'edge') {
-      const e = lines.find((x) => x.id === from.id);
-      parent = e ? nest([...boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]).find((b) => b.id === EDGE)?.parent : null;
-    }
-    if (!parent) return true;
-    const sub = /** @type {Item} */ ({ kind: 'subgraph', id: parent });
-    if (from.kind !== 'edge') inside.set(parent, from.id);
-    if (connecting) { markCandidate(sub); candidateTrail = []; } else byKey(sub);
-    return true;
-  }
-  /** I: into the selected subgraph (or candidate), to the item last selected there, else its top-left one. */
-  function into() {
-    const from = connecting ? candidate : selected;
-    if (from?.kind !== 'subgraph') return Boolean(from);
-    const { boxes } = layout();
-    const children = boxes.filter((b) => b.parent === from.id);
-    const last = children.find((b) => b.id === inside.get(from.id));
-    const first = last ?? children.sort((p, q) => p.y - q.y || p.x - q.x)[0];
-    if (!first) return true;
-    const item = /** @type {Item} */ ({ kind: first.kind, id: first.id });
-    if (connecting) { markCandidate(item); candidateTrail = []; } else byKey(item);
-    return true;
-  }
-  /** O and I select by key, keeping I's place inside, but start the trail afresh: they are not arrow moves. */
-  function byKey(/** @type {Item} */ item) {
-    moveTo(item);
-    trail = [];
-  }
+  const moves = createKeys({
+    layout,
+    select: (item) => selectByKey(item, undefined, true),
+    markCandidate: (item) => markCandidate(item),
+    notice: (message, kind) => ui.notice(message, kind),
+    titleEl,
+    state: { selected: () => selected, connecting: () => connecting, candidate: () => candidate, edgesOk: () => edgesOk },
+  });
   /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
   function markCandidate(/** @type {Item} */ item, { quiet = false } = {}) {
     clearMarks('data-page-candidate');
@@ -806,9 +667,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     ui.announce(`${named(item)}: ${what}`);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
-  /** Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */
-  function selectByKey(/** @type {Item} */ item, /** @type {string | undefined} */ said = undefined) {
-    select(item);
+  /**
+   * Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view; `moving`,
+   * by an arrow, O or I, which keep the trail and I's place inside.
+   */
+  function selectByKey(/** @type {Item} */ item, /** @type {string | undefined} */ said = undefined, moving = false) {
+    select(item, { moving });
     ui.announce(`${said ? `${said}; ` : ''}${named(item)} selected`);
     const el = elsOf(item)[0];
     if (el) viewer.reveal(el.getBoundingClientRect());
@@ -1296,8 +1160,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const was = selected;
       ui.hideNotice();
       // After an edit there is no trail back, and I forgets where you were (the user), even with the same item selected.
-      trail = [];
-      inside.clear();
+      moves.forget();
       clickedMeanwhile = null;
       const base = source.snapshot();
       if (base.text === null || !base.version) return;

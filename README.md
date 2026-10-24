@@ -58,6 +58,7 @@ there is no login.
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
+| `web/keys.mjs` | What the arrows, O and I do to the selection and to Connect to…'s candidate: the trail to retrace, and I's place inside |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |
 | `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types, shapes), in a menu or as a strip |
 | `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
