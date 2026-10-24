@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FRESH, across, back, byPlace, enter, half, heading, leaving, moved, nearest, nest, skip, walk, within } from '../web/navigate.mjs';
+import { FRESH, across, back, byPlace, enter, flow, heading, leaving, moved, nearest, nest, skip, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -230,14 +230,15 @@ test("a self-loop belongs to its node's edges at its ends; on it, along goes bac
   const corner = { boxes: nest([node('q', 0, 0), node('r', -40, -100)]),
     edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U'), edge('q', 'r', [-10, -15], 'U', [-40, -85], 'D')] };
   assert.deepEqual(go(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
-  // Back on the box from its own loop, which frames it: by the arrow, as if gone round it that way (the user); with no
-  // trail (the box clicked), the top.
+  // Back on the box from its own loop, which frames it: by the arrow, as if gone round it that way (the user), and that
+  // arrow goes in; with no trail (the box clicked), the way its contents flow (none here: Down).
   const box = at('subgraph', 's'), loopEdge = at('edge', 's-s');
   const round = (/** @type {string} */ key) => [{ from: box, to: loopEdge, key: 'ArrowDown', ctrl: false },
     { from: loopEdge, to: box, key, ctrl: false }];
-  assert.equal(half(round('ArrowUp'), sg, box), 'bottom');
-  assert.equal(half(round('ArrowDown'), sg, box), 'top');
-  assert.equal(half([], sg, box), 'top');
+  assert.deepEqual(enter(round('ArrowUp'), sg, box, 'ArrowUp'), at('node', 'in'));
+  assert.equal(enter(round('ArrowUp'), sg, box, 'ArrowDown'), null);
+  assert.deepEqual(enter(round('ArrowDown'), sg, box, 'ArrowDown'), at('node', 'in'));
+  assert.deepEqual(enter([], sg, box, 'ArrowDown'), at('node', 'in'));
   // Across a loop with nothing more to page: nothing, as on any edge (the user: not back to its node).
   assert.equal(go(sg, at('edge', 's-s'), 'ArrowLeft', { id: 's', key: 'ArrowUp' }), null);
   // Ctrl has no far end on a loop to skip to: past it, a-b's.
@@ -439,44 +440,79 @@ test("from a subgraph's box, across a crossing edge: the box's fan, and alone th
   assert.equal(across(g, 'far-log', 'ArrowRight', { id: 'pay', key: 'ArrowDown' }), null);
 });
 
-test("a box's half is where you came from against its middle: Down goes in at the top, Up at the bottom", () => {
-  // ship (y 20–180, middle 100) holds pack (top left), tape (right, a little lower) and label (bottom left).
-  const inner = nest([sub('ship', 100, 100, 200, 160), node('pack', 60, 50), node('tape', 160, 70), node('label', 60, 150),
-    node('done', 100, 260), node('paid', 100, -60), node('side', -60, 160)]);
-  const into = edge('paid', 'ship', [100, -45], 'D', [100, 20], 'U');
-  // A long label hangs its middle below the box's middle; it still meets the box at the top.
-  const labelled = { ...edge('far', 'ship', [140, -45], 'D', [140, 20], 'U'), id: 'far-ship', mid: P(140, 150) };
-  const g = { boxes: inner, edges: [into, labelled, edge('pack', 'label', [60, 65], 'D', [60, 135], 'U'),
-    edge('side', 'ship', [-30, 160], 'R', [0, 160], 'L')] };
+test('the arrow that brought you to a box goes on in, to the item nearest the side it enters by', () => {
+  // ship holds pack (top left), tape (right, a little lower) and label (bottom left).
+  const inner = nest([sub('ship', 100, 100, 200, 160), node('pack', 60, 50), node('tape', 160, 70), node('label', 60, 150)]);
+  const g = { boxes: inner, edges: [edge('pack', 'label', [60, 65], 'D', [60, 135], 'U')] };
   const ship = at('subgraph', 'ship');
-  const by = (/** @type {any} */ from) => [{ from, to: ship, key: 'ArrowDown', ctrl: false }];
-  // From above: the top. Down → the top row's leftmost; Up is the box's edges.
-  assert.equal(half(by(at('edge', 'paid-ship')), g, ship), 'top');
-  assert.deepEqual(enter(by(at('edge', 'paid-ship')), g, ship, 'ArrowDown'), at('node', 'pack'));
-  assert.equal(enter(by(at('edge', 'paid-ship')), g, ship, 'ArrowUp'), null);
-  assert.equal(half(by(at('edge', 'far-ship')), g, ship), 'top');
-  // From below: the bottom. Up → the bottom row's rightmost; Down is the box's edges.
-  assert.equal(half(by(at('node', 'done')), g, ship), 'bottom');
-  assert.deepEqual(enter(by(at('node', 'done')), g, ship, 'ArrowUp'), at('node', 'label'));
-  assert.equal(enter(by(at('node', 'done')), g, ship, 'ArrowDown'), null);
-  // Climbed out of: by where the inner item lies. An edge inside, by its middle (here level: the top).
-  assert.equal(half(by(at('node', 'label')), g, ship), 'bottom');
-  assert.equal(half(by(at('node', 'pack')), g, ship), 'top');
-  assert.equal(half(by(at('edge', 'pack-label')), g, ship), 'top');
-  // An edge into its side, where it meets it: below the middle, the bottom.
-  assert.equal(half(by(at('edge', 'side-ship')), g, ship), 'bottom');
-  // No move that ended here (a click, a find, O): the top. Left and Right never go in.
-  assert.equal(half([], g, ship), 'top');
+  const by = (/** @type {string} */ key) => [{ from: at('node', 'far'), to: ship, key, ctrl: false }];
+  // Each arrow in by the side it enters: from the top the leftmost, from the left the topmost; backwards from the
+  // bottom (the rightmost) and from the right (the lowest).
+  assert.deepEqual(enter(by('ArrowDown'), g, ship, 'ArrowDown'), at('node', 'pack'));
+  assert.deepEqual(enter(by('ArrowUp'), g, ship, 'ArrowUp'), at('node', 'label'));
+  assert.deepEqual(enter(by('ArrowRight'), g, ship, 'ArrowRight'), at('node', 'pack'));
+  assert.deepEqual(enter(by('ArrowLeft'), g, ship, 'ArrowLeft'), at('node', 'tape'));
+  // Any other arrow walks the box's edges.
+  assert.equal(enter(by('ArrowDown'), g, ship, 'ArrowUp'), null);
+  assert.equal(enter(by('ArrowRight'), g, ship, 'ArrowDown'), null);
+  // Reached any other way: the way its contents flow (here pack → label, down).
   assert.deepEqual(enter([], g, ship, 'ArrowDown'), at('node', 'pack'));
   assert.equal(enter([], g, ship, 'ArrowRight'), null);
-  // A row is what overlaps the nearest child: forwards from the top, backwards from the bottom.
-  const level = nest([sub('row', 100, 100, 200, 100), node('r', 160, 82, 60, 34), node('l', 40, 80), node('under', 100, 300)]);
+  // Only the move that ended here counts: a trail that ended elsewhere is no arrival.
+  assert.equal(enter([{ from: at('node', 'far'), to: at('node', 'label'), key: 'ArrowRight', ctrl: false }], g, ship, 'ArrowRight'), null);
+  // Items along a side are what overlaps the nearest one: forwards from the top, backwards from the bottom.
+  const level = nest([sub('row', 100, 100, 200, 100), node('r', 160, 82, 60, 34), node('l', 40, 80)]);
   const lg = { boxes: level, edges: [] };
   const up = [{ from: at('node', 'under'), to: at('subgraph', 'row'), key: 'ArrowUp', ctrl: false }];
   assert.deepEqual(enter([], lg, at('subgraph', 'row'), 'ArrowDown'), at('node', 'l'));
   // r's bottom is lower by a few pixels, but they are one row: the rightmost, not the lowest.
   assert.deepEqual(enter(up, lg, at('subgraph', 'row'), 'ArrowUp'), at('node', 'r'));
-  // Only from the box the last move ended at: a trail that ended elsewhere is no move here, so the top.
-  assert.equal(enter(by(at('edge', 'paid-ship')), g, at('node', 'done'), 'ArrowDown'), null);
-  assert.equal(half([{ from: at('node', 'done'), to: at('node', 'label'), key: 'ArrowUp', ctrl: false }], g, ship), 'top');
+});
+
+test('in, out and in again by the same arrow: going back out of a box keeps the arrow that first brought you', () => {
+  const inner = nest([node('top', 100, -60), sub('ship', 100, 100, 200, 160), node('pack', 60, 50), node('label', 60, 150)]);
+  const g = { boxes: inner, edges: [edge('pack', 'label', [60, 65], 'D', [60, 135], 'U')] };
+  const ship = at('subgraph', 'ship');
+  const intoBox = { from: at('node', 'top'), to: ship, key: 'ArrowDown', ctrl: false };
+  const intoPack = { from: ship, to: at('node', 'pack'), key: 'ArrowDown', ctrl: false };
+  const out = back({ trail: [intoBox, intoPack], came: null }, at('node', 'pack'), 'ArrowUp', false);
+  assert.deepEqual(out?.to, ship);
+  assert.deepEqual(enter(out?.cursor.trail ?? [], g, ship, 'ArrowDown'), at('node', 'pack'));
+  assert.equal(enter(out?.cursor.trail ?? [], g, ship, 'ArrowUp'), null);
+  // Come out from inside, by place (Down from label to the box's border): Down walks on, only Up would go back in.
+  const leftBy = [{ from: at('node', 'label'), to: ship, key: 'ArrowDown', ctrl: false }];
+  assert.equal(enter(leftBy, g, ship, 'ArrowDown'), null);
+  assert.deepEqual(enter(leftBy, g, ship, 'ArrowUp'), at('node', 'label'));
+  // And from an edge inside it.
+  const fromEdge = [{ from: at('edge', 'pack-label'), to: ship, key: 'ArrowRight', ctrl: false }];
+  assert.equal(enter(fromEdge, g, ship, 'ArrowRight'), null);
+  // Reached sideways, by place: Right goes in, and again after coming back out.
+  const side = { from: at('node', 'top'), to: ship, key: 'ArrowRight', ctrl: false };
+  const again = back({ trail: [side, { ...intoPack, key: 'ArrowRight' }], came: null }, at('node', 'pack'), 'ArrowLeft', false);
+  assert.deepEqual(enter(again?.cursor.trail ?? [], g, ship, 'ArrowRight'), at('node', 'pack'));
+});
+
+test("flow: the way most of a box's inner edges head, axis first; a tie or none, the top level's; none at all, Down", () => {
+  const boxes = nest([sub('s', 200, 0, 400, 100), node('a', 60, 0), node('b', 200, 0), node('c', 340, 0),
+    node('x', 200, -200), node('y', 200, 200)]);
+  const right = (/** @type {string} */ f, /** @type {string} */ t, /** @type {number} */ x0, /** @type {number} */ x1) =>
+    edge(f, t, [x0, 0], 'R', [x1, 0], 'L');
+  const left = (/** @type {string} */ f, /** @type {string} */ t, /** @type {number} */ x0, /** @type {number} */ x1) =>
+    edge(f, t, [x0, 0], 'L', [x1, 0], 'R');
+  const down = edge('x', 'y', [200, -185], 'D', [200, 185], 'U');
+  // Two right and one up: right (the axis by majority, then the sign).
+  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), right('b', 'c', 230, 310), edge('c', 'a', [340, -15], 'U', [60, -15], 'U')] }, 's'), 'ArrowRight');
+  // The axis first: two right, a back edge left and one up are right, though only half of all four head forward.
+  const up = edge('c', 'a', [340, -15], 'U', [60, -15], 'U');
+  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), right('b', 'c', 230, 310), left('c', 'a', 310, 90), up, down] }, 's'), 'ArrowRight');
+  // As many across as up and down: a tie, so the top level's.
+  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), up, edge('y', 'x', [200, 185], 'U', [200, -185], 'D')] }, 's'), 'ArrowUp');
+  // A forward and a back edge: a tie, so the top level's (down).
+  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), left('c', 'b', 310, 230), down] }, 's'), 'ArrowDown');
+  assert.equal(flow({ boxes, edges: [left('c', 'b', 310, 230), left('b', 'a', 170, 90)] }, 's'), 'ArrowLeft');
+  // No inner edge: the top level's; none there either: Down.
+  assert.equal(flow({ boxes, edges: [edge('y', 'x', [200, 185], 'U', [200, -185], 'D')] }, 's'), 'ArrowUp');
+  assert.equal(flow({ boxes, edges: [] }, 's'), 'ArrowDown');
+  // A clicked box with its contents flowing right goes in by Right, at the left side's top.
+  assert.deepEqual(enter([], { boxes, edges: [right('a', 'b', 90, 170)] }, at('subgraph', 's'), 'ArrowRight'), at('node', 'a'));
 });

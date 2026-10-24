@@ -227,11 +227,12 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
   arrow, nested or not; the topmost or leftmost on a tie), else nothing: nothing off to the side. The subgraph you are
   in counts by its border, so with nothing nearer inside, you reach its box: from Print label, Right is Boxing; from
   Charge card, Up is Payment.
-- **Into a subgraph.** You are at a subgraph's top or its bottom: by where you came from (above its middle, the top;
-  below it, the bottom; an edge counts where it meets the subgraph), at the top after any selection the arrows did not
-  make (a click, a find, O, an edit, Enter), and, back from its own self-loop, by the arrow (Up: the bottom). At the
-  top, Down goes in, to the leftmost of its top row; at the bottom, Up goes in, to the rightmost of its bottom row. Otherwise a subgraph walks its edges, as a node does; Left and
-  Right never go in.
+- **Into a subgraph.** The arrow that brought you to a subgraph goes on in; the other arrows walk its edges, as a
+  node's do, and Ctrl+Arrow skips past it. Down goes in to the leftmost item along its top, Right to the topmost along
+  its left side, Up to the rightmost along its bottom, Left to the lowest along its right side. Coming back out, the
+  same arrow goes in again. A subgraph you clicked or found (or reached with O or Enter) goes in the way its contents
+  are drawn: the way most of the edges inside it head (Right, in a left-right subgraph), else the way the diagram's do,
+  else Down.
 - **A self-loop** (a node or a subgraph connected to itself) belongs to its box's fans at both its ends. Along it, an
   arrow goes back to its node; across it, the arrows step, or do nothing.
 
