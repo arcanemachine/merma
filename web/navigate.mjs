@@ -57,7 +57,7 @@ export function within(/** @type {Box[]} */ boxes, /** @type {string} */ id) {
  * The edges leaving `id` heading `key` (for a subgraph, with `inside` from within(): also those crossing its border
  * from inside), in order across that way by where they meet it (two out of a diamond's
  * corners are told apart there): left to right for up and down, top to bottom for left and right. An edge belongs to
- * both its ends, whichever way it points; a self-loop belongs to its node once, where it starts, heading as it leaves.
+ * both its ends, whichever way it points; so does a self-loop, once when both its ends head the same way.
  */
 export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /** @type {string} */ key, inside = new Set()) {
   const across = vertical(key) ? 'x' : 'y';
@@ -66,7 +66,8 @@ export function leaving(/** @type {Edge[]} */ edges, /** @type {string} */ id, /
   for (const e of edges) {
     const [a, b] = endsOf(e);
     if (e.from === e.to) {
-      if (a.id === id && a.dir === key) found.push({ id: e.id, at: a.at });
+      const end = [a, b].find((x) => x.id === id && x.dir === key);
+      if (end) found.push({ id: e.id, at: end.at });
       continue;
     }
     for (const [end, other] of [[a, b], [b, a]]) {
@@ -105,9 +106,11 @@ export function walk({ boxes, edges }, at, key, from = null) {
   }
   const edge = edges.find((e) => e.id === at.id);
   if (!edge) return null;
-  // A self-loop: across it, its node's other edges leaving that way; any other arrow, back to its node.
+  // A self-loop: across it, its node's other edges at the end it was reached by (else where it starts); any other
+  // arrow, back to its node.
   if (edge.from === edge.to) {
-    const step = vertical(endsOf(edge)[0].dir) === vertical(key) ? null : across({ boxes, edges }, edge.id, key, from);
+    const axis = from?.id === edge.from ? from.key : endsOf(edge)[0].dir;
+    const step = vertical(axis) === vertical(key) ? null : across({ boxes, edges }, edge.id, key, from);
     return step ? step.to : box(edge.from);
   }
   const ends = endsOf(edge);
@@ -289,7 +292,14 @@ export function half(path, { boxes, edges }, at) {
   let y = null;
   if (last.from.kind === 'edge') {
     const e = edges.find((x) => x.id === last.from.id);
-    if (e) y = e.to === at.id ? e.end.y : e.from === at.id ? e.start.y : e.mid.y;
+    if (e && e.from === e.to && e.from === at.id) {
+      // The box's own self-loop: the end it was reached at, else its middle.
+      const before = path.at(-2);
+      const key = before?.to.id === e.id ? before.came?.key : null;
+      y = endsOf(e).find((end) => end.dir === key)?.at.y ?? e.mid.y;
+    } else if (e) {
+      y = e.to === at.id ? e.end.y : e.from === at.id ? e.start.y : e.mid.y;
+    }
   } else {
     y = boxes.find((b) => b.id === last.from.id)?.y ?? null;
   }
