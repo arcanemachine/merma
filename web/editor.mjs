@@ -64,6 +64,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
   /** @type {Item | null} while connecting by keys: the node or subgraph the arrows have reached, which Enter connects to */
   let candidate = null;
+  /** @type {import('./navigate.mjs').Move[]} the candidate's arrow moves, to retrace, as `path` is the selection's */
+  let candidateTrail = [];
+  /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
+  let cleared = null;
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
@@ -185,6 +189,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => {
       connecting = true;
+      candidateTrail = [];
       ui.notice('Click the node or subgraph the edge goes to, or reach it with the arrows and press Enter. Click away or '
         + 'press Escape to cancel.', 'info');
     },
@@ -396,7 +401,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clickedDuringEdit(item);
     if (connecting) { connectTo(item?.kind === 'edge' ? null : item); return; }
     if (item) select(item);
-    else { deselect(); if (!keptClick) ui.hideNotice(); }
+    else { deselect(); cleared = null; if (!keptClick) ui.hideNotice(); }
     keptClick = false;
   }
 
@@ -485,8 +490,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     enter: () => {
+      if (connecting && candidate?.kind === 'edge') {
+        ui.notice('Pick a node or subgraph to connect to: an edge cannot be connected to.', 'info');
+        return true;
+      }
       if (connecting) { if (candidate) connectTo(candidate); return Boolean(candidate); }
       if (selected) { editLabelOrTitle(selected); return true; }
+      // What Escape cleared comes back, while it is still drawn; else the middle node.
+      if (cleared && elsOf(cleared).length) { selectByKey(cleared); return true; }
       const r = els.diagram.getBoundingClientRect();
       const id = nearest(layout().boxes.filter((b) => b.kind === 'node'), r.left + r.width / 2, r.top + r.height / 2);
       if (id) selectByKey({ kind: 'node', id });
@@ -518,6 +529,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     escape: () => {
       if (connecting) { connecting = false; ui.hideNotice(); select(selection()); return true; }
       const had = Boolean(selected);
+      if (selected) cleared = selected;
       deselect();
       ui.hideNotice();
       return had;
@@ -586,91 +598,116 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (how === 'shift') return false;
     const graph = layout();
     if (connecting) {
-      const from = candidate ?? selection();
-      const next = from.kind === 'edge' || from.kind === 'title' ? null : byPlace(graph.boxes, from.id, key);
-      if (next && next.kind !== 'edge') markCandidate(next);
+      // The candidate moves by the same rules as the selection, with a trail of its own; it may rest on an edge, which
+      // Enter refuses, but never on the title.
+      const moved = step(graph, candidate ?? selection(), candidateTrail, key, how === 'ctrl');
+      if (moved.next && moved.next.kind !== 'title') { candidateTrail = moved.trail; markCandidate(moved.next); }
       return true;
     }
-    if (selected.kind === 'title') {
+    const moved = step(graph, selected, path, key, how === 'ctrl');
+    if (moved.next) {
+      moveTo(moved.next);
+      path = moved.trail;
+    }
+    return true;
+  }
+
+  /**
+   * Where arrow `key` (with Ctrl or not) takes a cursor, the selection or Connect to…'s candidate, from `here` with the
+   * arrow moves `trail` behind it (navigate.mjs gives the rules): the item it reaches, or null, and the trail after the
+   * move. Leaving a subgraph for its own box sets I's memory there.
+   * @param {{ boxes: import('./navigate.mjs').Box[], edges: import('./navigate.mjs').Edge[] }} graph
+   * @param {Item} here
+   * @param {import('./navigate.mjs').Move[]} trail
+   * @param {string} key
+   * @param {boolean} ctrl
+   * @returns {{ next: Item | null, trail: import('./navigate.mjs').Move[] }}
+   */
+  function step(graph, here, trail, key, ctrl) {
+    if (here.kind === 'title') {
       // Down from the title goes to the nearest node or box below it.
       const t = titleEl()?.getBoundingClientRect();
       const below = graph.boxes.filter((b) => !b.parent && t && b.y > t.bottom);
       const id = t && key === 'ArrowDown' && nearest(below, t.left + t.width / 2, t.bottom);
       const hit = id && below.find((b) => b.id === id);
-      if (hit) selectByKey({ kind: hit.kind, id: hit.id });
-      return true;
+      return { next: hit ? { kind: hit.kind, id: hit.id } : null, trail: [] };
     }
-    const ctrl = how === 'ctrl';
-    const here = /** @type {import('./navigate.mjs').Target} */ (selected);
+    const at = /** @type {import('./navigate.mjs').Target} */ (here);
     // The opposite key takes the last move back, retracing the way it came.
-    const back = retrace(path, here, key, ctrl);
+    const back = retrace(trail, at, key, ctrl);
     if (back) {
-      path.pop();
       // Back onto an edge from a node: it now counts as reached from that node by this arrow, so Left and Right step
       // that node's edges rather than take back the steps before it (the user).
-      if (back.from.kind === 'edge' && here.kind !== 'edge') {
-        path = [{ from: here, to: back.from, key, ctrl, came: { id: here.id, key } }];
-      }
-      moveTo(back.from);
-      return true;
+      const rest = back.from.kind === 'edge' && at.kind !== 'edge'
+        ? [{ from: at, to: back.from, key, ctrl, came: { id: at.id, key } }]
+        : trail.slice(0, -1);
+      return { next: back.from, trail: rest };
     }
-    /** The next thing that way by place, from the selection (an edge from its middle); none upwards: the title. */
-    const placed = () => {
-      let boxes = graph.boxes, at = here.id;
-      if (here.kind === 'edge') {
-        const e = graph.edges.find((x) => x.id === here.id);
-        if (!e) return null;
-        boxes = nest([...graph.boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]);
-        at = EDGE;
+    /**
+     * The next thing that way by place, from `here` (an edge from its middle); with `withEdges`, edges count too, each
+     * at its middle, all but the invisible ones (nothing is drawn there). None upwards, and nothing at all drawn above:
+     * the title.
+     */
+    const placed = (/** @type {boolean} */ withEdges) => {
+      /** @type {import('./navigate.mjs').Box[]} */
+      let boxes = graph.boxes, from = at.id;
+      if (withEdges) {
+        const hidden = new Set(edges(shownText).filter((e) => e.arrow.includes('~~~')).map((e) => e.svgId));
+        boxes = [...boxes, ...graph.edges.filter((e) => e.id !== at.id && !hidden.has(e.id))
+          .map((e) => ({ kind: /** @type {const} */ ('edge'), id: e.id, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }))];
       }
-      const found = byPlace(boxes, at, key);
-      if (!found && key === 'ArrowUp') toTitle(boxes, at);
-      return found;
+      if (at.kind === 'edge') {
+        const e = graph.edges.find((x) => x.id === at.id);
+        if (!e) return null;
+        boxes = [...boxes, { kind: /** @type {const} */ ('node'), id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }];
+        from = EDGE;
+      }
+      boxes = nest(boxes);
+      const found = byPlace(boxes, from, key);
+      if (found || key !== 'ArrowUp' || !titleEl()) return found;
+      const self = boxes.find((b) => b.id === from);
+      const above = self && boxes.some((b) => b !== self && b.kind === 'node' && b.y < self.y - self.h / 2);
+      return self && !above ? TITLE : null;
     };
+    /** @type {Item | null} */
     let next = null;
     /** @type {{ id: string, key: string } | null} for a move onto an edge: the node it was reached from */
     let came = null;
     if (ctrl) {
-      // Ctrl skips the edge plain would select; with none that way, it goes by place.
-      next = (edgesOk ? skip(graph, here, key) : null) ?? placed();
-    } else if (here.kind === 'edge') {
-      // Across an edge, among the edges of the node it was reached from, which the path keeps while stepping across.
-      const last = path.at(-1);
-      came = last && last.to.kind === 'edge' && last.to.id === here.id ? last.came ?? null : null;
-      // An edge reached any other way (a click, a search): its source, the way it leaves it.
-      const e = graph.edges.find((x) => x.id === here.id);
+      // Ctrl skips the edge plain would select; with none that way, it goes by place, to nodes and boxes only.
+      next = (edgesOk ? skip(graph, at, key) : null) ?? placed(false);
+    } else if (at.kind === 'edge') {
+      // Across an edge, among the edges of the node it was reached from, which the trail keeps while stepping across.
+      const last = trail.at(-1);
+      came = last && last.to.kind === 'edge' && last.to.id === at.id ? last.came ?? null : null;
+      // An edge reached any other way (a click, a search, by place): its source, the way it leaves it.
+      const e = graph.edges.find((x) => x.id === at.id);
       if (!came && e) came = { id: e.from, key: heading(e.start, e.startOut) };
-      next = walk(graph, here, key, came);
+      next = walk(graph, at, key, came);
       // Paged across to another edge: it counts as reached from the end whose edges it was found among.
-      came = next?.kind === 'edge' ? across(graph, here.id, key, came)?.from ?? null : null;
+      came = next?.kind === 'edge' ? across(graph, at.id, key, came)?.from ?? null : null;
     } else {
       if (!edgesOk) {
         ui.notice("The drawn edges don't match the file's text (no edge match), so edges can't be selected.", 'info');
-        return true;
+        return { next: null, trail };
       }
       // On into a box the same arrow brought you to, else an edge leaving that way, else the next thing that way.
-      next = enter(path, graph, here, key) ?? walk(graph, here, key) ?? placed();
+      next = enter(trail, graph, at, key) ?? walk(graph, at, key);
+      if (next?.kind === 'edge') came = { id: at.id, key };
+      next ??= placed(true);
     }
-    if (next) {
-      // Leaving a subgraph for its own box: I comes back here.
-      if (next.kind === 'subgraph' && here.kind !== 'edge' && graph.boxes.find((b) => b.id === here.id)?.parent === next.id) {
-        inside.set(next.id, here.id);
-      }
-      moveTo(next);
-      if (next.kind === 'edge' && here.kind !== 'edge' && !ctrl) came = { id: here.id, key };
-      path.push({ from: here, to: next, key, ctrl, came });
+    if (!next) return { next: null, trail };
+    // Leaving a subgraph for its own box: I comes back here.
+    if (next.kind === 'subgraph' && at.kind !== 'edge' && graph.boxes.find((b) => b.id === at.id)?.parent === next.id) {
+      inside.set(next.id, at.id);
     }
-    return true;
+    if (next.kind === 'title') return { next, trail: [] };
+    return { next, trail: [...trail, { from: at, to: /** @type {import('./navigate.mjs').Target} */ (next), key, ctrl, came }] };
   }
   /** Select by a key (an arrow, O or I), keeping the path to retrace and I's memory. */
   function moveTo(/** @type {Item} */ item) {
     moving = true;
     try { selectByKey(item); } finally { moving = false; }
-  }
-  /** Up with nowhere else to go, and nothing at all drawn above, reaches the diagram's title. */
-  function toTitle(/** @type {import('./navigate.mjs').Box[]} */ boxes, /** @type {string} */ id) {
-    const from = boxes.find((b) => b.id === id);
-    if (titleEl() && from && !boxes.some((b) => b !== from && b.kind === 'node' && b.y < from.y - from.h / 2)) selectByKey(TITLE);
   }
   /** O: the subgraph the selection (or, in Connect to…, the candidate) is drawn in; at the top, nothing. */
   function out() {
@@ -685,7 +722,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!parent) return true;
     const sub = /** @type {Item} */ ({ kind: 'subgraph', id: parent });
     if (from.kind !== 'edge') inside.set(parent, from.id);
-    if (connecting) markCandidate(sub); else byKey(sub);
+    if (connecting) { markCandidate(sub); candidateTrail = []; } else byKey(sub);
     return true;
   }
   /** I: into the selected subgraph (or candidate), to the item last selected there, else its top-left one. */
@@ -698,7 +735,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const first = last ?? children.sort((p, q) => p.y - q.y || p.x - q.x)[0];
     if (!first) return true;
     const item = /** @type {Item} */ ({ kind: first.kind, id: first.id });
-    if (connecting) markCandidate(item); else byKey(item);
+    if (connecting) { markCandidate(item); candidateTrail = []; } else byKey(item);
     return true;
   }
   /** O and I select by key, keeping I's memory, but start the way back afresh: they are not arrow moves. */
@@ -710,9 +747,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function markCandidate(/** @type {Item} */ item) {
     clearMarks('data-page-candidate');
     candidate = item;
+    for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const el = elsOf(item)[0];
-    if (el) mark(el, 'data-page-candidate');
-    ui.announce(`${named(item)}: press Enter to connect`);
+    ui.announce(item.kind === 'edge' ? `${named(item)}: an edge, cannot be connected to` : `${named(item)}: press Enter to connect`);
     if (el) viewer.reveal(el.getBoundingClientRect());
   }
   /** Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view. */

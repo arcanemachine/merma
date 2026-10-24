@@ -200,6 +200,15 @@ test("Ctrl lands on the outermost box around the far end that the place you leav
   assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
 });
 
+test('by place: an edge given as a point at its middle is found like a node; one inside where you are is not', () => {
+  // The demo's Shipping: the edge from Paid to Order log runs down just right of it; Wait for stock is far up-right.
+  const placed = nest([sub('ship', 100, 100, 120, 100), node('wait', 260, -40),
+    { kind: /** @type {const} */ ('edge'), id: 'paid-log', x: 180, y: 120, w: 0, h: 0 },
+    { kind: /** @type {const} */ ('edge'), id: 'pack-tape', x: 120, y: 110, w: 0, h: 0 }]);
+  assert.deepEqual(byPlace(placed, 'ship', 'ArrowRight'), at('edge', 'paid-log'));
+  assert.deepEqual(byPlace(placed.filter((b) => b.id !== 'paid-log'), 'ship', 'ArrowRight'), at('node', 'wait'));
+});
+
 test('by place: nothing that way, nowhere (no wrap)', () => {
   const two = nest([node('a', 0, 0), node('b', 200, 100)]);
   assert.deepEqual(byPlace(two, 'a', 'ArrowDown'), at('node', 'b'));
