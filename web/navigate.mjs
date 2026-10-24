@@ -106,12 +106,12 @@ export function walk({ boxes, edges }, at, key, from = null) {
   }
   const edge = edges.find((e) => e.id === at.id);
   if (!edge) return null;
-  // A self-loop: across it, its node's other edges at the end it was reached by (else where it starts); any other
-  // arrow, back to its node.
+  // A self-loop: along it, back to its node; across it, its node's other edges at the end it was reached by (else
+  // where it starts), or nothing, as on any edge.
   if (edge.from === edge.to) {
     const axis = from?.id === edge.from ? from.key : endsOf(edge)[0].dir;
-    const step = vertical(axis) === vertical(key) ? null : across({ boxes, edges }, edge.id, key, from);
-    return step ? step.to : box(edge.from);
+    if (vertical(axis) === vertical(key)) return box(edge.from);
+    return across({ boxes, edges }, edge.id, key, from)?.to ?? null;
   }
   const ends = endsOf(edge);
   // Along the edge: the end it leaves heading back towards us.
@@ -279,7 +279,7 @@ export function nearest(/** @type {Box[]} */ boxes, /** @type {number} */ x, /**
 /**
  * Which half of subgraph box `at` you are at: where the item you came from lies against the box's middle (an edge
  * where it meets the box, else at its middle), "top" on a tie; with no move that ended here (a click, a find, O, an
- * edit), the top.
+ * edit), or from the box's own self-loop, the top.
  * @param {Move[]} path
  * @param {{ boxes: Box[], edges: Edge[] }} graph
  * @param {Target} at
@@ -292,12 +292,9 @@ export function half(path, { boxes, edges }, at) {
   let y = null;
   if (last.from.kind === 'edge') {
     const e = edges.find((x) => x.id === last.from.id);
-    if (e && e.from === e.to && e.from === at.id) {
-      // The box's own self-loop: the end it was reached at, else its middle.
-      const before = path.at(-2);
-      const key = before?.to.id === e.id ? before.came?.key : null;
-      y = endsOf(e).find((end) => end.dir === key)?.at.y ?? e.mid.y;
-    } else if (e) {
+    // From the box's own self-loop, which frames it and has no half: the top, as after a click.
+    if (e && e.from === e.to && e.from === at.id) return 'top';
+    if (e) {
       y = e.to === at.id ? e.end.y : e.from === at.id ? e.start.y : e.mid.y;
     }
   } else {

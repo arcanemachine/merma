@@ -200,7 +200,7 @@ test("Ctrl lands on the outermost box around the far end that the place you leav
   assert.deepEqual(skip(g, at('subgraph', 'o'), 'ArrowUp'), at('node', 's'));
 });
 
-test("a self-loop belongs to its node's edges where it starts; on it, across pages them, any other arrow goes back", () => {
+test("a self-loop belongs to its node's edges at its ends; on it, along goes back to its node, across pages or stops", () => {
   // a's loop leaves its left side; a-b also leaves a heading left, lower down.
   const loop = edge('a', 'a', [-30, -5], 'L', [-30, 5], 'L');
   const g = { boxes: nest([node('a', 0, 0), node('b', -200, 40)]), edges: [loop, edge('a', 'b', [-30, 8], 'L', [-170, 40], 'R')] };
@@ -209,8 +209,8 @@ test("a self-loop belongs to its node's edges where it starts; on it, across pag
   assert.deepEqual(walk(g, at('node', 'a'), 'ArrowLeft'), at('edge', 'a-a'));
   assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowRight'), at('node', 'a'));
   assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowDown'), at('edge', 'a-b'));
-  // Nothing to page that way: back to its node.
-  assert.deepEqual(walk(g, at('edge', 'a-a'), 'ArrowUp'), at('node', 'a'));
+  // Nothing to page that way: nothing, as on any edge.
+  assert.equal(walk(g, at('edge', 'a-a'), 'ArrowUp'), null);
   // A loop out of one side and back into another counts at both, reached either way; across, it pages the set it was
   // reached in; along that set's axis, back to its node.
   const frame = edge('s', 's', [0, 50], 'D', [5, -50], 'U');
@@ -225,12 +225,14 @@ test("a self-loop belongs to its node's edges where it starts; on it, across pag
   const corner = { boxes: nest([node('q', 0, 0), node('r', -40, -100)]),
     edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U'), edge('q', 'r', [-10, -15], 'U', [-40, -85], 'D')] };
   assert.deepEqual(walk(corner, at('edge', 'q-q'), 'ArrowLeft', { id: 'q', key: 'ArrowUp' }), at('edge', 'q-r'));
-  // Back on the box from its loop: the half of the end the loop was reached at.
+  // Back on the box from its own loop, which frames it: the top, whichever end it was reached at (the user).
   const box = at('subgraph', 's'), loopEdge = at('edge', 's-s');
   const trail = (/** @type {string} */ key) => [{ from: box, to: loopEdge, key, ctrl: false, came: { id: 's', key } },
     { from: loopEdge, to: box, key: 'ArrowLeft', ctrl: false }];
-  assert.equal(half(trail('ArrowDown'), sg, box), 'bottom');
+  assert.equal(half(trail('ArrowDown'), sg, box), 'top');
   assert.equal(half(trail('ArrowUp'), sg, box), 'top');
+  // Across a loop with nothing more to page: nothing, as on any edge (the user: not back to its node).
+  assert.equal(walk(sg, at('edge', 's-s'), 'ArrowLeft', { id: 's', key: 'ArrowUp' }), null);
   // Ctrl has no far end on a loop to skip to: past it, a-b's.
   assert.deepEqual(skip(g, at('node', 'a'), 'ArrowLeft'), at('node', 'b'));
   assert.equal(skip({ boxes: g.boxes, edges: [loop] }, at('node', 'a'), 'ArrowLeft'), null);
