@@ -112,9 +112,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   after a drag: a change in the window's size no longer refits it.
 - The view is yours: merma moves it on its own only to bring something into view, and once you move it yourself,
   nothing merma does afterwards puts it back. Find (/) is the case in point. It matches the whole diagram, on screen
-  or not, and typing never moves the view: the current match is the best one on screen, else the best, and the count
-  says how many are off screen ("2 of 5, 3 off screen"). Tab and Shift+Tab step and bring the current match into view
-  (a pan, never a zoom). Escape puts back the selection and the view from before the find, unless you moved the view
+  or not, and typing never moves the view: the current match is the best one wholly on screen, else the best, and the
+  count says how many are not ("2 of 5, 3 off screen"). Tab and Shift+Tab step; the first of them with any match off
+  screen also moves the view once to show them all, as a fit puts the diagram: centered at the zoom it has, or zoomed
+  out just enough, never in (the user: a find that jumped on some Tabs and not others was confusing; one move, then
+  none). Moving by keys keeps the least move, since there each step is one item. Escape puts back the selection and
+  the view from before the find, unless you moved the view
   since (a drag, the wheel, a pinch, a zoom key); a click away keeps the view where it is (the user: Tab to a match
   off screen, then click it, and the view stays put). Enter selects the current match; with no match, or nothing
   typed, it does nothing, and the box stays. / again shows the last query, selected.

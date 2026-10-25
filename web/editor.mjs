@@ -665,9 +665,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // --- find: / -------------------------------------------------------------------------------------------------
 
   // What was typed is matched against the whole diagram (find.mjs). Typing never moves the view; Tab and Shift+Tab
-  // step through the matches and bring the current one into view, so Escape is the way out of the box. The selection
-  // is set aside meanwhile: Enter selects the current match; Escape puts back the selection, and the view too unless
-  // the user moved it since; a click away puts back the selection and keeps the view (docs/ux.md).
+  // step through the matches, the first of them with any off screen moving the view once to show them all, so Escape
+  // is the way out of the box. The selection is set aside meanwhile: Enter selects the current match; Escape puts back
+  // the selection, and the view too unless the user moved it since; a click away puts back the selection and keeps
+  // the view (docs/ux.md).
   const findBox = /** @type {HTMLInputElement} */ (els.findBox);
   /**
    * `view`: the view before the find, put back on Escape unless the user has `moved` it since.
@@ -676,7 +677,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let finding = null;
   /** What the last find looked for, shown again by the next. */
   let lastQuery = '';
-  /** What can be found, and whether each is drawn wholly or partly on screen. */
+  /** What can be found, and whether each is drawn wholly on screen. */
   function findables() {
     const area = els.diagram.getBoundingClientRect();
     /** @type {import('./find.mjs').Findable[]} */
@@ -684,8 +685,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const add = (/** @type {Item} */ item, /** @type {Element | null | undefined} */ el, /** @type {string} */ text) => {
       const r = el?.getBoundingClientRect();
       if (!r || !text.trim()) return;
-      const on = r.right >= area.left && r.left <= area.right && r.bottom >= area.top && r.top <= area.bottom;
-      out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2, on });
+      const on = r.left >= area.left && r.right <= area.right && r.top >= area.top && r.bottom <= area.bottom;
+      const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+      out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2, box, on });
     };
     for (const g of drawn('g.node[data-page-node]')) {
       const item = /** @type {Item} */ ({ kind: 'node', id: g.dataset.pageNode });
@@ -778,12 +780,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.preventDefault();
       const n = finding.matches.length;
       if (!n) return;
+      // One move, then none (the user): with any match off screen, show them all, which counts them again.
+      if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box));
       finding.at = (finding.at + (e.shiftKey ? -1 : 1) + n) % n;
       markMatches();
-      const at = finding.matches[finding.at];
-      ui.announce(named(at));
-      const el = elsOf(at)[0];
-      if (el) viewer.reveal(el.getBoundingClientRect());
+      ui.announce(named(finding.matches[finding.at]));
     }
   });
   // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and

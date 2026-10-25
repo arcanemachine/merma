@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { find, firstShown, countText } from '../web/find.mjs';
 
-const item = (/** @type {string} */ id, /** @type {string} */ text, x = 0, y = 0, on = true) => ({ kind: /** @type {const} */ ('node'), id, text, x, y, on });
+const item = (/** @type {string} */ id, /** @type {string} */ text, x = 0, y = 0, on = true) => ({ kind: /** @type {const} */ ('node'), id, text, x, y, box: { left: x, top: y, right: x, bottom: y }, on });
 const ids = (/** @type {{ id: string }[]} */ list) => list.map((i) => i.id);
 
 test('find ignores case and runs of spaces', () => {

@@ -67,6 +67,7 @@ there is no login.
 | `web/navigate.mjs` | Where an arrow key moves the selection: along edges, or to the next thing that way |
 | `web/find.mjs` | Find on /: which drawn items match, best first |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
+| `web/frame.mjs` | The view that shows find's matches all at once |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |

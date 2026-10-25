@@ -6,6 +6,7 @@
 
 // A change to this version changes the module's name in types/mermaid.d.ts too.
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
+import { frame as frameView } from './frame.mjs';
 
 // useMaxWidth: false renders every diagram type at its natural size; the view below fits and zooms it.
 const natural = { useMaxWidth: false };
@@ -61,6 +62,13 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   Object.assign(scratch.style, { position: 'absolute', left: '0', top: '0', visibility: 'hidden', pointerEvents: 'none' });
   scratch.setAttribute('aria-hidden', 'true');
   diagram.append(scratch);
+
+  // The stage's origin is #diagram's padding-box corner (absolute at 0, 0 in it), so its padding-top does not enter in.
+  /** A point in client coordinates, in the stage's own (unzoomed) coordinates. */
+  function toStage(/** @type {number} */ x, /** @type {number} */ y) {
+    const box = diagram.getBoundingClientRect();
+    return { x: (x - box.left - view.x) / view.k, y: (y - box.top - view.y) / view.k };
+  }
 
   function apply(byUser = false) {
     stage.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
@@ -280,6 +288,24 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
+    /**
+     * Show every rect (client coordinates) at once, as a fit puts the diagram: centered at the zoom the view has, or
+     * zoomed out just enough, never in.
+     */
+    frame(/** @type {import('./frame.mjs').Box[]} */ rects) {
+      const box = diagram.getBoundingClientRect();
+      const top = parseFloat(getComputedStyle(diagram).paddingTop) || 0;
+      const boxes = rects.map((r) => {
+        const a = toStage(r.left, r.top), b = toStage(r.right, r.bottom);
+        return { left: a.x, top: a.y, right: b.x, bottom: b.y };
+      });
+      const to = frameView(boxes, { width: box.width, height: box.height, top }, PAD, view.k);
+      if (!to) return;
+      Object.assign(view, to);
+      touched = true;
+      apply();
+    },
+
     /** Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
      * padding, at the zoom it has. */
     center(/** @type {number} */ x, /** @type {number} */ y) {
@@ -291,12 +317,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
-    // The stage's origin is #diagram's padding-box corner (absolute at 0, 0 in it), so its padding-top does not enter in.
-    /** A point in client coordinates, in the stage's own (unzoomed) coordinates. */
-    toStage(/** @type {number} */ x, /** @type {number} */ y) {
-      const box = diagram.getBoundingClientRect();
-      return { x: (x - box.left - view.x) / view.k, y: (y - box.top - view.y) / view.k };
-    },
+    toStage,
 
     /** The reverse of toStage(): where a stage point is on screen now. */
     toClient(/** @type {{ x: number, y: number }} */ { x, y }) {
