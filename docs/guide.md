@@ -190,8 +190,6 @@ here does just what it does in the selected item's menu:
 | / (wherever it is on your keyboard) | Find what is on screen (below) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |
-| 1–9, 0 with a node selected | Give it that shape, by its digit in the node panel's shapes; the shape it has writes nothing |
-| 1–9, 0 with an edge selected | Give it that arrow type, by its digit in Edit arrow type ▸ |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
