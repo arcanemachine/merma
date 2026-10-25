@@ -757,10 +757,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     swallowClick = false;
     keptClick = false;
     const at = /** @type {Element} */ (e.target);
-    // Keep focus in the label box or the find box through a drag: a press in the diagram would move it to #diagram.
-    // The box and its strip keep their own presses (the caret, text selection, the shapes), and so do menus.
-    if ((labelling || finding) && els.diagram.contains(at) && at !== input && !stripBox.contains(at)
-      && !at.closest('[data-overlay]')) e.preventDefault();
+    // Keep focus in the label box, the find box or a menu through a drag: a press in the diagram would move it to
+    // #diagram. The box and its strip keep their own presses (the caret, text selection, the shapes), and so do menus.
+    if ((labelling || finding || menuOpen() || menus.space.isOpen()) && els.diagram.contains(at) && at !== input
+      && !stripBox.contains(at) && !at.closest('[data-overlay]')) e.preventDefault();
   });
   // A click outside the diagram (header, footer, Help) is a click away: it ends a find and Connect to… as Escape
   // does, and closes the menus. Clicks in the diagram are the viewer's (clicked()): the browser's own click there
