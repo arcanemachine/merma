@@ -188,8 +188,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     and out.
   - I goes back to the item you last left a subgraph by, while keys select; a click, a find or an edit forgets it (the
     user: keeping it across a click was backwards). It is not the trail: one item per subgraph, not a list of steps.
-  - Escape clears the selection, and Enter brings it back; a click on empty space forgets it (the user: you lose your
-    place otherwise). With nothing to bring back, Enter selects the middle node.
+  - Escape clears the selection, and Enter brings it back as it was, an edge with its counted end and the trail
+    with it (the user: the end tick moved); a click on empty space forgets it (the user: you lose your place
+    otherwise). With nothing to bring back, Enter selects the middle node.
   - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an edge's
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see
     what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull

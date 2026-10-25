@@ -74,6 +74,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let candidate = null;
   /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
   let cleared = null;
+  /** @type {import('./navigate.mjs').Cursor | null} where the keys were then, an edge's counted end with it */
+  let clearedCursor = null;
   /** @type {{ x: number, y: number } | null} where the empty-space menu was opened, in stage coordinates */
   let spaceAt = null;
   /**
@@ -649,7 +651,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (connecting) { if (candidate) connectTo(candidate); return Boolean(candidate); }
       if (selected) { editLabelOrTitle(selected); return true; }
       // What Escape cleared comes back, while it is still drawn; else the middle node.
-      if (cleared && elsOf(cleared).length) { selectByKey(cleared); return true; }
+      if (cleared && elsOf(cleared).length) {
+        // As it was (the user: an edge kept its counted end), so the keys go on from where they were.
+        if (clearedCursor) moves.restore(clearedCursor);
+        selectByKey(cleared, undefined, Boolean(clearedCursor));
+        return true;
+      }
       const r = els.diagram.getBoundingClientRect();
       const id = nearest(layout().boxes.filter((b) => b.kind === 'node'), r.left + r.width / 2, r.top + r.height / 2);
       if (id) selectByKey({ kind: 'node', id });
@@ -697,7 +704,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     escape: () => {
       if (connecting) { cancelConnect(); return true; }
       const had = Boolean(selected);
-      if (selected) cleared = selected;
+      if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
       deselect();
       ui.hideNotice();
       return had;

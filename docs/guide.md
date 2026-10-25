@@ -265,7 +265,7 @@ Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, 
 when there is one; Down from the title goes to the box nearest below it.
 
 **Ways out**, wherever you are: / (find looks through the whole diagram), Ctrl+Arrows (they jump),
-Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back.
+Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back as it was (an edge keeps its end tick).
 
 **Find** with / (or **Find…** in the empty-space menu, the way in on a phone): type, and every node, edge label,
 subgraph and title holding what you typed (ignoring case), on screen or off, is outlined in amber (for an edge label,

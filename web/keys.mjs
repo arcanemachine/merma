@@ -186,6 +186,9 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     out,
     into,
     other,
+    /** Where the selection's keys are (its trail, an edge's counted end), to put back with restore(). */
+    cursor: () => cursor,
+    restore(/** @type {Cursor} */ saved) { cursor = saved; },
     /** On a selected edge, the end it counts as reached from (null: its source). */
     came: () => cursor.came,
     /** A selected edge counts as reached from `fan` (null: its source): a click on its line on that end's side. */
