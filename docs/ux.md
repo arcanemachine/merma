@@ -71,6 +71,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   or a pinch, a press-and-drag, a pinch or the wheel closes nothing and cancels nothing: not a menu, Help, the label
   box, find or Connect to…; only a click (a release without a drag, as the viewer's slop decides) does. Outside the
   diagram there is nothing to drag, so a press there is a click in practice, and its focus move saves the label box.
+  While a menu, the label box or find is open, a press in the diagram moves no focus, so a drag leaves the keys with
+  what is open; the click decides.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
   Connect to…, Help, find) ends on one, as on Escape. The label box is the exception (the user): a click or tap away, or Tab,
   keeps what you typed (it saves, as Enter does); only Escape discards it. In the box an add opened, Escape takes the
