@@ -919,15 +919,19 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   stripBox.append(strip.el, stripHint);
   els.diagram.append(stripBox);
   let stripOpen = false;
+  /** @type {'below' | 'above'} the side of the label box the strip opened on, kept as it follows the box */
+  let stripSide = 'below';
   /** @type {string | null} the shape the node had when the strip opened, or null for one these edits cannot read */
   let stripFrom = null;
 
-  function placeStrip() {
+  /** Place the strip under the label box; `fresh`, as it opens: above it when there is no room below. */
+  function placeStrip(fresh = false) {
     if (!stripOpen) return;
     const r = input.getBoundingClientRect(), s = stripBox.getBoundingClientRect();
     const center = (r.left + r.right) / 2 - s.width / 2;
     const at = place({ left: center, top: r.top, right: center + s.width, bottom: r.bottom }, s,
-      els.diagram.getBoundingClientRect(), { side: 'below', gap: 6 });
+      els.diagram.getBoundingClientRect(), { side: fresh ? 'below' : stripSide, gap: 6, flip: fresh });
+    if (fresh) stripSide = at.flipped ? 'above' : 'below';
     stripBox.style.left = at.left + 'px';
     stripBox.style.top = at.top + 'px';
   }
@@ -940,7 +944,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     strip.current(stripFrom, stripFrom ?? '');
     stripBox.showPopover();
     input.setAttribute('aria-describedby', stripHint.id);
-    placeStrip();
+    placeStrip(true);
   }
 
   function closeStrip() {

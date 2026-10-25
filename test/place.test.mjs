@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { place } from '../web/place.mjs';
+import { place, OPPOSITE } from '../web/place.mjs';
 
 const BOUNDS = { left: 0, top: 0, right: 500, bottom: 400 };
 const rect = (left, top, w, h) => ({ left, top, right: left + w, bottom: top + h });
@@ -40,4 +40,21 @@ test('below an anchor, or above it when there is no room below', () => {
 
 test('a box bigger than the bounds keeps its start edge inside them', () => {
   assert.deepEqual(place(rect(10, 10, 0, 0), { width: 600, height: 500 }, BOUNDS, { gap: 0 }), { left: 0, top: 0, flipped: false });
+});
+
+test('to the left of the anchor, or the right when there is no room on the left', () => {
+  assert.deepEqual(place(rect(300, 50, 40, 20), SIZE, BOUNDS, { side: 'left' }), { left: 192, top: 50, flipped: false });
+  assert.deepEqual(place(rect(60, 50, 40, 20), SIZE, BOUNDS, { side: 'left' }), { left: 108, top: 50, flipped: true });
+});
+
+test('with flip off, the box keeps its side and is only pushed inside', () => {
+  // No room on the right: pushed back against the right edge, over the anchor, rather than jumping to the left.
+  assert.deepEqual(place(rect(380, 50, 40, 20), SIZE, BOUNDS, { flip: false }), { left: 400, top: 50, flipped: false });
+  // A box that opened on the left stays there, pushed against the left edge, though there is room on the right now.
+  assert.deepEqual(place(rect(60, 50, 40, 20), SIZE, BOUNDS, { side: 'left', flip: false }), { left: 0, top: 50, flipped: false });
+  assert.deepEqual(place(rect(100, 340, 60, 30), SIZE, BOUNDS, { side: 'below', flip: false }), { left: 100, top: 320, flipped: false });
+});
+
+test('the opposite of each side', () => {
+  assert.deepEqual([OPPOSITE.right, OPPOSITE.left, OPPOSITE.below, OPPOSITE.above], ['left', 'right', 'above', 'below']);
 });
