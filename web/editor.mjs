@@ -340,7 +340,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let endSide = null;
   /**
    * Mark the end the selected edge counts as reached from, whose edges the cross arrows step (the user): a short tick
-   * across its line, flat or upright (the user: never tilted on a curve), in the stage so it moves with the diagram, at one size on screen whatever the zoom, and slid
+   * across its line, flat or upright (the user: never tilted on a curve), in the stage so it moves with the diagram, sized in the diagram's units with a floor on screen, and slid
    * along the line until it is clear of any text. `measure`: work out which end again (a new selection, or Space);
    * else the same end, redrawn for a new zoom.
    */
