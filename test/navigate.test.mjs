@@ -503,27 +503,35 @@ test('in, out and in again by the same arrow: going back out of a box keeps the 
   assert.deepEqual(enter(again?.cursor.trail ?? [], g, ship, 'ArrowRight'), at('node', 'pack'));
 });
 
-test("flow: the way most of a box's inner edges head, axis first; a tie or none, the top level's; none at all, Down", () => {
-  const boxes = nest([sub('s', 200, 0, 400, 100), node('a', 60, 0), node('b', 200, 0), node('c', 340, 0),
-    node('x', 200, -200), node('y', 200, 200)]);
+test("flow: a clicked box goes in the way the boxes beside it run, axis first; a tie or none, a level up; then Down", () => {
+  // o holds a, b and the subgraph s (with i1 and i2 inside); x and y lie above and below o.
+  const boxes = nest([sub('o', 200, 0, 600, 200), node('a', 0, 0), node('b', 150, 0), sub('s', 350, 0, 200, 120),
+    node('i1', 300, 0), node('i2', 400, 0), node('x', 200, -300), node('y', 200, 300)]);
   const right = (/** @type {string} */ f, /** @type {string} */ t, /** @type {number} */ x0, /** @type {number} */ x1) =>
     edge(f, t, [x0, 0], 'R', [x1, 0], 'L');
   const left = (/** @type {string} */ f, /** @type {string} */ t, /** @type {number} */ x0, /** @type {number} */ x1) =>
     edge(f, t, [x0, 0], 'L', [x1, 0], 'R');
-  const down = edge('x', 'y', [200, -185], 'D', [200, 185], 'U');
-  // Two right and one up: right (the axis by majority, then the sign).
-  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), right('b', 'c', 230, 310), edge('c', 'a', [340, -15], 'U', [60, -15], 'U')] }, 's'), 'ArrowRight');
+  const up = edge('a', 's', [0, -15], 'U', [350, -60], 'U');
+  // s's own contents run up, three to one: they are not its level, so they do not count.
+  const inner = [edge('i1', 'i2', [300, -15], 'U', [400, -15], 'U'), { ...edge('i2', 'i1', [400, -15], 'U', [300, -15], 'U'), id: 'i2-i1a' },
+    { ...edge('i2', 'i1', [400, 15], 'U', [300, 15], 'U'), id: 'i2-i1b' }];
+  const ab = right('a', 'b', 30, 120), bs = right('b', 's', 180, 250);
+  assert.equal(flow({ boxes, edges: [ab, bs, up, ...inner] }, 's'), 'ArrowRight');
   // The axis first: two right, a back edge left and one up are right, though only half of all four head forward.
-  const up = edge('c', 'a', [340, -15], 'U', [60, -15], 'U');
-  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), right('b', 'c', 230, 310), left('c', 'a', 310, 90), up, down] }, 's'), 'ArrowRight');
-  // As many across as up and down: a tie, so the top level's.
-  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), up, edge('y', 'x', [200, 185], 'U', [200, -185], 'D')] }, 's'), 'ArrowUp');
-  // A forward and a back edge: a tie, so the top level's (down).
-  assert.equal(flow({ boxes, edges: [right('a', 'b', 90, 170), left('c', 'b', 310, 230), down] }, 's'), 'ArrowDown');
-  assert.equal(flow({ boxes, edges: [left('c', 'b', 310, 230), left('b', 'a', 170, 90)] }, 's'), 'ArrowLeft');
-  // No inner edge: the top level's; none there either: Down.
-  assert.equal(flow({ boxes, edges: [edge('y', 'x', [200, 185], 'U', [200, -185], 'D')] }, 's'), 'ArrowUp');
-  assert.equal(flow({ boxes, edges: [] }, 's'), 'ArrowDown');
-  // A clicked box with its contents flowing right goes in by Right, at the left side's top.
-  assert.deepEqual(enter([], { boxes, edges: [right('a', 'b', 90, 170)] }, at('subgraph', 's'), 'ArrowRight'), at('node', 'a'));
+  assert.equal(flow({ boxes, edges: [ab, bs, left('s', 'a', 250, 30), up] }, 's'), 'ArrowRight');
+  // A tie (forward against back, or as many across as up and down): a level up, where x runs down into o.
+  const xo = edge('x', 'o', [200, -285], 'D', [200, -100], 'U');
+  assert.equal(flow({ boxes, edges: [ab, left('s', 'b', 250, 180), xo] }, 's'), 'ArrowDown');
+  assert.equal(flow({ boxes, edges: [ab, up, edge('y', 'o', [200, 285], 'U', [200, 100], 'D')] }, 's'), 'ArrowUp');
+  // One level up at a time: o inside p, where z runs left into o; the top level (x down into p) is not reached.
+  const deep = nest([sub('p', 200, 0, 1000, 500), sub('o', 200, 0, 600, 200), node('a', 0, 0), node('b', 150, 0),
+    sub('s', 350, 0, 200, 120), node('i1', 300, 0), node('z', 650, 180), node('x', 200, -400)]);
+  assert.equal(flow({ boxes: deep, edges: [ab, left('s', 'b', 250, 180), edge('z', 'o', [620, 180], 'L', [500, 50], 'R'),
+    edge('x', 'p', [200, -385], 'D', [200, -250], 'U')] }, 's'), 'ArrowLeft');
+  // Nothing at any level: Down.
+  assert.equal(flow({ boxes, edges: inner }, 's'), 'ArrowDown');
+  // So a clicked s goes in by Right, at its left side's top, and Down walks its edges.
+  const g = { boxes, edges: [ab, bs] };
+  assert.deepEqual(enter([], g, at('subgraph', 's'), 'ArrowRight'), at('node', 'i1'));
+  assert.equal(enter([], g, at('subgraph', 's'), 'ArrowDown'), null);
 });

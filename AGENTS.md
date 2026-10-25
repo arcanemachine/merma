@@ -9,7 +9,7 @@ and where the two differ, the local file wins.
 
 `GLOSSARY.md` holds the words merma uses. Use them as written there, in the page, the docs, the code and messages
 about the work; when a new word comes in, add it there in the same commit. Where Mermaid has a word for something
-(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case. American spelling throughout (color, center, behavior, gray), in the page, the docs and the code.
+(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case. American spelling throughout (color, center, behavior, gray), in the page, the docs and the code (the user).
 
 `docs/ux.md` holds the rules the page follows, and why. Read it before changing anything the user sees, and update it
 in the same commit when a rule changes. `docs/guide.md` says what each control does, and Help in `web/index.html` is a

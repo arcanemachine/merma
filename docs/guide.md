@@ -3,7 +3,8 @@
 What the page does, control by control. What goes here: what each gesture, key and menu item does. What does not: why
 the page works the way it does (`docs/ux.md`), what the words mean (`GLOSSARY.md`), how to start merma (`README.md`).
 The page's Help panel is a short subset of this guide: the gestures and the keys that work outside menus. Menu letters
-are shown in the menus, and digits in the pickers, so Help does not list them.
+are shown in the menus (underlined, or at the right of the item), and digits in the pickers, so Help does not list
+them.
 
 ## Viewing
 
@@ -231,9 +232,9 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
   node's do, and Ctrl+Arrow skips past it. Down goes in to the leftmost item along its top, Right to the topmost along
   its left side, Up to the rightmost along its bottom, Left to the lowest along its right side. Coming back out, the
   same arrow goes in again. Reaching a subgraph's box from inside it, the arrow you came out by goes on; the opposite one
-  goes back in. A subgraph you clicked or found (or reached with O or Enter) goes in the way its contents
-  are drawn: the way most of the edges inside it head (Right, in a left-right subgraph), else the way the diagram's do,
-  else Down.
+  goes back in. A subgraph you clicked or found (or reached with O or Enter) goes in as if you had walked to it: the
+  way the boxes beside it run (Down in a top-down diagram, Right in a left-right one), whichever way its own contents
+  run.
 - **A self-loop** (a node or a subgraph connected to itself) belongs to its box's fans at both its ends. Along it, an
   arrow goes back to its node; across it, the arrows step, or do nothing.
 

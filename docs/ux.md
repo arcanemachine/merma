@@ -131,10 +131,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     in again is the same arrow each time; back from the box's own self-loop, it is the arrow you went round it by.
     Reaching the box from inside it (an arrow to its border) is coming out: that arrow walks on, and only the opposite
     goes back in (Retry, Down reaches the Payment box; Down again goes on to its edges, not back in).
-  - A box selected any other way (a click, a find, O, an edit, Enter) goes in the way its contents flow as drawn: the
-    way most of the edges inside it head (a top-down diagram's `direction LR` subgraph goes in by Right), else the
-    diagram's, else Down. As drawn, never the file's `direction` line: Mermaid ignores it when a node inside links
-    outside. The user weighed a click's position, and chose not: nothing on screen would show the line.
+  - A box selected any other way (a click, a find, O, an edit, Enter) goes in as if you had walked to it (the user: in
+    a top-down diagram a click is like coming in from the top): the way the boxes beside it run as drawn, by most of
+    the edges between them, else a level up, else Down. Never by its own contents, which may run another way (a
+    `direction LR` subgraph in a top-down diagram still goes in by Down, as when walked to), and never by the file's
+    `direction` line, which Mermaid ignores when a node inside links outside. The user weighed a click's position, and
+    chose not: nothing on screen would show the line.
   - The opposite arrow goes back the way you came (the user): it takes back the latest move into where you are, past
     any steps across, which it never undoes, and what came after that move is gone. Every other key follows the rules
     from where you are; a click, a find, O, I, an edit or Escape starts afresh. An edge counts as reached from the item
