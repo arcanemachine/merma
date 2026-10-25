@@ -1,4 +1,4 @@
-// The frame every icon shares: an inline SVG of a given size, drawn in the current text colour and hidden from screen
+// The frame every icon shares: an inline SVG of a given size, drawn in the current text color and hidden from screen
 // readers (the button or row it is in carries the name). Each list (arrow types, shapes) draws only what goes inside.
 
 /**

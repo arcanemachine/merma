@@ -9,7 +9,7 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
-  with nothing selected fits the diagram to the window; F with an item selected centres it instead, at the zoom it
+  with nothing selected fits the diagram to the window; F with an item selected centers it instead, at the zoom it
   has (the title is fitted with the diagram), and F again fits. Each of them, straight after a fit, puts back the view
   you had, so you can zoom out to see it all and back in; when the view is already fitted, they do nothing. The diagram is fitted when the page opens; after that, edits keep the view as it
   is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
@@ -33,7 +33,7 @@ A subgraph written with no id (`subgraph "Order log"`, or a title with spaces) i
 it, which changes as subgraphs come and go: such a subgraph stays selected only while the file is unchanged. An edit
 that has to name it in the file (Edit title, Connect to…) first gives it an id of its own, `s1`, in the same edit:
 `subgraph s1 ["Order log"]`. When the file already names it by Mermaid's name (`style subGraph1 …`), that would
-break those lines, so Edit title and Connect to… are greyed and say to give it an id in the file instead. A subgraph
+break those lines, so Edit title and Connect to… are grayed and say to give it an id in the file instead. A subgraph
 whose id has `-` or `.` in it (valid in Mermaid, not here) cannot be selected.
 
 Edges can be selected only when merma can match the drawn edges to the text, edge for edge (an edge match). When it
@@ -44,7 +44,7 @@ are left to the file.
 
 A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
 with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
-Up and Down move between items, Enter runs one. An item that does not apply right now is greyed: it says why when you
+Up and Down move between items, Enter runs one. An item that does not apply right now is grayed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Escape, its key again or
 another click on it closes it.
 
@@ -60,7 +60,7 @@ another click on it closes it.
   keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
-  `class` lines. Greyed without an edge match. Reached by the arrows, the item you came from is selected after it
+  `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
   (the first one still there); clicked, nothing is.
 
 ### Edge menu
@@ -86,7 +86,7 @@ another click on it closes it.
   | 0 | Invisible | `~~~` |
 
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
-  partly by the order it first meets them, so the layout may shift a little. Greyed on a self-loop (a node connected
+  partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
 - **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.
@@ -140,7 +140,7 @@ away and then Undo. Once the panel an add opened is closed, Undo takes the add b
 - **The shapes:** click one to select it. Or press Down (from the label's last line) to go into them: the arrows move
   (wrapping within their row or column), a digit selects one of the first ten and Shift+digit one of the next ten, by
   the number row's keys whatever they type on your layout (holding Shift turns their digits dark and the first ten's
-  grey), Enter selects the one with the outline and goes
+  gray), Enter selects the one with the outline and goes
   back to the label, and Up from the top row or Escape goes back to the label, keeping what was selected.
   The selected shape is filled; the outline is where the arrows are. The line under them names the shape under the
   pointer, else the one the arrows are on, else the selected one ("Current: Rectangle (Process)").
@@ -195,7 +195,7 @@ here does just what it does in the selected item's menu:
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
-| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, centre it first. Straight after a fit, put back the view you had |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it first. Straight after a fit, put back the view you had |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
@@ -277,7 +277,7 @@ Undo takes back the page's last edit (adding a node or a subgraph and naming it 
 since; it is refused otherwise, so it never throws away someone else's change. Redo puts an undone edit back, on the
 same terms. Undo selects what was selected before the edit, so you see what came back; Redo selects what the edit
 selected, unless you have moved since, when your selection stays. After a delete, the item you came from by the arrows
-is selected (an edge's source, for one you clicked). **Undo** and **Redo** in the footer do the same, and are greyed when there is nothing to undo or redo. A
+is selected (an edge's source, for one you clicked). **Undo** and **Redo** in the footer do the same, and are grayed when there is nothing to undo or redo. A
 press on either while an edit is still saving (a label box's own save, started by that press as a click away) does
 nothing but say so: press again.
 

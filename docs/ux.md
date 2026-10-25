@@ -155,7 +155,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see
     what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
     you away).
-  - F fits the diagram; with an item selected it centres it at the zoom it has (the user), the title excepted, and F
+  - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, and F
     again fits. Straight after a fit, F puts back the view the fit replaced (the user: zoom out to see it all, then
     back in), and so do Fit to window and the double-click on empty space, mouse and keyboard alike: one view is
     remembered, forgotten when the selection changes, and a pan or zoom since makes the next F fit afresh.
@@ -168,10 +168,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift.
 
-## Greyed out or left out
+## Grayed out or left out
 
 - A menu shows the items for that kind of thing (node, edge, subgraph, empty space). An item of that kind that does
-  not apply right now is greyed out, not hidden, so items keep their place and their keys. It says why on hover, and
+  not apply right now is grayed out, not hidden, so items keep their place and their keys. It says why on hover, and
   in the notice when its key is pressed or it is tapped.
 - An item for another kind of thing is left out.
 - Items run make, change, rearrange, delete: Add and Connect, then Edit and Remove, then Reverse and Move, then Delete,
@@ -205,16 +205,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - **info** (blue): nothing you asked for was refused: what to do next ("Click the node the edge goes to"), or
     nothing to do ("Nothing to undo").
   - **warning** (amber): you asked, and it was refused, or kept back, with nothing lost (the user: trying something
-    not allowed is not just information): a greyed item's key or click, Enter on an edge in Connect to…, "Deleting a
+    not allowed is not just information): a grayed item's key or click, Enter on an edge in Connect to…, "Deleting a
     subgraph is not supported yet", an emptied label kept on a click away, a node kept because the file changed;
     merma unable to match the edges, so an edit could hit the wrong one (the file at risk).
   - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
     empty label on Enter, a press while another edit saves.
-- The colours come in pairs, a background and a text colour that reads on it, one pair per kind; `success` (green)
+- The colors come in pairs, a background and a text color that reads on it, one pair per kind; `success` (green)
   is the toasts'. GLOSSARY names them.
 - Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so
-  pressing a greyed item's key over and over does not keep cutting in. This follows "something tried that failed", not
-  the colour, so re-sorting info and warning moves nothing here.
+  pressing a grayed item's key over and over does not keep cutting in. This follows "something tried that failed", not
+  the color, so re-sorting info and warning moves nothing here.
 
 ## One way to do each thing
 

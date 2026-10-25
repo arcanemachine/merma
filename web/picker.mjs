@@ -10,7 +10,7 @@
 
 import { move } from './grid.mjs';
 
-// While Shift is held, the digits Shift picks show dark and the plain ones grey, and the other way round when it is not:
+// While Shift is held, the digits Shift picks show dark and the plain ones gray, and the other way round when it is not:
 // the page marks the root, which every picker's digits read (style.css).
 // Listened for from the first picker made, not on import, so a test can import this module without a page.
 let watchingShift = false;

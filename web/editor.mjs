@@ -158,7 +158,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const drawnOnly = (/** @type {string} */ id) => !subgraphs(shownText).find((s) => s.id === id)?.written;
   /**
    * Refuse, with a warning, an edit that would need an id written for a subgraph the file already names otherwise: for
-   * the ways in that pass no menu, which greys its items instead.
+   * the ways in that pass no menu, which grays its items instead.
    */
   function refuseUnnamed(/** @type {string} */ id) {
     const why = subgraphRefusal(shownText, id);
@@ -277,7 +277,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const closeMenus = () => { for (const m of Object.values(menus)) m.close(); };
   const menuOpen = () => menus.node.isOpen() || menus.edge.isOpen() || menus.subgraph.isOpen() || menus.title.isOpen();
 
-  /** What the menus need to know to grey their items. */
+  /** What the menus need to know to gray their items. */
   function menuState() {
     return {
       edgesOk,
@@ -289,10 +289,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // --- selection -----------------------------------------------------------------------------------------------
 
   // The page's marks: the selection, Connect to…'s candidate, find's matches and its current one. Mermaid writes
-  // classDef, style and linkStyle colours inline with !important, which no stylesheet rule beats: while an item is
-  // marked, its inline colours lose the !important (the original kept in data-page-style), so the mark's colours show.
+  // classDef, style and linkStyle colors inline with !important, which no stylesheet rule beats: while an item is
+  // marked, its inline colors lose the !important (the original kept in data-page-style), so the mark's colors show.
   const MARKED = '[data-page-selected], [data-page-candidate], [data-page-match], [data-page-current]';
-  /** Give `el` the mark `attr`, loosening its inline colours. */
+  /** Give `el` the mark `attr`, loosening its inline colors. */
   const mark = (/** @type {Element} */ el, /** @type {string} */ attr) => {
     el.setAttribute(attr, '');
     for (const e of [el, ...el.querySelectorAll('[style*="important"]')]) {
@@ -302,7 +302,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.setAttribute('style', style.replaceAll('!important', ''));
     }
   };
-  /** Take the marks `attrs` off everything, giving Mermaid's colours back where no mark is left. */
+  /** Take the marks `attrs` off everything, giving Mermaid's colors back where no mark is left. */
   const clearMarks = (/** @type {string[]} */ ...attrs) => {
     for (const attr of attrs) for (const e of drawn(`[${attr}]`)) e.removeAttribute(attr);
     for (const e of drawn('[data-page-style]')) {
@@ -507,7 +507,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       else handlers['add-node']();
       return true;
     },
-    // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is greyed there. While
+    // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is grayed there. While
     // connecting it does nothing: Escape or a click away is the way out of every wait (the user), as the notice says.
     c: () => {
       if (connecting) return true;
@@ -518,7 +518,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers.connect();
       return true;
     },
-    // R reverses a selected edge, as the edge menu's R does, and is refused as it is greyed there.
+    // R reverses a selected edge, as the edge menu's R does, and is refused as it is grayed there.
     r: () => {
       if (connecting || selected?.kind !== 'edge') return false;
       const item = MENUS.edge.find((i) => i.action === 'reverse-edge');
@@ -551,7 +551,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       openSpaceMenu(r.left + r.width / 2, r.top + r.height / 2);
       return true;
     },
-    // F centres the selection at the zoom it has; centred already (or nothing selected), it fits the diagram, and F
+    // F centers the selection at the zoom it has; centered already (or nothing selected), it fits the diagram, and F
     // straight after puts back the view the fit replaced (the user: zoom out to see it all, and back in). The title,
     // at the diagram's top, is fitted with it.
     f: () => {
@@ -563,7 +563,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         const r = elsOf(selected)[0]?.getBoundingClientRect();
         if (r) at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }
-      if (!(at && !viewer.canGoBack() && viewer.centre(at.x, at.y))) viewer.toggleFit();
+      if (!(at && !viewer.canGoBack() && viewer.center(at.x, at.y))) viewer.toggleFit();
       return true;
     },
     ...Object.fromEntries(['Up', 'Down', 'Left', 'Right'].flatMap((d) => {
@@ -819,7 +819,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // --- the label box: editing a label in place -----------------------------------------------------------------
 
   // The box is laid exactly over the node, or over the edge's label (the middle of its line if it has none): that size,
-  // or larger when the text needs it, kept centred as it grows. Enter saves; Shift+Enter starts a new line, which the
+  // or larger when the text needs it, kept centered as it grows. Enter saves; Shift+Enter starts a new line, which the
   // label keeps as a line break.
   const measure = /** @type {CanvasRenderingContext2D} */ (document.createElement('canvas').getContext('2d'));
   const LINE_HEIGHT = 18;
@@ -889,8 +889,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function placeStrip() {
     if (!stripOpen) return;
     const r = input.getBoundingClientRect(), s = stripBox.getBoundingClientRect();
-    const centre = (r.left + r.right) / 2 - s.width / 2;
-    const at = place({ left: centre, top: r.top, right: centre + s.width, bottom: r.bottom }, s,
+    const center = (r.left + r.right) / 2 - s.width / 2;
+    const at = place({ left: center, top: r.top, right: center + s.width, bottom: r.bottom }, s,
       els.diagram.getBoundingClientRect(), { side: 'below', gap: 6 });
     stripBox.style.left = at.left + 'px';
     stripBox.style.top = at.top + 'px';

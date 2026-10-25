@@ -1,5 +1,5 @@
 // A menu drawn from its items (menu-items.mjs): one button per item, its key underlined, an item that does not apply
-// greyed with its reason as the hover title. It is a manual popover, so it sits above everything without z-index, and
+// grayed with its reason as the hover title. It is a manual popover, so it sits above everything without z-index, and
 // it stays open until whoever opened it closes it: a pan of the diagram is not a click away.
 //
 // Keys while focus is in it (it takes focus when it opens): Up and Down move, an item's letter or Enter runs it, Right
@@ -56,7 +56,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   /** @typedef {import('./menu-items.mjs').MenuItem} MenuItem */
   const applies = (/** @type {MenuItem} */ item) => !item.applies || item.applies(state);
 
-  /** Draw the items for the current state: labels, keys, and which are greyed. */
+  /** Draw the items for the current state: labels, keys, and which are grayed. */
   function render() {
     items.forEach((item, i) => {
       const b = buttons[i];

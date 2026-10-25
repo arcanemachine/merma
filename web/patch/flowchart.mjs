@@ -294,8 +294,8 @@ function subgraphBlock(/** @type {string} */ text, /** @type {string} */ id) {
 }
 
 /**
- * Add a new node connected from `fromId`. No edit ever puts an edge in the middle of the file: `linkStyle` colours
- * edges by their position, so an edge inserted earlier would recolour every edge after it. So the edge is appended
+ * Add a new node connected from `fromId`. No edit ever puts an edge in the middle of the file: `linkStyle` colors
+ * edges by their position, so an edge inserted earlier would recolor every edge after it. So the edge is appended
  * at the end, outside any subgraph (an edge there moves nobody). When `fromId`'s last statement is inside a subgraph,
  * the new node is declared after that line, so it joins the same subgraph. Returns { text, id }.
  */
