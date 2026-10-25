@@ -177,6 +177,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu button:focus { background: #eef3fb; outline: none; }
 .menu button u { text-underline-offset: 2px; }
 .menu button .more { margin-left: auto; color: #888; }
+.menu button .key { margin-left: auto; font: inherit; color: #57606a; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
 .menu button.separated { margin-top: 5px; position: relative; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }

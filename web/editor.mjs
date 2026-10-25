@@ -210,6 +210,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
     },
     'fit-view': () => viewer.fit(),
+    // The selection in the middle of the view, at the zoom it has (the user).
+    'center-view': () => {
+      const sel = selection();
+      let at = null;
+      if (sel.kind === 'edge') at = layout().edges.find((e) => e.id === sel.id)?.mid ?? null;
+      else {
+        const r = elsOf(sel)[0]?.getBoundingClientRect();
+        if (r) at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      if (at) viewer.center(at.x, at.y); else viewer.fit();
+    },
   };
   // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
   // menu item that does nothing.
@@ -527,16 +538,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // F fits the diagram; with an item selected, it centers it at the zoom it has instead (the user). The title, at
     // the diagram's top, is fitted with it.
     f: () => {
-      if (!selected || selected.kind === 'title') { viewer.fit(); return true; }
-      let at = null;
-      if (selected.kind === 'edge') {
-        const id = selected.id;
-        at = layout().edges.find((e) => e.id === id)?.mid ?? null;
-      } else {
-        const r = elsOf(selected)[0]?.getBoundingClientRect();
-        if (r) at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      }
-      if (at) viewer.center(at.x, at.y); else viewer.fit();
+      if (!selected || selected.kind === 'title') viewer.fit(); else handlers['center-view']();
       return true;
     },
     ...Object.fromEntries(['Up', 'Down', 'Left', 'Right'].flatMap((d) => {
@@ -547,6 +549,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     i: () => moves.into(),
     '/': () => { if (connecting) return false; openFind(); return true; },
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
+    // 0 is actual size, as a browser's Ctrl+0 is (the user): the digits are the pickers' only.
+    0: () => { viewer.zoomTo(1); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
     // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
@@ -560,7 +564,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return had;
     },
   };
-  const VIEW_KEYS = ['f', 'escape', '+', '=', '-',
+  const VIEW_KEYS = ['f', 'escape', '+', '=', '-', '0',
     ...['up', 'down', 'left', 'right'].flatMap((d) => [`arrow${d}`, `ctrl+arrow${d}`, `shift+arrow${d}`])];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));

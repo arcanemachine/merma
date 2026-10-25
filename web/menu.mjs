@@ -61,11 +61,12 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     items.forEach((item, i) => {
       const b = buttons[i];
       const label = item.label;
-      const at = keyIndex(label, item.key);
+      const at = item.aside ? -1 : keyIndex(label, item.key);
       const text = document.createElement('span');
-      text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }),
-        label.slice(at + 1));
+      if (at < 0) text.append(label);
+      else text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }), label.slice(at + 1));
       b.replaceChildren(text);
+      if (at < 0) b.append(Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() }));
       if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));

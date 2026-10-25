@@ -10,7 +10,8 @@ are shown in the menus, and digits in the pickers, so Help does not list them.
 - The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
   with nothing selected fits the diagram to the window; F with an item selected centers it instead, at the zoom it
-  has (the title is fitted with the diagram). The diagram is fitted when the page opens; after that, edits keep the view as it
+  has (the title is fitted with the diagram), as **Center in window** in a node's, an edge's or a subgraph's menu
+  does. 0 zooms to actual size. The diagram is fitted when the page opens; after that, edits keep the view as it
   is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
   size fits it again; once you have, a reload of the tab keeps your view too.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
@@ -194,6 +195,7 @@ here does just what it does in the selected item's menu:
 | F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
+| 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |

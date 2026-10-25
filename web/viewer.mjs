@@ -253,6 +253,12 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       zoomAt(box.width / 2, box.height / 2, factor);
     },
 
+    /** Zoom to scale `k` (1: actual size) about the middle of the diagram area. */
+    zoomTo(/** @type {number} */ k) {
+      const box = diagram.getBoundingClientRect();
+      zoomAt(box.width / 2, box.height / 2, k / view.k);
+    },
+
     /**
      * Move the view the least it takes to bring `rect` (client coordinates) inside the diagram area, a margin in from
      * its edges and clear of its top padding, where the notice lies; nothing moves when it is inside already. A rect
