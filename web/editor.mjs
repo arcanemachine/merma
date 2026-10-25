@@ -685,6 +685,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const add = (/** @type {Item} */ item, /** @type {Element | null | undefined} */ el, /** @type {string} */ text) => {
       const r = el?.getBoundingClientRect();
       if (!r || !text.trim()) return;
+      // Wholly inside the area, with no margin: one a few pixels from an edge is on screen and needs no move, though a
+      // frame (viewer.frame) leaves a margin.
       const on = r.left >= area.left && r.right <= area.right && r.top >= area.top && r.bottom <= area.bottom;
       const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
       out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2, box, on });
@@ -1317,6 +1319,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         refind();
         showCount();
       }
+      if (labelling) sizeLabelBox();
       const el = selectedEl();
       if (selected && el) menus[selected.kind].reposition(el.getBoundingClientRect());
       if (spaceAt) {
