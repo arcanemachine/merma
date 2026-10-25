@@ -677,9 +677,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let finding = null;
   /** What the last find looked for, shown again by the next. */
   let lastQuery = '';
-  /** What can be found, and whether each is drawn wholly on screen. */
+  /** How much of the diagram area's top the find bar covers. */
+  const underBar = () => (els.find.hidden ? 0 : els.find.getBoundingClientRect().bottom - els.diagram.getBoundingClientRect().top);
+  /** What can be found, and whether each is drawn wholly on screen, not under the find bar. */
   function findables() {
     const area = els.diagram.getBoundingClientRect();
+    const top = area.top + Math.max(0, underBar());
     /** @type {import('./find.mjs').Findable[]} */
     const out = [];
     const add = (/** @type {Item} */ item, /** @type {Element | null | undefined} */ el, /** @type {string} */ text) => {
@@ -687,7 +690,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!r || !text.trim()) return;
       // Wholly inside the area, with no margin: one a few pixels from an edge is on screen and needs no move, though a
       // frame (viewer.frame) leaves a margin.
-      const on = r.left >= area.left && r.right <= area.right && r.top >= area.top && r.bottom <= area.bottom;
+      const on = r.left >= area.left && r.right <= area.right && r.top >= top && r.bottom <= area.bottom;
       const box = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
       out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2, box, on });
     };
@@ -751,7 +754,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     matchTyped();
   }
   /**
-   * Close the box: select `pick` and bring it into view, or put back what was selected before; `restore` (Escape) puts
+   * Close the box: select `pick`, or put back what was selected before; `restore` (Escape) puts
    * back the view as well, unless the user has moved it since.
    */
   function closeFind(/** @type {Item | null} */ pick, restore = false) {
@@ -765,7 +768,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // A view never touched followed the window: fitting it again puts it back and keeps it following.
       if (was.view.touched) viewer.setView(was.view); else viewer.fit();
     }
-    if (pick) selectByKey(pick); else if (was.before && elsOf(was.before).length) select(was.before);
+    // No reveal for a pick: Enter has centered one off screen, and one on screen stays put (an edge's line may not be).
+    if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
     if (findBox === document.activeElement) els.diagram.focus();
   }
   findBox.addEventListener('input', () => { if (finding) matchTyped(); });
@@ -775,7 +779,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.key === 'Enter') {
       e.preventDefault();
       const at = finding.matches[finding.at];
-      if (at) closeFind(at);
+      if (!at) return;
+      // A jump to a match is to its middle (the user), so it is not left at the edge; one on screen stays put.
+      if (!at.on) viewer.center((at.box.left + at.box.right) / 2, (at.box.top + at.box.bottom) / 2);
+      closeFind(at);
       return;
     }
     if (e.key === 'Tab') {
@@ -783,7 +790,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const n = finding.matches.length;
       if (!n) return;
       // One move, then none (the user): with any match off screen, show them all, which counts them again.
-      if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box));
+      if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box), underBar());
       finding.at = (finding.at + (e.shiftKey ? -1 : 1) + n) % n;
       markMatches();
       ui.announce(named(finding.matches[finding.at]));
