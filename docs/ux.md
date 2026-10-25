@@ -65,7 +65,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
   pointer whenever a pick resizes the node. On a pan or zoom an open menu moves with the diagram: an item's menu with
-  its item, the empty-space menu with the point it was opened at. It keeps the side it opened on (the user: it jumped
+  its item, the empty-space menu with the point it was opened at, the label box and its shape strip with their item. It keeps the side it opened on (the user: it jumped
   across its item as it neared the edge), so at the window's edge it stops there, over its item if need be, and stays
   on that side even when the other has room again. Its submenu and the shape strip do the same.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
