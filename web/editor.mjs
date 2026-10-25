@@ -67,6 +67,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let candidate = null;
   /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
   let cleared = null;
+  /** @type {{ x: number, y: number } | null} where the empty-space menu was opened, in stage coordinates */
+  let spaceAt = null;
   /**
    * What to select once the text an edit saved is drawn, with the label box on it for a node or subgraph just added.
    * Good for that text only: an edge is found by its place in it. `clicked`: an item clicked while the edit saved,
@@ -332,9 +334,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   // The empty-space menu, at the pointer: it adds a node or a subgraph at the top level. Mermaid lays the diagram out,
-  // so what is added lands where the layout puts it, not where the menu was opened.
+  // so what is added lands where the layout puts it, not where the menu was opened. It follows that point on a pan or
+  // zoom.
   function openSpaceMenu(/** @type {number} */ x, /** @type {number} */ y) {
     deselect();
+    spaceAt = viewer.toStage(x, y);
     menus.space.open({ left: x, top: y, right: x, bottom: y }, menuState(), { gap: 0 });
   }
 
@@ -1266,7 +1270,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     viewChanged: () => {
       const el = selectedEl();
       if (selected && el) menus[selected.kind].reposition(el.getBoundingClientRect());
-      menus.space.close();
+      if (spaceAt) {
+        const { x, y } = viewer.toClient(spaceAt);
+        menus.space.reposition({ left: x, top: y, right: x, bottom: y });
+      }
     },
     clicked,
     contextMenu,

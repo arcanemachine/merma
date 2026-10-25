@@ -289,6 +289,19 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
+    // The stage's origin is #diagram's padding-box corner (absolute at 0, 0 in it), so its padding-top does not enter in.
+    /** A point in client coordinates, in the stage's own (unzoomed) coordinates. */
+    toStage(/** @type {number} */ x, /** @type {number} */ y) {
+      const box = diagram.getBoundingClientRect();
+      return { x: (x - box.left - view.x) / view.k, y: (y - box.top - view.y) / view.k };
+    },
+
+    /** The reverse of toStage(): where a stage point is on screen now. */
+    toClient(/** @type {{ x: number, y: number }} */ { x, y }) {
+      const box = diagram.getBoundingClientRect();
+      return { x: box.left + view.x + x * view.k, y: box.top + view.y + y * view.k };
+    },
+
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 

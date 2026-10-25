@@ -63,7 +63,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Fit to window or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
   past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
-  pointer whenever a pick resizes the node.
+  pointer whenever a pick resizes the node. On a pan or zoom an open menu moves with the diagram: an item's menu with
+  its item, the empty-space menu with the point it was opened at.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A drag is never a cancel (the user: it had bitten more than once). In the diagram, where a press can become a pan
