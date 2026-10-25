@@ -164,7 +164,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     you away).
   - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, as
     Center in window does in its menu. A fit is a true reset (the user): F, Fit to window and a double-click on empty
-    space never toggle back. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
+    space always fit the whole diagram, whatever the view was. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
     a US keyboard.
   - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
     item itself, so Enter at once makes a self-loop.
