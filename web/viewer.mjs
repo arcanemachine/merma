@@ -34,7 +34,8 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  * @param {HTMLElement} els.diagram the area the diagram is shown in
  * @param {HTMLElement} els.stage the element inside it that holds the SVG and is moved and scaled
  * @param {object} [hooks]
- * @param {(target: Element) => void} [hooks.onClick] a click, with the element pressed
+ * @param {(target: Element, x: number, y: number) => void} [hooks.onClick] a click, with the element pressed and where it
+ *   was released (client coordinates)
  * @param {(target: Element) => boolean} [hooks.onDoubleClick] a double-click, with the element pressed; return true to
  *   say it was handled, or the view is fitted
  * @param {(target: Element, x: number, y: number, byKey: boolean) => boolean} [hooks.onContextMenu] a right-click or
@@ -215,7 +216,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     endDrag();
     clicked = press && !press.moving && !press.handled ? press.target : null;
     if (!clicked) { tapped = null; return; }
-    onClick(clicked);
+    onClick(clicked, e.clientX, e.clientY);
     if (e.pointerType !== 'touch') return;
     const now = { t: e.timeStamp, x: e.clientX, y: e.clientY };
     const twice = tapped && now.t - tapped.t < DOUBLE_TAP_MS && Math.hypot(now.x - tapped.x, now.y - tapped.y) < DOUBLE_TAP_SLOP;
