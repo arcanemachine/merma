@@ -204,7 +204,6 @@ export function countedEnd(boxes, edge, came) {
   const [start] = endsOf(edge);
   if (edge.from === edge.to) return came.key === start.dir ? 'start' : 'end';
   if (came.id === edge.from) return 'start';
-  if (came.id === edge.to) return 'end';
   const box = boxes.find((b) => b.id === came.id && b.kind === 'subgraph');
   return box && within(boxes, box.id).has(edge.from) ? 'start' : 'end';
 }
