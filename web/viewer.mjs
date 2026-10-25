@@ -305,7 +305,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
      * Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
      * padding, at the zoom it has. Returns false, moving nothing, when it is there already (within a pixel).
      */
-    centre(/** @type {number} */ x, /** @type {number} */ y) {
+    center(/** @type {number} */ x, /** @type {number} */ y) {
       const box = diagram.getBoundingClientRect();
       const top = box.top + (parseFloat(getComputedStyle(diagram).paddingTop) || 0);
       const dx = box.left + box.width / 2 - x, dy = (top + box.bottom) / 2 - y;
@@ -350,7 +350,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       const copy = /** @type {SVGSVGElement} */ (svg.cloneNode(true));
       for (const e of copy.querySelectorAll('[data-page-only]')) e.remove();
       for (const e of [copy, ...copy.querySelectorAll('*')]) {
-        // A marked item's inline colours, set aside while marked (editor.mjs), go back as Mermaid drew them.
+        // A marked item's inline colors, set aside while marked (editor.mjs), go back as Mermaid drew them.
         const style = e.getAttribute('data-page-style');
         if (style !== null) e.setAttribute('style', style);
         for (const a of [...e.attributes]) if (a.name.startsWith('data-page-')) e.removeAttribute(a.name);

@@ -65,7 +65,7 @@ test('only an item that waits for a further click ends in an ellipsis', () => {
   }
 });
 
-test('an item that can be greyed says why', () => {
+test('an item that can be grayed says why', () => {
   for (const { item } of items) {
     if (!item.applies) continue;
     assert.equal(typeof item.why, 'function', item.action);

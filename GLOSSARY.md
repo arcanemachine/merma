@@ -64,13 +64,13 @@ note where merma had to make one up.
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types and the shapes. Shows the current one. |
-| **greyed** | A menu item that does not apply right now: still there, with its reason. |
+| **grayed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
 | **node panel** | A node's label box with the strip under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
 | **strip** | The shape picker laid under a node's label box: click a shape, or Down from the label goes into it. merma's own. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue: what to do next, or nothing to do), **warning** (amber: something you asked for refused or kept back, or a risk to the file), **error** (red: something you tried that did not happen). `docs/ux.md` says which is which. |
-| **colour words** | **info**, **success**, **warning**, **error**: each a background and a text colour that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
+| **color words** | **info**, **success**, **warning**, **error**: each a background and a text color that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
 | **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |
@@ -89,4 +89,4 @@ note where merma had to make one up.
 | **fixture** | A hand-written test diagram in `test/fixtures/`. |
 | **browser check** | A check that needs Mermaid itself, run in a browser (`checks/README.md`). |
 | **mutation check** | Breaking the code on purpose to see a test fail (`checks/mutate.sh`). |
-| **UAT** | Acceptance testing: by Haiku agents for behaviour, by the user for look and feel. |
+| **UAT** | Acceptance testing: by Haiku agents for behavior, by the user for look and feel. |

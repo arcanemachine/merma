@@ -9,7 +9,7 @@ and where the two differ, the local file wins.
 
 `GLOSSARY.md` holds the words merma uses. Use them as written there, in the page, the docs, the code and messages
 about the work; when a new word comes in, add it there in the same commit. Where Mermaid has a word for something
-(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case.
+(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case. American spelling throughout (color, center, behavior, gray), in the page, the docs and the code.
 
 `docs/ux.md` holds the rules the page follows, and why. Read it before changing anything the user sees, and update it
 in the same commit when a rule changes. `docs/guide.md` says what each control does, and Help in `web/index.html` is a
@@ -29,7 +29,7 @@ rather than repeating it, and write down only what someone will read again.
 - **The `.mmd` file is the only source of truth.** An edit changes only the bytes it must, and nothing the page adds
   (positions, state) is ever written into the file or beside it.
 - **Tests ship with the code, in the same commit.** `npm test` runs `test/*.test.mjs` with Node's own runner.
-- **No bullshit tests.** A test exists to fail when the behaviour it names breaks:
+- **No bullshit tests.** A test exists to fail when the behavior it names breaks:
   - it checks what its name and comments say, no less (an assertion that cannot fail is worse than none);
   - it exercises real code, not a mock standing in for the thing under test, and not constants or the language;
   - for a new test, break the code on purpose once and watch the test fail: `checks/mutate.sh <file> <text>
@@ -38,7 +38,7 @@ rather than repeating it, and write down only what someone will read again.
     page.
 - **Fixtures and examples are generic.** Test files, sample diagrams and examples in docs are written for merma:
   plain names (`A[Start] --> B{OK?}`, `charge --> record`) that show the syntax under test, never copied from, or
-  specific to, any other codebase, project or organisation.
+  specific to, any other codebase, project or organization.
 - **Check the page in a browser** after changing anything under `web/`; the unit tests do not cover it. Run the
   accessibility scan too: no violations outside the diagram (`checks/README.md`, "Accessibility"). After a change to
   `web/patch/`, run the browser parse check as well.

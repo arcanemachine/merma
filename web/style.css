@@ -1,5 +1,5 @@
 html, body { height: 100%; }
-/* The colour words (GLOSSARY): each kind has a background and a text colour that reads on it, as a pair, so a darker
+/* The color words (GLOSSARY): each kind has a background and a text color that reads on it, as a pair, so a darker
    background brings a lighter text with it. Notices are info, warning or error; success is the toasts'. */
 :root {
   --info-bg: #ddf4ff; --info-fg: #0a3069;
@@ -136,13 +136,13 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one is outlined in blue, whatever its
    shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage
-   leaves stray fragments around it. !important wins over the colours Mermaid writes inline from classDef and style. */
+   leaves stray fragments around it. !important wins over the colors Mermaid writes inline from classDef and style. */
 #stage.editable g.node[data-page-node], #stage.editable g.node[data-page-node] *,
 #stage.editable g.cluster[data-page-subgraph], #stage.editable g.cluster[data-page-subgraph] *,
 #stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-selected] > rect { stroke: #0969da !important; stroke-width: 3px !important; }
-/* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text colour give way. */
+/* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text color give way. */
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *) { fill: #ddf4ff !important; }
 #stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
 #stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
@@ -183,7 +183,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
 .menu button.separated { margin-top: 5px; position: relative; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }
-/* An item that does not apply now: greyed, still focusable, its reason in its title. */
+/* An item that does not apply now: grayed, still focusable, its reason in its title. */
 .menu button[aria-disabled="true"] { color: #aaa; cursor: default; }
 /* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
 .picker { padding: 2px; }
@@ -191,7 +191,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .picker-grid { display: grid; grid-template-columns: repeat(var(--columns), auto); gap: 2px; }
 .menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
 .picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #1f2328; }
-/* The digits Shift does not pick are grey, still readable (at least 4.5:1 on the pressed fill); holding Shift swaps. */
+/* The digits Shift does not pick are gray, still readable (at least 4.5:1 on the pressed fill); holding Shift swaps. */
 .picker-grid .digit.shift, :root[data-shift] .picker-grid .digit { color: #57606a; }
 :root[data-shift] .picker-grid .digit.shift { color: #1f2328; }
 /* Focus is the outline only, and the fill only what is selected (the user): two marks that never look alike. With

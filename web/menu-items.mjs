@@ -46,7 +46,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
   + 'edge. Delete it in the file.';
 
 /**
- * What a menu needs to know to grey its items.
+ * What a menu needs to know to gray its items.
  * @typedef {object} MenuState
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
@@ -59,8 +59,8 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * @property {string} action what the editor runs
  * @property {string} label
  * @property {string} key its shortcut letter
- * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is greyed
- * @property {(state: MenuState) => string | null} [why] what a greyed item says
+ * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
+ * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
  * @property {boolean} [mode] it waits for a further click
  * @property {boolean} [separated] set apart from the items above it
