@@ -22,13 +22,14 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
   }
 });
 
-test('keys are unique within a menu and are a letter of their label', () => {
+test('keys are unique within a menu and are a letter of their label, or else shown at its right', () => {
   for (const [menu, list] of Object.entries(ALL_MENUS)) {
     const keys = list.map((i) => i.key);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const item of list) {
       assert.match(item.key, /^[a-z]$/);
-      assert.ok(keyIndex(item.label, item.key) >= 0, `${item.action}: ${item.key}`);
+      // A key in its label is underlined there, never put aside; one not in it must be.
+      assert.equal(Boolean(item.aside), keyIndex(item.label, item.key) < 0, `${item.action}: ${item.key}`);
     }
   }
 });

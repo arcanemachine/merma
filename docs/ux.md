@@ -33,7 +33,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Remove | clears a property; the thing stays | (none yet: emptying a label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
-  | Fit | changes the view, not the file | Fit to window |
+  | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG |
 
 - An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu. ▴ on
@@ -48,7 +48,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
   other key does the job (the user): Enter and F2 edit, Delete deletes, so E and D stay in menus; R, C and N have no
   other key. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
-- No hidden affordances. A shortcut is shown where its item is: a letter underlined, or a digit in a picker. Names
+- No hidden affordances. A shortcut is shown where its item is: a letter underlined, a digit in a picker, or a key
+  shown at the right of a label it is not a letter of (Center in window, F: F is the view key everywhere). Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
@@ -155,7 +156,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see
     what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
     you away).
-  - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted.
+  - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, as
+    Center in window does in its menu. A fit is a true reset (the user): F, Fit to window and a double-click on empty
+    space never toggle back. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
+    a US keyboard.
   - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
     item itself, so Enter at once makes a self-loop.
 - Movement that finds nothing does nothing, like the end of a list: no notice, I and O at their limit included (the
