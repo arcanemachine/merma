@@ -16,7 +16,7 @@ const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item
 
 test('every menu label starts with one of the verbs, in sentence case', () => {
   for (const { item: { label } } of items) {
-    assert.ok(VERBS.includes(label.split(' ')[0]), `${label}: not a listed verb`);
+    assert.ok(VERBS.includes(label.split(' ')[0].replace(/…$/, '')), `${label}: not a listed verb`);
     // An acronym (SVG) keeps its capitals.
     assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase() || /^[A-Z]{2,}$/.test(w)), `${label}: not sentence case`);
   }
@@ -27,7 +27,7 @@ test('keys are unique within a menu and are a letter of their label, or else sho
     const keys = list.map((i) => i.key);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const item of list) {
-      assert.match(item.key, /^[a-z]$/);
+      assert.match(item.key, /^[a-z/]$/);
       // A key in its label is underlined there, never put aside; one not in it must be.
       assert.equal(Boolean(item.aside), keyIndex(item.label, item.key) < 0, `${item.action}: ${item.key}`);
     }

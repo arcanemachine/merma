@@ -121,7 +121,8 @@ Removing the title is not supported: Delete or Backspace on it says so.
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
-**Fit to window**, last, fits the diagram to the window, as F does with nothing selected.
+**Find…** (/) opens the find (below). **Fit to window**, last, fits the diagram to the window, as F does with nothing
+selected.
 
 ## The node panel
 
@@ -188,7 +189,7 @@ here does just what it does in the selected item's menu:
 | Enter with nothing selected | Select the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
-| / (wherever it is on your keyboard) | Find what is on screen (below) |
+| / (wherever it is on your keyboard) | Find in the whole diagram (below) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
@@ -257,16 +258,19 @@ top, or with nothing inside, they do nothing.
 Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, selects the diagram's title,
 when there is one; Down from the title goes to the box nearest below it.
 
-**Ways out**, wherever you are: F then / (F fits the whole diagram, so find sees all of it), Ctrl+Arrows (they jump),
+**Ways out**, wherever you are: / (find looks through the whole diagram), Ctrl+Arrows (they jump),
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back.
 
-**Find** with /: type, and every node, edge label, subgraph and title on screen holding what you typed (ignoring
-case) is outlined in amber (for an edge label, its edge's line turns amber); the best match is filled, and Tab and Shift+Tab move to the next and the one before.
-Enter selects it, and so does a click on it (or on anything else in the diagram); Escape, a click outside the diagram,
-or Enter with nothing found, closes the find and puts back what was selected. The best match is the whole text, then
-one starting with it, then a word starting with it, then any; higher on screen first. Find never moves the view: what
-is off screen is not found, so move the view first (F fits it all). Tab stays in the find box, and Escape is the way
-out of it.
+**Find** with / (or **Find…** in the empty-space menu, the way in on a phone): type, and every node, edge label,
+subgraph and title holding what you typed (ignoring case), on screen or off, is outlined in amber (for an edge label,
+its edge's line turns amber). The current match is filled: as you type, the best one on screen, else the best; the
+count says how many are off screen ("2 of 5, 3 off screen"). Typing never moves the view. Tab and Shift+Tab move to
+the next match and the one before, bringing it into view. Enter selects it and brings it into view, and so does a click
+on it (or on anything else in the diagram); with nothing found, Enter does nothing. Escape closes the find and puts
+back what was selected, and the view from before the find unless you moved it since; a click outside the diagram puts
+back the selection and leaves the view where it is. The best match is the whole text, then one starting with it, then a
+word starting with it, then any; higher first. Tab stays in the find box, and Escape is the way out of it. / again
+shows what you last looked for, selected, so typing replaces it.
 
 In Connect to…, the dashed outline starts on the node or subgraph the edge comes from and moves by the same rules as
 the selection, through edges (Enter on one is refused), with I and O; Enter connects to the outlined one.

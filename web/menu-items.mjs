@@ -1,11 +1,11 @@
 // What each menu holds, as data: the editor maps each action to what it does, and menu.mjs draws them. The rules the
 // items follow (docs/ux.md) are tested against this file: labels start with a verb from VERBS, each key is unique in
 // its menu and is a letter of its label (else shown at its right, `aside`), a key the page also uses outside menus runs the same action here, and only
-// an item that waits for a further click (mode) ends in "…".
+// an item that waits for a further click or typing (mode) ends in "…".
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Fit', 'Center', 'Copy', 'Download'];
+export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Find', 'Fit', 'Center', 'Copy', 'Download'];
 
 /**
  * Keys the page answers outside menus, and the menu actions each one runs. A key is named by KeyboardEvent.key,
@@ -35,7 +35,7 @@ export const GLOBAL_KEYS = {
   'ctrl+arrowright': [],
   o: [],
   i: [],
-  '/': [],
+  '/': ['find'],
   '+': [],
   '=': [],
   '-': [],
@@ -64,7 +64,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
- * @property {boolean} [mode] it waits for a further click
+ * @property {boolean} [mode] it waits for a further click or typing
  * @property {boolean} [separated] set apart from the items above it
  */
 
@@ -97,7 +97,8 @@ export const MENUS = {
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
-    { action: 'fit-view', label: 'Fit to window', key: 'f', separated: true },
+    { action: 'find', label: 'Find…', key: '/', aside: true, mode: true, separated: true },
+    { action: 'fit-view', label: 'Fit to window', key: 'f' },
   ],
 };
 
