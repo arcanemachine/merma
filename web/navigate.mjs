@@ -409,11 +409,13 @@ export function enter(trail, graph, at, key) {
  * @typedef {{ from: Target, to: Target, key: string, ctrl: boolean }} Move
  */
 /** A box whose fan an edge is stepped across in, and the way that fan heads. @typedef {{ id: string, key: string }} Fan */
+/** A step across, from edge `from` to edge `to` by `key`, and the fan `from` counted from before it. @typedef {{ from: Target, to: Target, key: string, came: Fan | null }} Step */
 /**
  * Where a cursor (the selection, or Connect to…'s candidate) came from: `trail`, the arrow moves that the opposite
  * arrow can take back, steps across left out; `came`, on an edge, the fan it counts as reached from (null: its
- * source's, as for an edge clicked).
- * @typedef {{ trail: Move[], came: Fan | null }} Cursor
+ * source's, as for an edge clicked); `steps`, the steps across since any other move, which the opposite cross arrow
+ * takes back (none when absent).
+ * @typedef {{ trail: Move[], came: Fan | null, steps?: Step[] }} Cursor
  */
 
 /** A cursor with nothing behind it: a click, a find, an edit, O or I. */
@@ -439,15 +441,31 @@ export function back({ trail }, at, key, ctrl) {
 }
 
 /**
- * The cursor after `move`. A step across (`fan`, from walk()) stays off the trail, and the edge reached counts as
- * reached from that fan; any other move goes on the trail, and an edge it lands on counts as reached from where it
- * came, by its arrow.
+ * The opposite cross arrow takes back the latest step across (the user: Right then Left puts you back exactly where you
+ * were): when `at` is where that step went and `key` is its opposite, back to the edge it left, counting from the fan
+ * it counted from then. An edge where two fans meet lies in both, so only this memory can tell which you were in.
+ * Else null, and the rules decide.
+ * @param {Cursor} cursor
+ * @param {Target} at
+ * @param {string} key
+ * @returns {{ to: Target, cursor: Cursor } | null}
+ */
+export function stepBack({ trail, steps = [] }, at, key) {
+  const s = steps[steps.length - 1];
+  if (!s || s.to.kind !== at.kind || s.to.id !== at.id || key !== OPPOSITE[s.key]) return null;
+  return { to: s.from, cursor: { trail, came: s.came, steps: steps.slice(0, -1) } };
+}
+
+/**
+ * The cursor after `move`. A step across (`fan`, from walk()) stays off the trail, goes on the steps across, and the
+ * edge reached counts as reached from that fan; any other move goes on the trail, clears the steps across, and an edge
+ * it lands on counts as reached from where it came, by its arrow.
  * @param {Cursor} cursor
  * @param {Move} move
  * @param {Fan | null} [fan]
  * @returns {Cursor}
  */
-export function moved({ trail }, move, fan = null) {
-  if (fan) return { trail, came: fan };
+export function moved({ trail, came, steps = [] }, move, fan = null) {
+  if (fan) return { trail, came: fan, steps: [...steps, { from: move.from, to: move.to, key: move.key, came }] };
   return { trail: [...trail, move], came: move.to.kind === 'edge' ? { id: move.from.id, key: move.key } : null };
 }

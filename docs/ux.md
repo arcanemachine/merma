@@ -135,7 +135,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
     from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked or found counts as
     reached from its source (the node the file writes first: every edge has one). The end it counts from is marked
-    with a short tick across its line (the user: noticeable, not in the way; a dot read as Mermaid's circle end), so
+    with a short tick across the way it heads there, flat or upright, never tilted on a curve (the user: noticeable,
+    not in the way; a dot read as Mermaid's circle end), so
     the fan the cross arrows step shows before you press; it slides along the line clear of any text, and keeps one
     size on screen at any zoom. Space switches an edge to its other end (the user), so the cross arrows step that
     end's fan. It is not a move: the arrival into the edge leaves the trail, as after a step across. They stop at the last edge rather than
@@ -171,7 +172,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - The way back belongs to the fan you are in. An edge reached by stepping across has no way back of its own, so the
     arrow along it walks to its end, the node (Paid?, not the Payment box it crosses out of), and the trail behind the
     fan you left is not retraced (the user: back from Order log you are in its fan, and going up to Payment "would not
-    make sense there").
+    make sense there"). The opposite cross arrow steps back, though: it retraces steps across as the opposite arrow
+    retraces moves (the user: Right then Left puts you back exactly where you were), counting from the fan you were in
+    then, which only this memory can tell where two fans share the edge. Any other move, Space, a click or a find
+    forgets it.
   - Ctrl+Arrows skip the edge, like Ctrl+Arrow jumping a word (the user); with no edge that way they go straight that
     way by place. A far end inside subgraphs you are not in lands on the outermost of their boxes (the user: from
     Shipping, Ctrl+Up should be Payment, as from In stock, Ctrl+Down is), so Ctrl goes in a level a press; I and O go in
