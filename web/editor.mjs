@@ -10,7 +10,7 @@ import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
-import { countedEnd, nearest, nest } from './navigate.mjs';
+import { countedEnd, heading, nearest, nest } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -335,9 +335,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** @type {'start' | 'end' | null} the end of the selected edge its mark is at */
   let endSide = null;
+  /** Whether the edge heads up or down at that end, so its tick lies flat (else upright). */
+  let endFlat = true;
   /**
    * Mark the end the selected edge counts as reached from, whose edges the cross arrows step (the user): a short tick
-   * across its line, in the stage so it moves with the diagram, at one size on screen whatever the zoom, and slid
+   * across the way the edge heads there (flat or upright, the user: never tilted on a curve), in the stage so it moves with the diagram, at one size on screen whatever the zoom, and slid
    * along the line until it is clear of any text. `measure`: work out which end again (a new selection, or Space);
    * else the same end, redrawn for a new zoom.
    */
@@ -349,6 +351,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const { boxes, edges } = layout();
       const e = edges.find((x) => x.id === id);
       endSide = e ? countedEnd(boxes, e, moves.came()) : null;
+      const key = e && (endSide === 'start' ? heading(e.start, e.startOut) : heading(e.end, e.endOut));
+      endFlat = key === 'ArrowUp' || key === 'ArrowDown';
     }
     const path = /** @type {SVGPathElement | undefined} */ (edgeEls(id).find((e) => e.matches('path:not([data-page-only])')));
     const m = path?.getScreenCTM();
@@ -360,10 +364,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     /** The tick `d` in from the counted end, both in the path's own units, as Mermaid's arrowheads are. */
     const tick = (/** @type {number} */ d) => {
       const s = Math.min(len, d), at = endSide === 'start' ? s : len - s;
-      const p = path.getPointAtLength(at);
-      const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
-      const t = Math.hypot(b.x - a.x, b.y - a.y) || 1, h = END_TICK / 2 / k;
-      const nx = -(b.y - a.y) / t * h, ny = (b.x - a.x) / t * h;
+      const p = path.getPointAtLength(at), h = END_TICK / 2 / k;
+      const [nx, ny] = endFlat ? [h, 0] : [0, h];
       return [{ x: p.x - nx, y: p.y - ny }, { x: p.x + nx, y: p.y + ny }];
     };
     const clear = (/** @type {{ x: number, y: number }[]} */ ends) => {

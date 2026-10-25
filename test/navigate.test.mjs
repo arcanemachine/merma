@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FRESH, across, back, byPlace, countedEnd, enter, flow, heading, leaving, moved, nearest, nest, otherEnd, skip, walk, within } from '../web/navigate.mjs';
+import { FRESH, across, back, byPlace, countedEnd, enter, flow, heading, leaving, moved, nearest, nest, otherEnd, skip, stepBack, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -312,8 +312,9 @@ test('moved: a step across stays off the trail and counts from its fan; any othe
   const one = moved(FRESH, onto);
   assert.deepEqual(one, { trail: [onto], came: { id: 'paid', key: 'ArrowDown' } });
   const fan = { id: 'paid', key: 'ArrowDown' };
-  assert.deepEqual(moved(one, { from: at('edge', 'paid-retry'), to: at('edge', 'paid-ship'), key: 'ArrowRight', ctrl: false }, fan),
-    { trail: [onto], came: fan });
+  const across1 = { from: at('edge', 'paid-retry'), to: at('edge', 'paid-ship'), key: 'ArrowRight', ctrl: false };
+  assert.deepEqual(moved(one, across1, fan),
+    { trail: [onto], came: fan, steps: [{ from: at('edge', 'paid-retry'), to: at('edge', 'paid-ship'), key: 'ArrowRight', came: one.came }] });
   const off = { from: at('edge', 'paid-retry'), to: at('node', 'retry'), key: 'ArrowDown', ctrl: false };
   assert.deepEqual(moved(one, off), { trail: [onto, off], came: null });
 });
@@ -568,4 +569,50 @@ test('the end an edge counts from is marked: its source when clicked, the box en
   const loop = edge('q', 'q', [30, 0], 'R', [10, -15], 'U');
   assert.equal(countedEnd([], loop, { id: 'q', key: 'ArrowRight' }), 'start');
   assert.equal(countedEnd([], loop, { id: 'q', key: 'ArrowUp' }), 'end');
+});
+
+/**
+ * As the editor's cursor goes, with Space: stepBack() then back(), else walk(); 'Space' switches the counted end. Each
+ * entry: where it is, and the end it counts from on an edge.
+ */
+function walkWith(/** @type {{ kind: any, id: string }} */ from, /** @type {string[]} */ keys, g = graph) {
+  let here = from;
+  /** @type {import('../web/navigate.mjs').Cursor} */
+  let cursor = FRESH;
+  return keys.map((key) => {
+    if (key === 'Space') {
+      const to = otherEnd(g, here.id, cursor.came);
+      if (to) cursor = { trail: cursor.trail, came: to };
+    } else {
+      const retraced = stepBack(cursor, here, key) ?? back(cursor, here, key, false);
+      const went = retraced ? null : walk(g, here, key, here.kind === 'edge' ? cursor.came : null);
+      if (retraced) { here = retraced.to; cursor = retraced.cursor; } else if (went) {
+        cursor = moved(cursor, { from: here, to: went.to, key, ctrl: false }, went.fan);
+        here = went.to;
+      } else return null;
+    }
+    return here.kind === 'edge' ? `${here.id} from ${cursor.came?.id ?? 'source'}` : `${here.kind} ${here.id}`;
+  });
+}
+
+test('the opposite cross arrow takes back a step across, counting from the fan it counted from then', () => {
+  // order-wait is in wait's up fan and order's down fan: past wait's, Right steps on into order's; Left comes back to
+  // order-wait counting from wait again, not from order, where it was found.
+  assert.deepEqual(walkWith(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowLeft', 'ArrowLeft']),
+    ['order-wait from wait', 'order-note from order', 'order-wait from wait', 'order-check from order']);
+  // Several steps come back one at a time, each as it was.
+  assert.deepEqual(walkWith(at('node', 'order'), ['ArrowDown', 'ArrowRight', 'ArrowRight', 'ArrowLeft', 'ArrowLeft']),
+    ['order-check from order', 'order-wait from order', 'order-note from order', 'order-wait from order', 'order-check from order']);
+});
+
+test('steps across are forgotten after any other move, and after Space', () => {
+  // Space on order-wait: the steps are gone, so Left steps by the rules, in the fan now counted (order's).
+  assert.deepEqual(walkWith(at('node', 'wait'), ['ArrowUp', 'ArrowRight', 'ArrowLeft', 'Space', 'ArrowLeft']),
+    ['order-wait from wait', 'order-note from order', 'order-wait from wait', 'order-wait from order', 'order-check from order']);
+  const cursor = moved(FRESH, { from: at('edge', 'order-check'), to: at('edge', 'order-wait'), key: 'ArrowRight', ctrl: false },
+    { id: 'order', key: 'ArrowDown' });
+  const along = moved(cursor, { from: at('edge', 'order-wait'), to: at('node', 'wait'), key: 'ArrowDown', ctrl: false });
+  assert.equal(stepBack(along, at('edge', 'order-wait'), 'ArrowLeft'), null);
+  assert.equal(stepBack(cursor, at('edge', 'order-wait'), 'ArrowRight'), null);
+  assert.deepEqual(stepBack(cursor, at('edge', 'order-wait'), 'ArrowLeft')?.to, at('edge', 'order-check'));
 });

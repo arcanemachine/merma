@@ -228,7 +228,8 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
   a node, and stop at the last edge. From "Paid?", Down, then Right, Right, Right steps through its four edges; from the
   edge labelled no, Left steps on to Retry's edge to Charge card. A short blue tick across a selected edge, near one
   end, shows the end whose edges they step. **Space** switches to the other end: on the "yes" edge from "Paid?" to
-  "Order log", reached from "Order log", Space then Left steps through "Paid?"'s edges instead.
+  "Order log", reached from "Order log", Space then Left steps through "Paid?"'s edges instead. The opposite cross arrow
+  steps back: Right then Left puts you back where you were, counting from the same end.
 - **With no edge that way**, an arrow goes to the nearest box straight that way (overlapping you across the
   arrow, nested or not; the topmost or leftmost on a tie), else nothing: nothing off to the side. The subgraph you are
   in counts by its border, so with nothing nearer inside, you reach its box: from Print label, Right is Boxing; from

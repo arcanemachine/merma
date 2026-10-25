@@ -3,7 +3,7 @@
 // subgraph.
 // The editor measures the diagram and selects; it tells this when a selection was not made by a key, to forget both.
 
-import { FRESH, back, byPlace, enter, heading, moved, nearest, nest, otherEnd, skip, walk } from './navigate.mjs';
+import { FRESH, back, byPlace, enter, heading, moved, nearest, nest, otherEnd, skip, stepBack, walk } from './navigate.mjs';
 
 /** @typedef {import('./editor.mjs').Item} Item */
 /** @typedef {{ boxes: import('./navigate.mjs').Box[], edges: import('./navigate.mjs').Edge[] }} Graph */
@@ -78,7 +78,7 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     // The opposite key takes back the latest move into here, before any rule: a box's crossing edge can head one way
     // where it leaves the node inside and another where it crosses the border, so walk() is no guide to which arrow
     // goes back along it.
-    const retraced = back(cursor, at, key, ctrl);
+    const retraced = (ctrl ? null : stepBack(cursor, at, key)) ?? back(cursor, at, key, ctrl);
     if (retraced) return { next: retraced.to, cursor: retraced.cursor };
     /** The next thing that way by place, from `here` (an edge from its middle); none upwards, and nothing at all drawn above: the title. */
     const placed = () => {
@@ -168,7 +168,8 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
 
   /**
    * Space: a selected edge counts as reached from its other end, so the cross arrows step that end's edges (the user).
-   * Not a move: the arrival into the edge leaves the trail, as after a step across. Returns the end it now counts
+   * Not a move: the arrival into the edge leaves the trail, as after a step across, and the steps across are cleared,
+   * since what they counted from no longer holds. Returns the end it now counts
    * from, or null when there is no edge selected or no other end.
    */
   function other() {
