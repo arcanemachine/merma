@@ -58,7 +58,8 @@ note where merma had to make one up.
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **fan** | The edges leaving a box one way (by their heading), left to right, or top to bottom: Down from a node selects the first of its down fan. merma's own. |
 | **step across** | What the cross arrows do on an edge: to the edge beside it in a fan, never onto a node. Not "page", which is merma in the browser. merma's own. |
-| **counted end** | The end a selected edge counts as reached from, whose fan the cross arrows step; marked with a tick, and switched by Space. merma's own. |
+| **counted end** | The end a selected edge counts as reached from, whose fan the cross arrows step; marked by the end tick, and switched by Space or by clicking the line near the other end. merma's own. |
+| **end tick** | The short blue bar across a selected edge near its counted end. merma's own. |
 | **trail** | The arrow moves since the selection was last set another way, steps across left out: the opposite arrow retraces them, and a click, a find, O, I, an edit or Escape starts a new one. merma's own. |
 | **place inside** | For each subgraph, the item you last left it by, which I goes back to; kept while keys select, forgotten on a click, a find or an edit. Not the trail. merma's own. |
 | **find** | The / box: every item in the diagram holding what you typed is marked, on screen or off, and Enter selects the current match. The browser's word for the same thing (Find in page); not "search". |

@@ -119,7 +119,7 @@ let editor = null;
 let shownOnce = false;   // a diagram has been rendered; until then the view is the initial fit, not worth keeping
 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
-  onClick: (target) => { clickedAway(target); editor?.clicked(target); },
+  onClick: (target, x, y) => { clickedAway(target); editor?.clicked(target, x, y); },
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
   onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },

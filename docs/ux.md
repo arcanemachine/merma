@@ -133,14 +133,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     bend. A box's edges leaving one way are its fan that way.
   - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
-    from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked or found counts as
-    reached from its source (the node the file writes first: every edge has one). The end it counts from is marked
-    with a short tick across the way it heads there, flat or upright, never tilted on a curve (the user: noticeable,
-    not in the way; a dot read as Mermaid's circle end), so
-    the fan the cross arrows step shows before you press; it slides along the line clear of any text, and keeps one
-    size on screen at any zoom. Space switches an edge to its other end (the user), so the cross arrows step that
-    end's fan. It is not a move: the arrival into the edge leaves the trail, as after a step across. They stop at the last edge rather than
-    wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried it and
+    from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked on its line counts as
+    reached from the end nearer the click along the line (the user); clicked on its label, at its middle, or found,
+    from its source (the node the file writes first: every edge has one). The counted end is marked with the end
+    tick, so the fan the cross arrows step shows before you press: a short bar across the line, flat or upright,
+    never tilted (the user: noticeable, not in the way; a dot read as Mermaid's circle end). It is sized in the
+    diagram's units, as the line and its arrowhead are, so it grows and shrinks with them (the user: a fixed size
+    hid under the line zoomed in), with a floor on screen; it keeps a gap from the arrowhead (a bar at an arrow's base
+    is notation), and slides along the line off any bend and clear of any text. Space switches an edge to its other
+    end (the user), so the cross arrows step that end's fan. It is not a move: the arrival into the edge leaves the
+    trail, as after a step across. The cross arrows stop at the last edge rather than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried it and
     chose stepping across.
   - With no edge leaving that way, an arrow goes to the nearest box (node or subgraph) straight that way, else nothing
     (the user tried nearest-anywhere and edges-by-place, and disliked both: Boxing, Down reached Send, off to the side;

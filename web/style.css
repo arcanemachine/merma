@@ -157,10 +157,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-candidate]:not([data-page-only]) { stroke: #0969da !important;
   stroke-width: 4.5px !important; }
 #stage path.edge-thickness-invisible[data-page-candidate] + path[data-page-only] { stroke: rgba(9, 105, 218, 0.3); }
+/* The end tick: which end a selected edge counts as reached from, a short bar across it (sized in editor.mjs). */
+#stage [data-page-end] { stroke: #0969da !important; stroke-linecap: round; pointer-events: none; }
 /* An edge one step wider than its own 2 px or 3.5 px line; a dotted edge keeps its dashes. */
-/* The end a selected edge counts as reached from: a thin tick across it, the same width on screen at any zoom. */
-#stage [data-page-end] { stroke: #0969da !important; stroke-width: 2px !important; stroke-linecap: round; vector-effect: non-scaling-stroke;
-  pointer-events: none; }
 #stage path.edge-thickness-normal[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: #0969da !important;
   stroke-width: 3px !important; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: #0969da !important;
