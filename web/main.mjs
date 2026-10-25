@@ -122,7 +122,7 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onClick: (target) => { clickedAway(target); editor?.clicked(target); },
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
-  onViewChange: () => { editor?.viewChanged(); if (shownOnce) keepView(); },
+  onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },
 });
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved.

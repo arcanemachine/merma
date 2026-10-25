@@ -33,10 +33,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Remove | clears a property; the thing stays | (none yet: emptying a label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
+  | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG |
 
-- An ellipsis (…) means "then you do something" (click a node, drag a handle), nothing else. ▸ opens a submenu. ▴ on
+- An ellipsis (…) means "then you do something" (click a node, drag a handle, type), nothing else. ▸ opens a submenu. ▴ on
   a button opens a menu above it (Export ▴): the footer's other buttons act at once.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
@@ -49,7 +50,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   other key does the job (the user): Enter and F2 edit, Delete deletes, so E and D stay in menus; R, C and N have no
   other key. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
 - No hidden affordances. A shortcut is shown where its item is: a letter underlined, a digit in a picker, or a key
-  shown at the right of a label it is not a letter of (Center in window, F: F is the view key everywhere). Names
+  shown at the right of a label it is not a letter of (Center in window, F: F is the view key everywhere; Find…, /). Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
@@ -107,6 +108,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
   view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
   after a drag: a change in the window's size no longer refits it.
+- The view is yours: merma moves it on its own only to bring something into view, and once you move it yourself,
+  nothing merma does afterwards puts it back. Find (/) is the case in point. It matches the whole diagram, on screen
+  or not, and typing never moves the view: the current match is the best one on screen, else the best, and the count
+  says how many are off screen ("2 of 5, 3 off screen"). Tab and Shift+Tab step and bring the current match into view
+  (a pan, never a zoom). Escape puts back the selection and the view from before the find, unless you moved the view
+  since (a drag, the wheel, a pinch, a zoom key); a click away keeps the view where it is (the user: Tab to a match
+  off screen, then click it, and the view stays put). Enter selects the current match; with no match, or nothing
+  typed, it does nothing, and the box stays. / again shows the last query, selected.
 - Moving by keyboard, as one model (the user settled each rule in UAT, case by case, as "press X, get Y"):
   - The arrows are screen directions: Up is up, Right is right, wherever you are. Plain arrows walk the edges, two
     presses a step, node, edge, node, so the edge is where you choose (the user found jumping straight to "the next

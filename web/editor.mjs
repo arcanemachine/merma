@@ -6,7 +6,7 @@
 
 import { ARROW_TYPES } from './arrow-types.mjs';
 import { createHistory } from './history.mjs';
-import { find } from './find.mjs';
+import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
@@ -212,6 +212,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
     },
     'fit-view': () => viewer.fit(),
+    'find': () => openFind(),
     // The selection in the middle of the view, at the zoom it has (the user).
     'center-view': () => {
       const sel = selection();
@@ -663,22 +664,28 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // --- find: / -------------------------------------------------------------------------------------------------
 
-  // What was typed is matched against what is drawn on screen (find.mjs), and the view never moves: what is off
-  // screen is found by moving the view first. The selection is set aside meanwhile, and comes back on Escape, on a
-  // click away, and on Enter with nothing found; Enter selects the current match. Tab and Shift+Tab step through the
-  // matches, so Escape is the way out of the box (docs/ux.md).
+  // What was typed is matched against the whole diagram (find.mjs). Typing never moves the view; Tab and Shift+Tab
+  // step through the matches and bring the current one into view, so Escape is the way out of the box. The selection
+  // is set aside meanwhile: Enter selects the current match; Escape puts back the selection, and the view too unless
+  // the user moved it since; a click away puts back the selection and keeps the view (docs/ux.md).
   const findBox = /** @type {HTMLInputElement} */ (els.findBox);
-  /** @type {{ before: Item | null, matches: import('./find.mjs').Findable[], at: number } | null} */
+  /**
+   * `view`: the view before the find, put back on Escape unless the user has `moved` it since.
+   * @type {{ before: Item | null, matches: import('./find.mjs').Findable[], at: number, view: ReturnType<typeof viewer.getView>, moved: boolean } | null}
+   */
   let finding = null;
-  /** What can be found, drawn wholly or partly on screen. */
+  /** What the last find looked for, shown again by the next. */
+  let lastQuery = '';
+  /** What can be found, and whether each is drawn wholly or partly on screen. */
   function findables() {
     const area = els.diagram.getBoundingClientRect();
     /** @type {import('./find.mjs').Findable[]} */
     const out = [];
     const add = (/** @type {Item} */ item, /** @type {Element | null | undefined} */ el, /** @type {string} */ text) => {
       const r = el?.getBoundingClientRect();
-      if (!r || !text.trim() || r.right < area.left || r.left > area.right || r.bottom < area.top || r.top > area.bottom) return;
-      out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2 });
+      if (!r || !text.trim()) return;
+      const on = r.right >= area.left && r.left <= area.right && r.bottom >= area.top && r.top <= area.bottom;
+      out.push({ kind: item.kind, id: item.id, text, x: r.left + r.width / 2, y: r.top + r.height / 2, on });
     };
     for (const g of drawn('g.node[data-page-node]')) {
       const item = /** @type {Item} */ ({ kind: 'node', id: g.dataset.pageNode });
@@ -705,47 +712,78 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         if (k === at) mark(el, 'data-page-current');
       }
     });
-    els.findCount.textContent = findBox.value.trim() ? (matches.length ? `${at + 1} of ${matches.length}` : 'No match') : '';
+    showCount();
+  }
+  function showCount() {
+    if (finding) els.findCount.textContent = findBox.value.trim() ? countText(finding.matches, finding.at) : '';
+  }
+  /** Match again in what is drawn now, keeping the current match where it is still found. */
+  function refind() {
+    const f = /** @type {NonNullable<typeof finding>} */ (finding);
+    const was = f.matches[f.at];
+    f.matches = find(findables(), findBox.value);
+    const still = was ? f.matches.findIndex((m) => same(m, was)) : -1;
+    f.at = still >= 0 ? still : Math.min(f.at, Math.max(0, f.matches.length - 1));
+  }
+  /** Match what is in the box, the current match the best one on screen, and say what was found. */
+  function matchTyped() {
+    const f = /** @type {NonNullable<typeof finding>} */ (finding);
+    f.matches = find(findables(), findBox.value);
+    f.at = firstShown(f.matches);
+    markMatches();
+    const at = f.matches[f.at];
+    const off = f.matches.filter((m) => !m.on).length;
+    ui.announce(at ? `${f.matches.length} found${off ? `, ${off} off screen` : ''}; ${named(at)}` : findBox.value.trim() ? 'No match' : '');
   }
   function openFind() {
     if (finding) { findBox.focus(); return; }
-    finding = { before: selected, matches: [], at: 0 };
+    finding = { before: selected, matches: [], at: 0, view: viewer.getView(), moved: false };
     deselect();
     ui.hideNotice();
-    findBox.value = '';
-    els.findCount.textContent = '';
+    findBox.value = lastQuery;
     els.find.hidden = false;
     findBox.focus();
+    findBox.select();
+    matchTyped();
   }
-  /** Close the box: select `pick`, or put back what was selected before. */
-  function closeFind(/** @type {Item | null} */ pick) {
+  /**
+   * Close the box: select `pick` and bring it into view, or put back what was selected before; `restore` (Escape) puts
+   * back the view as well, unless the user has moved it since.
+   */
+  function closeFind(/** @type {Item | null} */ pick, restore = false) {
     const was = finding;
     if (!was) return;
     finding = null;
+    lastQuery = findBox.value;
     markMatches();
     els.find.hidden = true;
-    if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
+    if (restore && !was.moved) {
+      // A view never touched followed the window: fitting it again puts it back and keeps it following.
+      if (was.view.touched) viewer.setView(was.view); else viewer.fit();
+    }
+    if (pick) selectByKey(pick); else if (was.before && elsOf(was.before).length) select(was.before);
     if (findBox === document.activeElement) els.diagram.focus();
   }
-  findBox.addEventListener('input', () => {
-    if (!finding) return;
-    finding.matches = find(findables(), findBox.value);
-    finding.at = 0;
-    markMatches();
-    const first = finding.matches[0];
-    ui.announce(first ? `${finding.matches.length} found; ${named(first)}` : findBox.value.trim() ? 'No match' : '');
-  });
+  findBox.addEventListener('input', () => { if (finding) matchTyped(); });
   findBox.addEventListener('keydown', (e) => {
     if (!finding) return;
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(null); return; }
-    if (e.key === 'Enter') { e.preventDefault(); closeFind(finding.matches[finding.at] ?? null); return; }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeFind(null, true); return; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const at = finding.matches[finding.at];
+      if (at) closeFind(at);
+      return;
+    }
     if (e.key === 'Tab') {
       e.preventDefault();
       const n = finding.matches.length;
       if (!n) return;
       finding.at = (finding.at + (e.shiftKey ? -1 : 1) + n) % n;
       markMatches();
-      ui.announce(named(finding.matches[finding.at]));
+      const at = finding.matches[finding.at];
+      ui.announce(named(at));
+      const el = elsOf(at)[0];
+      if (el) viewer.reveal(el.getBoundingClientRect());
     }
   });
   // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and
@@ -1267,7 +1305,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   return {
     save,
-    viewChanged: () => {
+    viewChanged: (/** @type {boolean} */ byUser) => {
+      // What is on screen changed, so the count's "off screen" did; what matches, and its marks, did not.
+      if (finding) {
+        if (byUser) finding.moved = true;
+        refind();
+        showCount();
+      }
       const el = selectedEl();
       if (selected && el) menus[selected.kind].reposition(el.getBoundingClientRect());
       if (spaceAt) {
@@ -1314,11 +1358,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       tagEdges(text);
       // A new drawing while finding: find again in it, so no mark is left on what has gone.
-      if (finding) {
-        finding.matches = find(findables(), findBox.value);
-        finding.at = Math.min(finding.at, Math.max(0, finding.matches.length - 1));
-        markMatches();
-      }
+      if (finding) { refind(); markMatches(); }
       const menu = menuOpen();
       const sel = selected;
       const next = pending;

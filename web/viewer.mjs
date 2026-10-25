@@ -40,7 +40,9 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  *   long-press, at client coordinates, or the menu key or Shift+F10 (`byKey`: its target is the focused diagram, and
  *   its coordinates are the browser's guess); return true to say it was handled (the browser's own menu is then not
  *   shown)
- * @param {() => void} [hooks.onViewChange] the diagram moved or was zoomed on screen
+ * @param {(change: { byUser: boolean }) => void} [hooks.onViewChange] the diagram moved or was zoomed on screen;
+ *   `byUser`: by the user (the wheel, a drag or pinch, pan(), zoom(), zoomTo()), not by the page (fit(), reveal(),
+ *   center(), setView())
  */
 export function createViewer({ diagram, stage }, hooks = {}) {
   const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {} } = hooks;
@@ -60,9 +62,9 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   scratch.setAttribute('aria-hidden', 'true');
   diagram.append(scratch);
 
-  function apply() {
+  function apply(byUser = false) {
     stage.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
-    onViewChange();
+    onViewChange({ byUser });
   }
 
   // The fit leaves the diagram area's top padding clear, besides its own margin.
@@ -84,7 +86,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     view.y = py - (py - view.y) * (k / view.k);
     view.k = k;
     touched = true;
-    apply();
+    apply(true);
   }
 
   diagram.addEventListener('wheel', (e) => {
@@ -189,7 +191,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     drag.x = e.clientX;
     drag.y = e.clientY;
     touched = true;
-    apply();
+    apply(true);
   });
   const endDrag = () => { if (drag) clearTimeout(drag.timer); drag = null; pointers.clear(); diagram.classList.remove('dragging'); };
   /** A finger lifted: the gesture goes on while any are down. Returns whether it did. */
@@ -244,7 +246,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       view.x -= fx * box.width;
       view.y -= fy * box.height;
       touched = true;
-      apply();
+      apply(true);
     },
 
     /** Zoom by `factor` about the middle of the diagram area. */
