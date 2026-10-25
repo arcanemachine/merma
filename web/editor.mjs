@@ -777,13 +777,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clearMarks('data-page-candidate');
     candidate = item;
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
-    const el = elsOf(item)[0];
     const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.
     if (quiet) return;
     ui.announce(`${named(item)}: ${what}`);
-    if (el) viewer.reveal(el.getBoundingClientRect());
+    reveal(item);
+  }
+  /** Bring `item` into view: all that is drawn for it, an edge's line and its label together. */
+  function reveal(/** @type {Item} */ item) {
+    const rects = elsOf(item).map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height);
+    if (!rects.length) return;
+    const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
+    const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
+    viewer.reveal(new DOMRect(left, top, right - left, bottom - top));
   }
   /**
    * Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view; `moving`,
@@ -792,8 +799,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function selectByKey(/** @type {Item} */ item, /** @type {string | undefined} */ said = undefined, moving = false) {
     select(item, { moving });
     ui.announce(`${said ? `${said}; ` : ''}${named(item)} selected`);
-    const el = elsOf(item)[0];
-    if (el) viewer.reveal(el.getBoundingClientRect());
+    reveal(item);
   }
 
   // --- find: / -------------------------------------------------------------------------------------------------

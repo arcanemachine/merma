@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { frame } from '../web/frame.mjs';
+import { frame, tooBig } from '../web/frame.mjs';
 
 const AREA = { width: 1000, height: 608, top: 8 };   // 600 high below the top padding
 const PAD = 24;
@@ -41,4 +41,11 @@ test('one box is centered', () => {
 
 test('no boxes, no frame', () => {
   assert.equal(frame([], AREA, PAD, 1), null);
+});
+
+test('a box that fits with the margin is moved into view; one too big at this zoom is framed', () => {
+  assert.equal(tooBig({ width: 952, height: 552 }, AREA, PAD), false);
+  assert.equal(tooBig({ width: 953, height: 10 }, AREA, PAD), true);
+  // The height counts below the top padding.
+  assert.equal(tooBig({ width: 10, height: 553 }, AREA, PAD), true);
 });

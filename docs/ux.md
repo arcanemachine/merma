@@ -108,7 +108,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   nothing else for them. While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
   answers none.
 - An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
-  view moves nothing (the user), for the same reason an edit keeps the view. A view moved that way counts as yours, as
+  view moves nothing (the user), for the same reason an edit keeps the view. One too big for the window at this zoom
+  (a long edge, a large subgraph) is shown whole, zoomed out just enough and centered, as find frames its matches
+  (the user: part of a line is neither the line nor the end that matters). An edge is shown with its label. A view moved that way counts as yours, as
   after a drag: a change in the window's size no longer refits it.
 - The view is yours: merma moves it on its own only to bring something into view, and once you move it yourself,
   nothing merma does afterwards puts it back. Find (/) is the case in point. It matches the whole diagram, on screen

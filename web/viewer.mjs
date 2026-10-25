@@ -6,7 +6,7 @@
 
 // A change to this version changes the module's name in types/mermaid.d.ts too.
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
-import { frame as frameView } from './frame.mjs';
+import { frame as frameView, tooBig } from './frame.mjs';
 
 // useMaxWidth: false renders every diagram type at its natural size; the view below fits and zooms it.
 const natural = { useMaxWidth: false };
@@ -69,6 +69,24 @@ export function createViewer({ diagram, stage }, hooks = {}) {
   function toStage(/** @type {number} */ x, /** @type {number} */ y) {
     const box = diagram.getBoundingClientRect();
     return { x: (x - box.left - view.x) / view.k, y: (y - box.top - view.y) / view.k };
+  }
+
+  /**
+   * Show every rect (client coordinates) at once, as a fit puts the diagram: centered at the zoom the view has, or
+   * zoomed out just enough, never in; below `clear` px of the area's top (what lies over it), else its padding.
+   */
+  function frameRects(/** @type {import('./frame.mjs').Box[]} */ rects, clear = 0) {
+    const box = diagram.getBoundingClientRect();
+    const top = Math.max(clear, parseFloat(getComputedStyle(diagram).paddingTop) || 0);
+    const boxes = rects.map((r) => {
+      const a = toStage(r.left, r.top), b = toStage(r.right, r.bottom);
+      return { left: a.x, top: a.y, right: b.x, bottom: b.y };
+    });
+    const to = frameView(boxes, { width: box.width, height: box.height, top }, PAD, view.k);
+    if (!to) return;
+    Object.assign(view, to);
+    touched = true;
+    apply();
   }
 
   function apply(byUser = false) {
@@ -273,11 +291,14 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     /**
      * Move the view the least it takes to bring `rect` (client coordinates) inside the diagram area, a margin in from
      * its edges and clear of its top padding, where the notice lies; nothing moves when it is inside already. A rect
-     * too big to fit is aligned at its top left.
+     * too big to fit at this zoom is shown whole, framed as find frames its matches: centered, zoomed out just enough
+     * (the user).
      */
     reveal(/** @type {DOMRect} */ rect) {
       const box = diagram.getBoundingClientRect();
-      const top = box.top + (parseFloat(getComputedStyle(diagram).paddingTop) || 0) + PAD;
+      const padTop = parseFloat(getComputedStyle(diagram).paddingTop) || 0;
+      if (tooBig(rect, { width: box.width, height: box.height, top: padTop }, PAD)) { frameRects([rect]); return; }
+      const top = box.top + padTop + PAD;
       const shift = (/** @type {number} */ lo, /** @type {number} */ hi, /** @type {number} */ min, /** @type {number} */ max) =>
         (lo < min || hi - lo > max - min ? min - lo : hi > max ? max - hi : 0);
       const dx = shift(rect.left, rect.right, box.left + PAD, box.right - PAD);
@@ -289,23 +310,7 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       apply();
     },
 
-    /**
-     * Show every rect (client coordinates) at once, as a fit puts the diagram: centered at the zoom the view has, or
-     * zoomed out just enough, never in; below `clear` px of the area's top (what lies over it), else its padding.
-     */
-    frame(/** @type {import('./frame.mjs').Box[]} */ rects, clear = 0) {
-      const box = diagram.getBoundingClientRect();
-      const top = Math.max(clear, parseFloat(getComputedStyle(diagram).paddingTop) || 0);
-      const boxes = rects.map((r) => {
-        const a = toStage(r.left, r.top), b = toStage(r.right, r.bottom);
-        return { left: a.x, top: a.y, right: b.x, bottom: b.y };
-      });
-      const to = frameView(boxes, { width: box.width, height: box.height, top }, PAD, view.k);
-      if (!to) return;
-      Object.assign(view, to);
-      touched = true;
-      apply();
-    },
+    frame: frameRects,
 
     /** Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
      * padding, at the zoom it has. */
