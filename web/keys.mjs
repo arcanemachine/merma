@@ -188,8 +188,8 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     other,
     /** On a selected edge, the end it counts as reached from (null: its source). */
     came: () => cursor.came,
-    /** A selected edge counts as reached from `fan`: a click on its line near that end. */
-    countFrom(/** @type {import('./navigate.mjs').Fan} */ fan) { cursor = { trail: cursor.trail, came: fan }; },
+    /** A selected edge counts as reached from `fan` (null: its source): a click on its line on that end's side. */
+    countFrom(/** @type {import('./navigate.mjs').Fan | null} */ fan) { cursor = { trail: cursor.trail, came: fan }; },
     /** A selection not made by a key (a click, a find, an edit): the trail starts again, and I forgets where you were. */
     forget() { cursor = FRESH; inside.clear(); },
     /** Connect to… starts: its candidate has no moves yet. */

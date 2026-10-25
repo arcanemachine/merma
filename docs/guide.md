@@ -223,8 +223,8 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
   the topmost). A subgraph's edges include those crossing its border from a node inside it. These edges, all leaving
   one box the same way, are its **fan** that way.
 - **On an edge**, the arrow along it goes to the box at that end. The other two **step** across: to the edge
-  beside it in the fan at the end you came from (for an edge you clicked on its line, the end nearer the click; on its
-  label, or found, its source, the node written first in the file), and past the last one there, on into the fan at its
+  beside it in the fan at the end you came from (for an edge you clicked on its line, the end on the click's side of its
+  label, or of its middle with none; on its label, or found, its source, the node written first in the file), and past the last one there, on into the fan at its
   other end, from its place there. They never land on a node, and stop at the last edge. From "Paid?", Down, then
   Right, Right, Right steps through its four edges; from the edge labelled no, Left steps on to Retry's edge to Charge
   card. A short blue bar across a selected edge near one end, the **end tick**, shows the end whose edges they step.

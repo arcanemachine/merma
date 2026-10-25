@@ -134,13 +134,15 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
     from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked on its line counts as
-    reached from the end nearer the click along the line (the user); clicked on its label, at its middle, or found,
-    from its source (the node the file writes first: every edge has one). The counted end is marked with the end
-    tick, so the fan the cross arrows step shows before you press: a short bar across the line, flat or upright,
-    never tilted (the user: noticeable, not in the way; a dot read as Mermaid's circle end). It is sized in the
+    reached from the end on the click's side, split at its label where it has one, else at its middle, along the line
+    (the user: every click decides, the same each time); clicked on its label, or found, from its source (the node
+    the file writes first: every edge has one). The counted end is marked with the end
+    tick, so the fan the cross arrows step shows before you press: a short bar across the way the edge leaves that
+    end's node, flat or upright, never tilted (the user: noticeable, not in the way; a dot read as Mermaid's circle
+    end). It is sized in the
     diagram's units, as the line and its arrowhead are, so it grows and shrinks with them (the user: a fixed size
     hid under the line zoomed in), with a floor on screen; it keeps a gap from the arrowhead (a bar at an arrow's base
-    is notation), and slides along the line off any bend and clear of any text. Space switches an edge to its other
+    is notation), and slides along the line to where it runs that way, off any bend and clear of any text. Space switches an edge to its other
     end (the user), so the cross arrows step that end's fan. It is not a move: the arrival into the edge leaves the
     trail, as after a step across. The cross arrows stop at the last edge rather than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried it and
     chose stepping across.
