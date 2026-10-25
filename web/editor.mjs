@@ -26,8 +26,10 @@ const PAN_STEP = 0.1;
 const PAN_BIG = 0.5;
 const PAN_SMALL = 0.02;
 const ZOOM_STEP = 1.25;
-// The selected edge's end mark: its length across the line, in screen pixels.
+// The selected edge's end mark: its length across the line, in screen pixels; how far in from the end it starts, in
+// the diagram's own units, past Mermaid's arrowhead at any zoom.
 const END_TICK = 12;
+const END_START = 14;
 
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
@@ -355,9 +357,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const screen = (/** @type {DOMPoint} */ p) => ({ x: p.x * m.a + p.y * m.c + m.e, y: p.x * m.b + p.y * m.d + m.f });
     const texts = drawn('g.edgeLabel, .cluster-label, g.node .label, .flowchartTitleText')
       .map((e) => e.getBoundingClientRect()).filter((r) => r.width);
-    /** The tick `d` screen px in from the counted end: its two ends in the path's own units. */
+    /** The tick `d` in from the counted end, both in the path's own units, as Mermaid's arrowheads are. */
     const tick = (/** @type {number} */ d) => {
-      const s = Math.min(len, d / k), at = endSide === 'start' ? s : len - s;
+      const s = Math.min(len, d), at = endSide === 'start' ? s : len - s;
       const p = path.getPointAtLength(at);
       const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
       const t = Math.hypot(b.x - a.x, b.y - a.y) || 1, h = END_TICK / 2 / k;
@@ -370,8 +372,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return !texts.some((t) => r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top);
     };
     // Past the arrowhead, then on along the line, up to its middle, until no text is under it.
-    let ends = tick(12);
-    for (let d = 12; d <= (len * k) / 2; d += 3) {
+    let ends = tick(END_START);
+    for (let d = END_START; d <= len / 2; d += 3) {
       const at = tick(d);
       if (clear(at)) { ends = at; break; }
     }
