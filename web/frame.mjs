@@ -4,11 +4,12 @@
 /** @typedef {{ left: number, top: number, right: number, bottom: number }} Box */
 
 /**
- * The view that shows every box, centered in the area below its top padding and `pad` in from its edges, as a fit
+ * The view that shows every box, centered in the area below what its top keeps clear and `pad` in from its edges, as a fit
  * puts the diagram: at zoom `k` when they fit, else zoomed out just enough; never zoomed in (the user). Null for no
  * boxes.
  * @param {Box[]} boxes in stage coordinates
- * @param {{ width: number, height: number, top: number }} area the diagram area's size, and its top padding
+ * @param {{ width: number, height: number, top: number }} area the diagram area's size, and how much of its top to keep
+ *   clear (its padding, or what lies over it)
  * @param {number} pad
  * @param {number} k the zoom the view has
  * @returns {{ x: number, y: number, k: number } | null}

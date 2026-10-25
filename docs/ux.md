@@ -116,7 +116,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   count says how many are not ("2 of 5, 3 off screen"). Tab and Shift+Tab step; the first of them with any match off
   screen also moves the view once to show them all, as a fit puts the diagram: centered at the zoom it has, or zoomed
   out just enough, never in (the user: a find that jumped on some Tabs and not others was confusing; one move, then
-  none). Moving by keys keeps the least move, since there each step is one item. Escape puts back the selection and
+  none). Enter on a match off screen centers it (the user). Moving by keys keeps the least move, since there each step
+  is one item. Escape puts back the selection and
   the view from before the find, unless you moved the view
   since (a drag, the wheel, a pinch, a zoom key); a click away keeps the view where it is (the user: Tab to a match
   off screen, then click it, and the view stays put). Enter selects the current match; with no match, or nothing

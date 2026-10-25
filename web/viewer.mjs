@@ -290,11 +290,11 @@ export function createViewer({ diagram, stage }, hooks = {}) {
 
     /**
      * Show every rect (client coordinates) at once, as a fit puts the diagram: centered at the zoom the view has, or
-     * zoomed out just enough, never in.
+     * zoomed out just enough, never in; below `clear` px of the area's top (what lies over it), else its padding.
      */
-    frame(/** @type {import('./frame.mjs').Box[]} */ rects) {
+    frame(/** @type {import('./frame.mjs').Box[]} */ rects, clear = 0) {
       const box = diagram.getBoundingClientRect();
-      const top = parseFloat(getComputedStyle(diagram).paddingTop) || 0;
+      const top = Math.max(clear, parseFloat(getComputedStyle(diagram).paddingTop) || 0);
       const boxes = rects.map((r) => {
         const a = toStage(r.left, r.top), b = toStage(r.right, r.bottom);
         return { left: a.x, top: a.y, right: b.x, bottom: b.y };

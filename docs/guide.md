@@ -266,8 +266,8 @@ subgraph and title holding what you typed (ignoring case), on screen or off, is 
 its edge's line turns amber). The current match is filled: as you type, the best one on screen, else the best; the
 count says how many are off screen ("2 of 5, 3 off screen"). Typing never moves the view. Tab and Shift+Tab move to
 the next match and the one before; the first of them with any match off screen also moves the view once so every match
-is on screen, zooming out only if they do not fit. Enter selects the current match, and so does a click
-on it (or on anything else in the diagram); with nothing found, Enter does nothing. Escape closes the find and puts
+is on screen, zooming out only if they do not fit. Enter selects the current match, centering it when it is off
+screen, and so does a click on it (or on anything else in the diagram); with nothing found, Enter does nothing. Escape closes the find and puts
 back what was selected, and the view from before the find unless you moved it since; a click outside the diagram puts
 back the selection and leaves the view where it is. The best match is the whole text, then one starting with it, then a
 word starting with it, then any; higher first. Tab stays in the find box, and Escape is the way out of it. / again
