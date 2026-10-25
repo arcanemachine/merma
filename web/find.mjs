@@ -1,9 +1,9 @@
 // Find on /: which items match what was typed, best first. No DOM: the editor passes in what is drawn.
 
 /**
- * An item that can be found: a node's label, an edge's label, a subgraph's or the diagram's title, with its middle in
- * client coordinates and whether it is on screen (`on`).
- * @typedef {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string, text: string, x: number, y: number, on: boolean }} Findable
+ * An item that can be found: a node's label, an edge's label, a subgraph's or the diagram's title, with its middle and
+ * its `box` in client coordinates, and whether it is wholly on screen (`on`).
+ * @typedef {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string, text: string, x: number, y: number, box: import('./frame.mjs').Box, on: boolean }} Findable
  */
 
 /**

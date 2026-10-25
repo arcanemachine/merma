@@ -34,7 +34,7 @@ rather than repeating it, and write down only what someone will read again.
   - it exercises real code, not a mock standing in for the thing under test, and not constants or the language;
   - for a new test, break the code on purpose once and watch the test fail: `checks/mutate.sh <file> <text>
     <replacement>` does it and always puts the file back;
-  - logic with no DOM goes in a module Node can test (`web/patch/`, `web/history.mjs`, `web/menu-items.mjs`, `web/place.mjs`, `web/grid.mjs`, `web/navigate.mjs`, `web/find.mjs`), rather than untested in the
+  - logic with no DOM goes in a module Node can test (`web/patch/`, `web/history.mjs`, `web/menu-items.mjs`, `web/place.mjs`, `web/grid.mjs`, `web/navigate.mjs`, `web/find.mjs`, `web/frame.mjs`), rather than untested in the
     page.
 - **Fixtures and examples are generic.** Test files, sample diagrams and examples in docs are written for merma:
   plain names (`A[Start] --> B{OK?}`, `charge --> record`) that show the syntax under test, never copied from, or
