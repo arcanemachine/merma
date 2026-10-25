@@ -521,7 +521,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const item = itemAt(target);
     clickedDuringEdit(item);
     if (connecting) { connectTo(item?.kind === 'edge' ? null : item); return; }
-    if (item) { select(item); if (!Number.isNaN(x)) countFromClick(target, x, y); } else { deselect(); cleared = null; if (!keptClick) ui.hideNotice(); }
+    if (item) { select(item); if (!Number.isNaN(x)) countFromClick(target, x, y); } else { deselect(); cleared = null; clearedCursor = null; if (!keptClick) ui.hideNotice(); }
     keptClick = false;
   }
 
