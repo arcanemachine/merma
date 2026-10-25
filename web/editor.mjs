@@ -209,7 +209,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const parent = selectedSubgraph();
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
     },
-    'fit-view': () => viewer.toggleFit(),
+    'fit-view': () => viewer.fit(),
   };
   // A handler for every action and an action for every handler: a typo in either would otherwise only show as a
   // menu item that does nothing.
@@ -298,7 +298,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!elsOf(sel).length) { deselect(); return; }
     // A menu opened again for the same item stays open, so a change to the file does not reset it.
     const again = same(selected, sel);
-    if (!again) viewer.forgetFit();
     // A click, a find, an edit (not `moving`: a key, which keeps them): the trail starts again, and I forgets where you
     // were.
     if (!again && !moving) moves.forget();
@@ -315,7 +314,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function deselect() {
-    if (selected) viewer.forgetFit();
     unmark();
     selected = null;
     connecting = false;
@@ -526,19 +524,19 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       openSpaceMenu(r.left + r.width / 2, r.top + r.height / 2);
       return true;
     },
-    // F centers the selection at the zoom it has; centered already (or nothing selected), it fits the diagram, and F
-    // straight after puts back the view the fit replaced (the user: zoom out to see it all, and back in). The title,
-    // at the diagram's top, is fitted with it.
+    // F fits the diagram; with an item selected, it centers it at the zoom it has instead (the user). The title, at
+    // the diagram's top, is fitted with it.
     f: () => {
+      if (!selected || selected.kind === 'title') { viewer.fit(); return true; }
       let at = null;
-      if (selected?.kind === 'edge') {
+      if (selected.kind === 'edge') {
         const id = selected.id;
         at = layout().edges.find((e) => e.id === id)?.mid ?? null;
-      } else if (selected && selected.kind !== 'title') {
+      } else {
         const r = elsOf(selected)[0]?.getBoundingClientRect();
         if (r) at = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }
-      if (!(at && !viewer.canGoBack() && viewer.center(at.x, at.y))) viewer.toggleFit();
+      if (at) viewer.center(at.x, at.y); else viewer.fit();
       return true;
     },
     ...Object.fromEntries(['Up', 'Down', 'Left', 'Right'].flatMap((d) => {
