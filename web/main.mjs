@@ -119,7 +119,7 @@ let editor = null;
 let shownOnce = false;   // a diagram has been rendered; until then the view is the initial fit, not worth keeping
 
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
-  onClick: (target) => editor?.clicked(target),
+  onClick: (target) => { clickedAway(target); editor?.clicked(target); },
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
   onViewChange: () => { editor?.viewChanged(); if (shownOnce) keepView(); },
@@ -227,11 +227,29 @@ exportButton.addEventListener('click', () => {
   exportMenu.open(exportButton.getBoundingClientRect(), { edgesOk: true, selfLoop: false, nameWhy: null }, { gap: 4 });
   exportButton.setAttribute('aria-expanded', 'true');
 });
-// A press anywhere else closes it, the diagram included, as for the diagram's own menus.
-document.addEventListener('pointerdown', (e) => {
-  const at = /** @type {Node} */ (e.target);
+// A click anywhere else closes it and Help, the diagram included, as for the diagram's own menus; a drag does not
+// (the user). In the diagram only the viewer's click counts: the browser's own fires after a drag as well.
+function clickedAway(/** @type {Node} */ at) {
   if (exportMenu.isOpen() && !exportMenu.contains(at) && !exportButton.contains(at)) exportMenu.close();
+  if (help.matches(':popover-open') && !help.contains(at) && !helpButton.contains(at)) help.hidePopover();
+}
+document.addEventListener('click', (e) => {
+  const at = /** @type {Node} */ (e.target);
+  if (!el('diagram').contains(at)) clickedAway(at);
 });
+
+// Help is a manual popover, so a drag (a pan of the diagram behind it) leaves it open: it closes on its button, on
+// Escape and on a click away, focus going back to its button as a dialog's does.
+const help = el('help');
+const helpButton = /** @type {HTMLElement} */ (document.querySelector('[popovertarget="help"]'));
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !help.matches(':popover-open')) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  help.hidePopover();
+  helpButton.focus();
+}, true);
+
 
 // For tests: hold polling to set up a stale save, or save text directly to exercise the parse check.
 window.merma = { start: source.start, stop: source.stop, save: editor.save, state: () => ({ ...editor.state(), version: source.version }) };

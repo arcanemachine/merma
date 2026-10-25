@@ -8,7 +8,8 @@ them.
 
 ## Viewing
 
-- The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram.
+- The wheel zooms at the cursor, and so does a pinch on a touch screen; a drag moves the diagram. None of them closes
+  anything: the label box, find, Help, a menu and Connect to… stay open, and only a click away (or Escape) closes them.
 - A double-click (or double-tap) on empty space (not on a subgraph), **Fit to window** in the empty-space menu, or F
   with nothing selected fits the diagram to the window; F with an item selected centers it instead, at the zoom it
   has (the title is fitted with the diagram), as **Center in window** in a node's, an edge's or a subgraph's menu
