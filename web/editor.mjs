@@ -10,7 +10,7 @@ import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
-import { countedEnd, nearest, nest, otherEnd } from './navigate.mjs';
+import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -338,12 +338,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** @type {'start' | 'end' | null} the end of the selected edge its mark is at */
   let endSide = null;
+  /** Whether the edge leaves that end up or down, so its tick lies flat (else upright). */
+  let endFlat = true;
   /**
    * Mark the end the selected edge counts as reached from, whose edges the cross arrows step (the user): the end
-   * tick, a short bar across its line, flat or upright (the user: never tilted on a curve), in the stage so it moves
-   * with the diagram, sized in the diagram's units with a floor on screen, and slid along the line off any bend and
-   * clear of any text. `measure`: work out which end again (a new selection, a click, or Space); else the same end,
-   * redrawn for a new zoom.
+   * tick, a short bar across the way the edge leaves its node there (the user), flat or upright, never tilted, in the
+   * stage so it moves with the diagram, sized in the diagram's units with a floor on screen, and slid along the line
+   * to where it runs that way, clear of any text. `measure`: work out which end again (a new selection, a click, or
+   * Space); else the same end, redrawn for a new zoom.
    */
   function markEnd(measure = true) {
     for (const e of drawn('[data-page-end]')) e.remove();
@@ -353,6 +355,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const { boxes, edges } = layout();
       const e = edges.find((x) => x.id === id);
       endSide = e ? countedEnd(boxes, e, moves.came()) : null;
+      const key = e && (endSide === 'start' ? heading(e.start, e.startOut) : heading(e.end, e.endOut));
+      endFlat = key === 'ArrowUp' || key === 'ArrowDown';
     }
     const path = /** @type {SVGPathElement | undefined} */ (edgeEls(id).find((e) => e.matches('path:not([data-page-only])')));
     const m = path?.getScreenCTM();
@@ -365,16 +369,21 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // smaller on screen than END_TICK_MIN by END_STROKE_MIN.
     const width = Math.max(END_STROKE, END_STROKE_MIN / k), h = Math.max(END_TICK, END_TICK_MIN / k) / 2;
     /** The tick `d` in from the counted end, in the path's own units. */
+    /** Whether the line at `at` runs within 30° of the way the edge leaves its node. */
+    const runs = (/** @type {number} */ at) => {
+      const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
+      const t = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      return Math.abs(endFlat ? b.y - a.y : b.x - a.x) / t >= Math.cos(Math.PI / 6);
+    };
     const tick = (/** @type {number} */ d) => {
       const s = Math.min(len, d), at = endSide === 'start' ? s : len - s;
       const p = path.getPointAtLength(at);
-      const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
-      const t = Math.hypot(b.x - a.x, b.y - a.y) || 1, tx = (b.x - a.x) / t, ty = (b.y - a.y) / t;
-      // Flat across a line running up or down there, upright across one running sideways (the user: never tilted);
-      // `straight` where it runs within 30° of either, not on a bend.
-      const flat = Math.abs(ty) >= Math.abs(tx);
-      const [nx, ny] = flat ? [h, 0] : [0, h];
-      return { ends: [{ x: p.x - nx, y: p.y - ny }, { x: p.x + nx, y: p.y + ny }], straight: Math.max(Math.abs(tx), Math.abs(ty)) >= Math.cos(Math.PI / 6) };
+      // Across the way the edge leaves its node (the user): flat for up or down, upright for sideways, never tilted.
+      // `straight` where the line runs that way for the tick's width on both sides, so it crosses the line clear of
+      // any bend rather than lying along it.
+      const [nx, ny] = endFlat ? [h, 0] : [0, h];
+      const straight = runs(at) && runs(Math.max(0, at - h)) && runs(Math.min(len, at + h));
+      return { ends: [{ x: p.x - nx, y: p.y - ny }, { x: p.x + nx, y: p.y + ny }], straight, centered: runs(at) };
     };
     const clear = (/** @type {{ x: number, y: number }[]} */ ends) => {
       const [u, v] = ends.map((q) => screen(/** @type {DOMPoint} */ (q)));
@@ -382,14 +391,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return !texts.some((t) => r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top);
     };
     // A gap past the arrowhead (or the node, at a plain end), apart from it so it never reads as part of the arrow
-    // (a bar at an arrow's base is notation), then on along the line, up to its middle, until it is off any bend and
-    // no text is under it.
+    // (a bar at an arrow's base is notation), then on along the line, up to its middle, until it runs the way the edge
+    // leaves its node and no text is under it.
     const start = markerReach(path, endSide) + END_GAP + width / 2;
-    let { ends } = tick(start);
-    for (let d = start; d <= len / 2; d += 3) {
-      const at = tick(d);
-      if (at.straight && clear(at.ends)) { ends = at.ends; break; }
-    }
+    // Zoomed out, a straight stretch can be shorter than the tick is wide: then straight at its middle will do.
+    const find = (/** @type {'straight' | 'centered'} */ need) => {
+      for (let d = start; d <= len / 2; d += 3) {
+        const at = tick(d);
+        if (at[need] && clear(at.ends)) return at.ends;
+      }
+      return null;
+    };
+    const ends = find('straight') ?? find('centered') ?? tick(start).ends;
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     for (const [a, v] of Object.entries({ x1: ends[0].x, y1: ends[0].y, x2: ends[1].x, y2: ends[1].y })) el.setAttribute(a, String(v));
     el.setAttribute('stroke-width', String(width));
@@ -412,24 +425,32 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   /**
-   * After a click on an edge's line at (`x`, `y`): it counts from the end nearer the click along the line (the user),
-   * so a click near a node takes that node's fan. A click on its label, at the middle, keeps its source.
+   * After a click on an edge's line at (`x`, `y`): it counts from the end on the click's side (the user: every click
+   * decides, so it is the same each time), split at its label where it has one, else at its middle, along the line.
+   * A click on the label itself counts from its source.
    */
   function countFromClick(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
-    if (selected?.kind !== 'edge' || target.closest('g.edgeLabel')) return;
-    const path = /** @type {SVGPathElement | undefined} */ (edgeEls(selected.id).find((e) => e.matches('path:not([data-page-only])')));
+    if (selected?.kind !== 'edge') return;
+    const id = selected.id;
+    const path = /** @type {SVGPathElement | undefined} */ (edgeEls(id).find((e) => e.matches('path:not([data-page-only])')));
     const m = path?.getScreenCTM();
     if (!path || !m) return;
     const len = path.getTotalLength();
-    let best = 0, near = Infinity;
-    for (let s = 0; s <= len; s += 2) {
-      const p = path.getPointAtLength(s);
-      const d = Math.hypot(p.x * m.a + p.y * m.c + m.e - x, p.x * m.b + p.y * m.d + m.f - y);
-      if (d < near) { near = d; best = s; }
-    }
-    if (best <= len / 2) return;
-    const to = otherEnd(layout(), selected.id, null);
-    if (to) { moves.countFrom(to); markEnd(); }
+    /** How far along the line the point nearest (`px`, `py`) is. */
+    const along = (/** @type {number} */ px, /** @type {number} */ py) => {
+      let best = 0, near = Infinity;
+      for (let s = 0; s <= len; s += 2) {
+        const p = path.getPointAtLength(s);
+        const d = Math.hypot(p.x * m.a + p.y * m.c + m.e - px, p.x * m.b + p.y * m.d + m.f - py);
+        if (d < near) { near = d; best = s; }
+      }
+      return best;
+    };
+    const label = edgeEls(id).find((e) => e.matches('g.edgeLabel'))?.getBoundingClientRect();
+    const split = label?.width ? along(label.left + label.width / 2, label.top + label.height / 2) : len / 2;
+    const far = !target.closest('g.edgeLabel') && along(x, y) > split;
+    moves.countFrom(far ? otherEnd(layout(), id, null) : null);
+    markEnd();
   }
 
   function deselect() {
