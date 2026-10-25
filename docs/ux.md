@@ -134,7 +134,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
     from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked or found counts as
-    reached from its source (the node the file writes first: every edge has one). They stop at the last edge rather than
+    reached from its source (the node the file writes first: every edge has one). The end it counts from is marked
+    with a short tick across its line (the user: noticeable, not in the way; a dot read as Mermaid's circle end), so
+    the fan the cross arrows step shows before you press; it slides along the line clear of any text, and keeps one
+    size on screen at any zoom. Space switches an edge to its other end (the user), so the cross arrows step that
+    end's fan. It is not a move: the arrival into the edge leaves the trail, as after a step across. They stop at the last edge rather than
     wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried it and
     chose stepping across.
   - With no edge leaving that way, an arrow goes to the nearest box (node or subgraph) straight that way, else nothing

@@ -190,6 +190,7 @@ here does just what it does in the selected item's menu:
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
 | / (wherever it is on your keyboard) | Find in the whole diagram (below) |
+| Space with an edge selected | Walk the other end's edges: the cross arrows step that end's fan (the tick moves there) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
@@ -225,7 +226,9 @@ box, a menu or Help; while Help is open, no key acts on the diagram. A key with 
   beside it in the fan at the end you came from (for an edge you clicked or found, its source, the node written first
   in the file), and past the last one there, on into the fan at its other end, from its place there. They never land on
   a node, and stop at the last edge. From "Paid?", Down, then Right, Right, Right steps through its four edges; from the
-  edge labelled no, Left steps on to Retry's edge to Charge card.
+  edge labelled no, Left steps on to Retry's edge to Charge card. A short blue tick across a selected edge, near one
+  end, shows the end whose edges they step. **Space** switches to the other end: on the "yes" edge from "Paid?" to
+  "Order log", reached from "Order log", Space then Left steps through "Paid?"'s edges instead.
 - **With no edge that way**, an arrow goes to the nearest box straight that way (overlapping you across the
   arrow, nested or not; the topmost or leftmost on a tie), else nothing: nothing off to the side. The subgraph you are
   in counts by its border, so with nothing nearer inside, you reach its box: from Print label, Right is Boxing; from

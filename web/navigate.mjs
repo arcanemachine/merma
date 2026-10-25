@@ -167,6 +167,49 @@ export function across({ boxes, edges }, id, key, from = null) {
 }
 
 /**
+ * Space on edge `id`: the fan at its other end from `came`, the one it counts as reached from (null: its source's,
+ * as for an edge clicked), heading the way the edge leaves that end. From a subgraph's box, reached across its
+ * border, the other end is the one outside it; on a self-loop, both ends are its node, so only the heading changes.
+ * Null for an edge not drawn, or a loop that leaves and comes back the same way.
+ * @param {{ boxes: Box[], edges: Edge[] }} graph
+ * @param {string} id
+ * @param {Fan | null} [came]
+ * @returns {Fan | null}
+ */
+export function otherEnd({ boxes, edges }, id, came = null) {
+  const edge = edges.find((e) => e.id === id);
+  if (!edge) return null;
+  const ends = endsOf(edge);
+  const start = came ?? { id: ends[0].id, key: ends[0].dir };
+  if (edge.from === edge.to) {
+    const turn = ends.find((end) => end.dir !== start.key);
+    return turn ? { id: turn.id, key: turn.dir } : null;
+  }
+  const box = boxes.find((b) => b.id === start.id && b.kind === 'subgraph');
+  const inside = box ? within(boxes, box.id) : null;
+  const other = ends.find((end) => (inside ? !inside.has(end.id) : end.id !== start.id));
+  return other ? { id: other.id, key: other.dir } : null;
+}
+
+/**
+ * Which end of `edge` it counts as reached from (`came`; null: its source), for the mark there: 'start' or 'end' of
+ * its line. From a subgraph's box, the end inside it; on a self-loop, the end its heading names.
+ * @param {Box[]} boxes
+ * @param {Edge} edge
+ * @param {Fan | null} came
+ * @returns {'start' | 'end'}
+ */
+export function countedEnd(boxes, edge, came) {
+  if (!came) return 'start';
+  const [start] = endsOf(edge);
+  if (edge.from === edge.to) return came.key === start.dir ? 'start' : 'end';
+  if (came.id === edge.from) return 'start';
+  if (came.id === edge.to) return 'end';
+  const box = boxes.find((b) => b.id === came.id && b.kind === 'subgraph');
+  return box && within(boxes, box.id).has(edge.from) ? 'start' : 'end';
+}
+
+/**
  * Where Ctrl+Arrow `key` goes from `at`: past the edge plain `key` would select, to its far end; from an edge, to the
  * end that way. An end inside subgraphs that the place you leave is not in (from an edge, the end you leave) lands on
  * the outermost of their boxes, as a box is nearer than anything inside it: Ctrl goes in a level a press. With no edge
