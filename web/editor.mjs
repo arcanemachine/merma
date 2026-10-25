@@ -1335,7 +1335,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const kept = sel && elsOf(sel).length
         && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
       if (kept) select(sel, { keepMode: sel.kind !== 'edge', menu });
-      else deselect();
+      else if (sel) deselect();
     },
 
     /** The file no longer renders: what is on screen is an older version, so editing it would edit something else. */
