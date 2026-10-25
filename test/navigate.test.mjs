@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FRESH, across, back, byPlace, enter, flow, heading, leaving, moved, nearest, nest, skip, walk, within } from '../web/navigate.mjs';
+import { FRESH, across, back, byPlace, countedEnd, enter, flow, heading, leaving, moved, nearest, nest, otherEnd, skip, walk, within } from '../web/navigate.mjs';
 
 // A diagram as drawn (middles on screen), like the demo's:
 //
@@ -534,4 +534,38 @@ test("flow: a clicked box goes in the way the boxes beside it run, axis first; a
   const g = { boxes, edges: [ab, bs] };
   assert.deepEqual(enter([], g, at('subgraph', 's'), 'ArrowRight'), at('node', 'i1'));
   assert.equal(enter([], g, at('subgraph', 's'), 'ArrowDown'), null);
+});
+
+test("Space: the other end's fan, heading the way the edge leaves it; a clicked edge counts from its source", () => {
+  // paid-mail leaves paid heading down and leaves mail heading up.
+  assert.deepEqual(otherEnd(graph, 'paid-mail', { id: 'mail', key: 'ArrowUp' }), { id: 'paid', key: 'ArrowDown' });
+  assert.deepEqual(otherEnd(graph, 'paid-mail', { id: 'paid', key: 'ArrowDown' }), { id: 'mail', key: 'ArrowUp' });
+  assert.deepEqual(otherEnd(graph, 'paid-mail'), { id: 'mail', key: 'ArrowUp' });
+  // Counted from paid (after Space from mail's end), Left steps in paid's fan.
+  assert.deepEqual(go(graph, at('edge', 'paid-mail'), 'ArrowLeft', { id: 'paid', key: 'ArrowDown' }), at('edge', 'paid-ship'));
+  assert.equal(otherEnd(graph, 'nothing'), null);
+});
+
+test("Space from a subgraph's box goes to the end outside it, and a self-loop only turns", () => {
+  const g = { boxes: nest([sub('s', 0, 0, 100, 100), node('in', 0, 0), node('out', 0, 200)]),
+    edges: [edge('in', 'out', [0, 15], 'D', [0, 185], 'U')] };
+  assert.deepEqual(otherEnd(g, 'in-out', { id: 's', key: 'ArrowDown' }), { id: 'out', key: 'ArrowUp' });
+  const corner = { boxes: nest([node('q', 0, 0)]), edges: [edge('q', 'q', [30, 0], 'R', [10, -15], 'U')] };
+  assert.deepEqual(otherEnd(corner, 'q-q', { id: 'q', key: 'ArrowRight' }), { id: 'q', key: 'ArrowUp' });
+  assert.deepEqual(otherEnd(corner, 'q-q', { id: 'q', key: 'ArrowUp' }), { id: 'q', key: 'ArrowRight' });
+  // Out and back in the same way: nothing to turn to.
+  const flat = { boxes: nest([node('a', 0, 0)]), edges: [edge('a', 'a', [-30, -5], 'L', [-30, 5], 'L')] };
+  assert.equal(otherEnd(flat, 'a-a', { id: 'a', key: 'ArrowLeft' }), null);
+});
+
+test('the end an edge counts from is marked: its source when clicked, the box end from a subgraph, a loop by heading', () => {
+  const e = /** @type {import('../web/navigate.mjs').Edge} */ (edges.find((x) => x.id === 'paid-mail'));
+  assert.equal(countedEnd(boxes, e, null), 'start');
+  assert.equal(countedEnd(boxes, e, { id: 'paid', key: 'ArrowDown' }), 'start');
+  assert.equal(countedEnd(boxes, e, { id: 'mail', key: 'ArrowUp' }), 'end');
+  const ship = /** @type {import('../web/navigate.mjs').Edge} */ (edges.find((x) => x.id === 'paid-ship'));
+  assert.equal(countedEnd(boxes, ship, { id: 'ship', key: 'ArrowUp' }), 'end');
+  const loop = edge('q', 'q', [30, 0], 'R', [10, -15], 'U');
+  assert.equal(countedEnd([], loop, { id: 'q', key: 'ArrowRight' }), 'start');
+  assert.equal(countedEnd([], loop, { id: 'q', key: 'ArrowUp' }), 'end');
 });

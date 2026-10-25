@@ -10,7 +10,7 @@ import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
 import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
-import { nearest, nest } from './navigate.mjs';
+import { countedEnd, nearest, nest } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
   relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
@@ -26,6 +26,8 @@ const PAN_STEP = 0.1;
 const PAN_BIG = 0.5;
 const PAN_SMALL = 0.02;
 const ZOOM_STEP = 1.25;
+// The selected edge's end mark: its length across the line, in screen pixels.
+const END_TICK = 12;
 
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
@@ -302,6 +304,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   const unmark = () => {
     clearMarks('data-page-selected', 'data-page-candidate');
+    for (const e of drawn('[data-page-end]')) e.remove();
     candidate = null;
   };
 
@@ -318,6 +321,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
+    if (sel.kind === 'edge') markEnd();
     if (!keepMode) connecting = false;
     if (!menu || connecting) return;
     if (sel.kind === 'edge') {
@@ -325,6 +329,57 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       arrowPicker.current(arrowType(arrow), arrow);
     }
     menus[sel.kind].open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
+  }
+
+  /** @type {'start' | 'end' | null} the end of the selected edge its mark is at */
+  let endSide = null;
+  /**
+   * Mark the end the selected edge counts as reached from, whose edges the cross arrows step (the user): a short tick
+   * across its line, in the stage so it moves with the diagram, at one size on screen whatever the zoom, and slid
+   * along the line until it is clear of any text. `measure`: work out which end again (a new selection, or Space);
+   * else the same end, redrawn for a new zoom.
+   */
+  function markEnd(measure = true) {
+    for (const e of drawn('[data-page-end]')) e.remove();
+    if (selected?.kind !== 'edge') return;
+    const id = selected.id;
+    if (measure) {
+      const { boxes, edges } = layout();
+      const e = edges.find((x) => x.id === id);
+      endSide = e ? countedEnd(boxes, e, moves.came()) : null;
+    }
+    const path = /** @type {SVGPathElement | undefined} */ (edgeEls(id).find((e) => e.matches('path:not([data-page-only])')));
+    const m = path?.getScreenCTM();
+    if (!path || !m || !endSide) return;
+    const k = Math.hypot(m.a, m.b) || 1, len = path.getTotalLength();
+    const screen = (/** @type {DOMPoint} */ p) => ({ x: p.x * m.a + p.y * m.c + m.e, y: p.x * m.b + p.y * m.d + m.f });
+    const texts = drawn('g.edgeLabel, .cluster-label, g.node .label, .flowchartTitleText')
+      .map((e) => e.getBoundingClientRect()).filter((r) => r.width);
+    /** The tick `d` screen px in from the counted end: its two ends in the path's own units. */
+    const tick = (/** @type {number} */ d) => {
+      const s = Math.min(len, d / k), at = endSide === 'start' ? s : len - s;
+      const p = path.getPointAtLength(at);
+      const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
+      const t = Math.hypot(b.x - a.x, b.y - a.y) || 1, h = END_TICK / 2 / k;
+      const nx = -(b.y - a.y) / t * h, ny = (b.x - a.x) / t * h;
+      return [{ x: p.x - nx, y: p.y - ny }, { x: p.x + nx, y: p.y + ny }];
+    };
+    const clear = (/** @type {{ x: number, y: number }[]} */ ends) => {
+      const [u, v] = ends.map((q) => screen(/** @type {DOMPoint} */ (q)));
+      const r = { left: Math.min(u.x, v.x) - 3, right: Math.max(u.x, v.x) + 3, top: Math.min(u.y, v.y) - 3, bottom: Math.max(u.y, v.y) + 3 };
+      return !texts.some((t) => r.left < t.right && r.right > t.left && r.top < t.bottom && r.bottom > t.top);
+    };
+    // Past the arrowhead, then on along the line, up to its middle, until no text is under it.
+    let ends = tick(12);
+    for (let d = 12; d <= (len * k) / 2; d += 3) {
+      const at = tick(d);
+      if (clear(at)) { ends = at; break; }
+    }
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    for (const [a, v] of Object.entries({ x1: ends[0].x, y1: ends[0].y, x2: ends[1].x, y2: ends[1].y })) el.setAttribute(a, String(v));
+    el.setAttribute('data-page-end', '');
+    el.setAttribute('data-page-only', '');
+    /** @type {Element} */ (path.parentNode).append(el);
   }
 
   function deselect() {
@@ -553,6 +608,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     o: () => moves.out(),
     i: () => moves.into(),
     '/': () => { if (connecting) return false; openFind(); return true; },
+    // Space: the selected edge counts as reached from its other end, whose edges the cross arrows then step.
+    ' ': () => {
+      const to = moves.other();
+      if (!to) return false;
+      markEnd();
+      const kind = drawn('g.cluster[data-page-subgraph]').some((g) => g.dataset.pageSubgraph === to.id) ? 'subgraph' : 'node';
+      ui.announce(`Reached from ${named(/** @type {Item} */ ({ kind, id: to.id }))}`);
+      return true;
+    },
     '+': () => { viewer.zoom(ZOOM_STEP); return true; },
     // 0 is actual size, as a browser's Ctrl+0 is (the user): the digits are the pickers' only.
     0: () => { viewer.zoomTo(1); return true; },
@@ -1327,6 +1391,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         showCount();
       }
       if (labelling) sizeLabelBox();
+      markEnd(false);
       const el = selectedEl();
       if (selected && el) menus[selected.kind].reposition(el.getBoundingClientRect());
       if (spaceAt) {

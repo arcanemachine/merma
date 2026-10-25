@@ -1,9 +1,9 @@
-// What the keyboard does to the selection, and to Connect to…'s candidate: the arrows, O and I. navigate.mjs gives the
+// What the keyboard does to the selection, and to Connect to…'s candidate: the arrows, O, I and Space. navigate.mjs gives the
 // rules from the diagram as drawn; this keeps each cursor's trail of arrow moves to retrace, and I's place inside each
 // subgraph.
 // The editor measures the diagram and selects; it tells this when a selection was not made by a key, to forget both.
 
-import { FRESH, back, byPlace, enter, heading, moved, nearest, nest, skip, walk } from './navigate.mjs';
+import { FRESH, back, byPlace, enter, heading, moved, nearest, nest, otherEnd, skip, walk } from './navigate.mjs';
 
 /** @typedef {import('./editor.mjs').Item} Item */
 /** @typedef {{ boxes: import('./navigate.mjs').Box[], edges: import('./navigate.mjs').Edge[] }} Graph */
@@ -48,8 +48,9 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     }
     const went = step(graph, selection(), cursor, key, ctrl);
     if (went.next) {
-      select(went.next);
+      // The cursor first: the selection's mark shows the end it counts from.
       cursor = went.cursor;
+      select(went.next);
     }
   }
 
@@ -161,14 +162,31 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
   }
   /** O and I select by key, keeping I's place inside, but start the trail afresh: they are not arrow moves. */
   function byKey(/** @type {Item} */ item) {
-    select(item);
     cursor = FRESH;
+    select(item);
+  }
+
+  /**
+   * Space: a selected edge counts as reached from its other end, so the cross arrows step that end's edges (the user).
+   * Not a move: the arrival into the edge leaves the trail, as after a step across. Returns the end it now counts
+   * from, or null when there is no edge selected or no other end.
+   */
+  function other() {
+    const sel = state.selected();
+    if (state.connecting() || sel?.kind !== 'edge') return null;
+    const to = otherEnd(layout(), sel.id, cursor.came);
+    if (!to) return null;
+    cursor = { trail: cursor.trail.filter((m) => !(m.to.kind === 'edge' && m.to.id === sel.id)), came: to };
+    return to;
   }
 
   return {
     arrow,
     out,
     into,
+    other,
+    /** On a selected edge, the end it counts as reached from (null: its source). */
+    came: () => cursor.came,
     /** A selection not made by a key (a click, a find, an edit): the trail starts again, and I forgets where you were. */
     forget() { cursor = FRESH; inside.clear(); },
     /** Connect to… starts: its candidate has no moves yet. */
