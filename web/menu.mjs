@@ -9,7 +9,7 @@
 // combinations go on (undo still works).
 
 import { keyIndex } from './menu-items.mjs';
-import { place } from './place.mjs';
+import { place, OPPOSITE } from './place.mjs';
 
 /**
  * @param {import('./menu-items.mjs').MenuItem[]} items
@@ -33,6 +33,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   /** @type {{ left: number, top: number, right: number, bottom: number } | null} */
   let anchor = null;
   let gap = 8;
+  // The side the menu opened on, and its submenu: kept as they follow their anchors, so they never jump across them.
+  /** @type {import('./place.mjs').Side} */
+  let placed = side;
+  /** @type {import('./place.mjs').Side} */
+  let subPlaced = 'right';
   /** @type {import('./menu-items.mjs').MenuItem | null} the item whose submenu is open */
   let openSub = null;
 
@@ -95,7 +100,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     sub.replaceChildren(host.el);
     sub.showPopover();
     opener(item).setAttribute('aria-expanded', 'true');
-    placeSub();
+    placeSub(true);
     host.focus();
   }
 
@@ -108,10 +113,13 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     if (sub.contains(document.activeElement) || document.activeElement === document.body) b.focus();
   }
 
-  function placeSub() {
+  /** Place the submenu beside its item; `fresh`, as it opens: on the right, or the left when there is no room. */
+  function placeSub(fresh = false) {
     if (!openSub) return;
     const r = opener(openSub).getBoundingClientRect();
-    put(sub, place(r, sub.getBoundingClientRect(), bounds(), { gap: 4 }));
+    const at = place(r, sub.getBoundingClientRect(), bounds(), { side: fresh ? 'right' : subPlaced, gap: 4, flip: fresh });
+    if (fresh) subPlaced = at.flipped ? 'left' : 'right';
+    put(sub, at);
   }
 
   function put(/** @type {HTMLElement} */ box, /** @type {{ left: number, top: number }} */ at) {
@@ -119,11 +127,16 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     box.style.top = at.top + 'px';
   }
 
-  /** Where the menu sits: beside `anchor` (a rectangle, or a point as a rectangle of no size). */
-  function reposition(to = anchor) {
+  /**
+   * Where the menu sits: beside `anchor` (a rectangle, or a point as a rectangle of no size), on the side it opened on;
+   * `fresh`, as it opens, the side asked for, or the other when there is no room.
+   */
+  function reposition(to = anchor, fresh = false) {
     if (!isOpen() || !to) return;
     anchor = to;
-    put(el, place(anchor, el.getBoundingClientRect(), bounds(), { side, gap }));
+    const at = place(anchor, el.getBoundingClientRect(), bounds(), { side: fresh ? side : placed, gap, flip: fresh });
+    if (fresh) placed = at.flipped ? OPPOSITE[side] : side;
+    put(el, at);
     placeSub();
   }
 
@@ -190,7 +203,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       // Already open (the file changed under it): keep its place, its submenu and its focus.
       if (isOpen()) return;
       el.showPopover();
-      reposition(at);
+      reposition(at, true);
       (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
     },
     reposition,
