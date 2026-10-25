@@ -4,6 +4,17 @@
 /** @typedef {{ left: number, top: number, right: number, bottom: number }} Box */
 
 /**
+ * Whether a box of `size` is too big to show at the zoom the view has, `pad` in from the area's edges and below what
+ * its top keeps clear: then it is framed (zoomed out), not moved into view.
+ * @param {{ width: number, height: number }} size on screen
+ * @param {{ width: number, height: number, top: number }} area
+ * @param {number} pad
+ */
+export function tooBig(size, area, pad) {
+  return size.width > area.width - 2 * pad || size.height > area.height - area.top - 2 * pad;
+}
+
+/**
  * The view that shows every box, centered in the area below what its top keeps clear and `pad` in from its edges, as a fit
  * puts the diagram: at zoom `k` when they fit, else zoomed out just enough; never zoomed in (the user). Null for no
  * boxes.

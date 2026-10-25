@@ -212,7 +212,8 @@ A double-click on a node or an edge edits its label too, and one on a subgraph i
 ### Moving by keyboard
 
 The diagram is one stop for Tab. Each item reached is read out to screen readers, and brought into view when it is off
-screen; one already in view moves nothing. The arrows are the diagram's wherever the keyboard is, except in the label
+screen; one already in view moves nothing. One too big for the window (a long edge, a large subgraph) is shown whole,
+zoomed out just enough. The arrows are the diagram's wherever the keyboard is, except in the label
 box, a menu or Help; while Help is open, no key acts on the diagram. A key with nowhere to go does nothing.
 
 **Plain arrows walk the edges**, two presses a step (node, edge, node), and always mean their direction on screen.
