@@ -384,7 +384,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   function clicked(/** @type {Element} */ target) {
     if (!editable) return;
-    if (swallowClick) { swallowClick = false; return; }
+    if (ended()) return;
     const item = itemAt(target);
     clickedDuringEdit(item);
     if (connecting) { connectTo(item?.kind === 'edge' ? null : item); return; }
@@ -428,7 +428,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!editable) return false;
     if (byKey) { keys.m(); return true; }
     if (connecting) return true;
-    if (swallowClick) { swallowClick = false; return true; }
+    if (ended()) return true;
     const item = itemAt(target);
     clickedDuringEdit(item, true);
     if (item) select(item, { menu: true });
@@ -744,27 +744,46 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.announce(named(finding.matches[finding.at]));
     }
   });
-  // Focus leaving the box (a click away) cancels, as Escape does.
-  findBox.addEventListener('blur', () => { if (finding) closeFind(null); });
-
-  // A press anywhere outside the diagram (header, footer) is a click away too: it cancels Connect to… as Escape does,
-  // and closes the menus. Presses inside the diagram are the viewer's, which reports them as clicks.
+  // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and
+  // only the viewer's click (a release without a drag) does (ended()). Outside the diagram a press is a click in
+  // practice, and its focus move still blurs the label box, which saves it (commit).
   document.addEventListener('pointerdown', (e) => {
     // Any press is a new click: one left over from a refused save (its click landed outside the diagram) goes. This
     // runs before the press moves focus, and so before that blur can set it again.
     swallowClick = false;
     keptClick = false;
-    // A press outside the label box and its strip ends it (and saves, commit): by the press itself, not by the focus
-    // it moves, which a touch moves only once it is a tap.
-    const at = /** @type {Node} */ (e.target), focused = /** @type {HTMLElement | null} */ (document.activeElement);
-    if (labelling && at !== input && !stripBox.contains(at) && (focused === input || stripBox.contains(focused))) focused?.blur();
-    // A press outside the find bar ends the find by the press itself, as for the label box: the old selection comes
-    // back, and a click that follows selects what it hit, whatever order focus and click arrive in on this device.
-    if (finding && !els.find.contains(at)) closeFind(null);
-    if (els.diagram.contains(at)) return;
+    const at = /** @type {Element} */ (e.target);
+    // Keep focus in the label box or the find box through a drag: a press in the diagram would move it to #diagram.
+    // The box and its strip keep their own presses (the caret, text selection, the shapes), and so do menus.
+    if ((labelling || finding) && els.diagram.contains(at) && at !== input && !stripBox.contains(at)
+      && !at.closest('[data-overlay]')) e.preventDefault();
+  });
+  // A click outside the diagram (header, footer, Help) is a click away: it ends a find and Connect to… as Escape
+  // does, and closes the menus. Clicks in the diagram are the viewer's (clicked()): the browser's own click there
+  // fires after a drag too.
+  document.addEventListener('click', (e) => {
+    const at = /** @type {Node} */ (e.target);
+    if (els.diagram.contains(at) || els.find.contains(at)) return;
+    if (finding) closeFind(null);
     if (connecting) cancelConnect();
     closeMenus();
   });
+  /**
+   * A click or a right-click in the diagram, away from the label box or the find bar, ends them first: the label is
+   * saved (commit) and the find closed, the old selection back. Returns true when the click does nothing more: the save
+   * was refused, and the box stays.
+   */
+  function ended() {
+    if (finding) closeFind(null);
+    if (labelling) {
+      commit();
+      // Saved, the box gone: focus goes to the diagram, where the press, kept from moving it, would have put it.
+      if (!labelling) els.diagram.focus();
+    }
+    if (!swallowClick) return false;
+    swallowClick = false;
+    return true;
+  }
   document.addEventListener('keydown', (e) => {
     if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
     // While a dialog (Help: a popover that is not one of the page's overlays) is open, its keys are its own: arrows

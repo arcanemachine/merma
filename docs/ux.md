@@ -66,8 +66,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   pointer whenever a pick resizes the node.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
+- A drag is never a cancel (the user: it had bitten more than once). In the diagram, where a press can become a pan
+  or a pinch, a press-and-drag, a pinch or the wheel closes nothing and cancels nothing: not a menu, Help, the label
+  box, find or Connect to…; only a click (a release without a drag, as the viewer's slop decides) does. Outside the
+  diagram there is nothing to drag, so a press there is a click in practice, and its focus move saves the label box.
 - A click away is a click anywhere else on the page, header and footer included. Whatever waits for a click (a menu,
-  Connect to…) ends on one, as on Escape. The label box is the exception (the user): a click or tap away, or Tab,
+  Connect to…, Help, find) ends on one, as on Escape. The label box is the exception (the user): a click or tap away, or Tab,
   keeps what you typed (it saves, as Enter does); only Escape discards it. In the box an add opened, Escape takes the
   add back too (the user): it cancels what was started, and what was started is the add. Undo takes a save back, which
   is what makes saving on a click away safe, and a touch screen has no other sure way to save. A press on Undo or Redo
