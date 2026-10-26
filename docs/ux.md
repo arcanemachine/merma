@@ -226,13 +226,15 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   A window too small for the size you set draws the panel smaller, and your size comes back when the window grows.
 - Its dock and size are the person's, kept in the browser for every file (localStorage); whether it is open is the
   tab's, per file (sessionStorage), so the page's reload for a new build keeps it open.
-- It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard the code is the hub
-  of a round trip (the user): ` goes to it (opening the panel if need be), Enter or F2 there edits, as they edit a
-  selection, and ` there hides the panel, focus back on the diagram; after Save or Cancel focus stays in the code, so
-  those keys still work. ` into the panel is a click into it, and opening it the footer's Code pressed: each ends
-  find and Connect to… as the mouse's click does. Escape in the code goes back to the diagram, since the page's keys
-  are off in a field; in a draft, ` types a backtick (Mermaid's markdown strings use them). Close puts focus back on
-  the footer's Code.
+- It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
+  the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
+  diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
+  level, from the code to the panel, and from the panel to closed (a draft is cancelled first, asking if it changed);
+  Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel only
+  those keys (and F2, Ctrl+Enter) are its own: the arrows and the rest are the diagram's, as everywhere outside a
+  field. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes first. ` into the panel
+  is a click into it, and opening it the footer's Code pressed: each ends find and Connect to… as the mouse's click
+  does. Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
   diagram is view-only, and every edit there, Undo and Redo included, is refused with a warning saying why; each edit

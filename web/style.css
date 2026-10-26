@@ -109,6 +109,9 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 /* The code panel: the file's Mermaid code, read-only. */
 #code-panel { grid-area: panel; display: flex; flex-direction: column; min-width: 0; min-height: 0; font-size: 13px; }
 #code-panel[hidden], #code-handle[hidden] { display: none; }
+/* The panel itself takes focus (`, Escape from the code): inset, since the dock's edges would hide an outline outside. */
+#code-panel:focus { outline: none; }
+#code-panel:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
 #code-panel .code-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #ddd; }
 #code-panel h2 { margin: 0; font-size: inherit; }
 /* The controls wrap to a second row together, right-aligned, before the file name is cut to nothing. */
