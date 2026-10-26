@@ -123,9 +123,14 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #text:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
 /* The handle between the panel and the diagram: drag it, or focus it and use the arrows. */
 #text-handle { grid-area: handle; position: relative; z-index: 3; background: #ddd; touch-action: none; user-select: none; }
-/* Six pixels are too thin for a finger: the handle takes presses 9 px either side of it too, a 24 px band. */
-#text-handle::before { content: ""; position: absolute; inset: -9px 0; }
-main[data-dock="left"] #text-handle::before { inset: 0 -9px; }
+/* Six pixels are thin to grab: the handle takes presses 3 px either side of it too, a 12 px band, and 9 px for a finger
+   (24 px). Only for a finger, since the band covers the panel's scrollbar and the find bar's top edge. */
+#text-handle::before { content: ""; position: absolute; inset: -3px 0; }
+main[data-dock="left"] #text-handle::before { inset: 0 -3px; }
+@media (pointer: coarse) {
+  #text-handle::before { inset: -9px 0; }
+  main[data-dock="left"] #text-handle::before { inset: 0 -9px; }
+}
 main[data-dock="left"] #text-handle { cursor: col-resize; }
 main:is([data-dock="top"], [data-dock="bottom"]) #text-handle { cursor: row-resize; }
 #text-handle:hover, #text-handle:focus-visible { background: #0969da; outline: none; }
