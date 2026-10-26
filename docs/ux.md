@@ -209,9 +209,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Keys never depend on the keyboard layout or fight the browser: Ctrl/Alt + digit are taken by browsers for tabs, so
   pickers use plain digits. A digit is read by its key's place on the number row, so it is the same key on every
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
-  number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. ` (the code panel) is likewise the key left of 1, or
-  whichever key types it (that place reports another key on ISO keyboards on a Mac); where it is a dead key, it waits
-  for no accent. It is the footer's Code pressed, so it ends a menu or Connect to… as that click does.
+  number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. `
+  (the code panel) is likewise the key left of 1, or whichever key types it (that place reports another key on ISO
+  keyboards on a Mac); where it is a dead key, it waits for no accent. It is the footer's Code pressed, so it ends
+  Connect to… as that click does.
 
 ## The code panel
 
