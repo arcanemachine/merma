@@ -195,7 +195,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 .picker-grid .digit.shift, :root[data-shift] .picker-grid .digit { color: #57606a; }
 :root[data-shift] .picker-grid .digit.shift { color: #1f2328; }
 /* Focus is the outline only, and the fill only what is selected (the user): two marks that never look alike. With
-   focus elsewhere (in the label box above the strip), the outline stays where the arrows start from. */
+   focus elsewhere (in the label box above the shape picker), the outline stays where the arrows start from. */
 .menu .picker-grid button:focus,
 .menu .picker-grid:not(:focus-within) button[data-start] { outline: 2px solid #0969da; outline-offset: -2px; }
 .menu .picker-grid button:focus { background: none; }
@@ -207,12 +207,12 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid #0969da; border-radius: 4px;
           background: #fff; resize: none; overflow: hidden; user-select: text; cursor: text; }
-/* The strip of shapes under a node's label box: a menu's look, placed by the editor. */
-.menu.strip { padding: 4px 6px 6px; }
-/* On a narrow screen the strip's ten columns would not fit: five, in four rows. The picker's arrow keys follow the grid
-   as drawn. */
+/* The shape picker under a node's label box: a menu's look, placed by the editor. */
+.menu.shape-picker { padding: 4px 6px 6px; }
+/* On a narrow screen the shape picker's ten columns would not fit: five, in four rows. The picker's arrow keys follow
+   the grid as drawn. */
 @media (max-width: 480px) {
-  .strip .picker-grid { --columns: 5 !important; }
-  /* The longest names take two lines at this width: room for both, so the strip keeps its height. */
-  .strip .picker-name { min-height: 2.4em; }
+  .shape-picker .picker-grid { --columns: 5 !important; }
+  /* The longest names take two lines at this width: room for both, so the shape picker keeps its height. */
+  .shape-picker .picker-name { min-height: 2.4em; }
 }

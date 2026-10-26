@@ -69,7 +69,7 @@ another click on it closes it.
 
 - **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
   Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
-- **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the strip names shapes; click one
+- **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the shape picker names shapes; click one
   or press its digit, and the picker stays open on the new arrow type for another pick, until a click away or Escape;
   each pick is its own change and undo step. The arrow changes and keeps its label and its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
   "Other".
@@ -127,7 +127,7 @@ selected.
 ## The node panel
 
 Edit node, Enter, F2 or a double-click on a node, and adding one (Add connected node, Add node, N), open its panel:
-the label box over the node, and a strip of the shapes under it, the node's shape selected (a new node's is
+the label box over the node, and the shape picker under it, the node's shape selected (a new node's is
 Rectangle). Nothing is drawn until Enter in the label box, or a click or tap away, or Tab, which writes the label
 and the shape as one change (only what changed); for a node just added, it is undone together with the add. Only
 Escape closes the panel without writing. On a node just added, Escape takes the add back, as if it never was (Redo

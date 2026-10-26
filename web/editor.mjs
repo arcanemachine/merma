@@ -953,9 +953,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     keptClick = false;
     const at = /** @type {Element} */ (e.target);
     // Keep focus in the label box, the find box or a menu through a drag: a press in the diagram would move it to
-    // #diagram. The box and its strip keep their own presses (the caret, text selection, the shapes), and so do menus.
+    // #diagram. The box and its shape picker keep their own presses (the caret, text selection, the shapes), and so do menus.
     if ((labelling || finding || menuOpen() || menus.space.isOpen()) && els.diagram.contains(at) && at !== input
-      && !stripBox.contains(at) && !at.closest('[data-overlay]')) e.preventDefault();
+      && !shapePickerBox.contains(at) && !at.closest('[data-overlay]')) e.preventDefault();
   });
   // A click outside the diagram (header, footer, Help) is a click away: it ends a find and Connect to… as Escape
   // does, and closes the menus. Clicks in the diagram are the viewer's (clicked()): the browser's own click there
@@ -1034,30 +1034,30 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  // The node panel: on a node, a strip of shapes lies under the box. Down from the box's last line goes into it, where
+  // The node panel: on a node, a shape picker lies under the box. Down from the box's last line goes into it, where
   // the arrows move focus; a digit, a click, or Enter on the focused shape selects it (Enter also goes back to the box);
   // Up from the top row or Escape goes back to the box, keeping what was selected. Enter in the box writes the label
   // and the shape as one change. Nothing is drawn until then (docs/ux.md, the preview rule).
-  const strip = createPicker({
+  const shapePicker = createPicker({
     title: 'Shape',
     entries: NODE_SHAPES,
     columns: 10,
-    strip: true,
+    hosted: true,
     onPick: (at) => selectShape(at),
   });
-  /** Select shape `at` in the strip, and say so: nothing else shows it to a screen reader. */
+  /** Select shape `at` in the shape picker, and say so: nothing else shows it to a screen reader. */
   function selectShape(/** @type {string} */ at) {
-    strip.current(at);
+    shapePicker.current(at);
     const entry = NODE_SHAPES.find((e) => e.key === at);
     ui.announce(`${entry?.name}${entry?.meaning && entry.meaning !== entry.name ? `, ${entry.meaning}` : ''} selected`);
   }
-  const stripBox = Object.assign(document.createElement('div'), { className: 'menu strip', popover: 'manual' });
-  stripBox.dataset.overlay = '';
-  // A press anywhere on the strip, icon or not, leaves focus where it is: on the body, it would close the box.
-  stripBox.addEventListener('mousedown', (e) => e.preventDefault());
+  const shapePickerBox = Object.assign(document.createElement('div'), { className: 'menu shape-picker', popover: 'manual' });
+  shapePickerBox.dataset.overlay = '';
+  // A press anywhere on the shape picker, icon or not, leaves focus where it is: on the body, it would close the box.
+  shapePickerBox.addEventListener('mousedown', (e) => e.preventDefault());
   // Keys the picker leaves: Enter selects the focused shape and goes back to the box; Up from the top row and Escape go
   // back to the box; Tab saves, as from the box. None goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
-  stripBox.addEventListener('keydown', (e) => {
+  shapePickerBox.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
     if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); selectShape(on.dataset.key); input.focus(); }
@@ -1065,49 +1065,49 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
     e.stopPropagation();
   });
-  // The box closes when focus leaves both it and the strip.
-  stripBox.addEventListener('focusout', (e) => {
+  // The box closes when focus leaves both it and the shape picker.
+  shapePickerBox.addEventListener('focusout', (e) => {
     const to = /** @type {Node | null} */ (e.relatedTarget);
-    if (to !== input && !stripBox.contains(to)) commit();
+    if (to !== input && !shapePickerBox.contains(to)) commit();
   });
-  const stripHint = Object.assign(document.createElement('div'), {
-    className: 'visually-hidden', id: 'strip-hint', textContent: 'Down arrow chooses a shape',
+  const shapePickerHint = Object.assign(document.createElement('div'), {
+    className: 'visually-hidden', id: 'shape-picker-hint', textContent: 'Down arrow chooses a shape',
   });
-  stripBox.append(strip.el, stripHint);
-  els.diagram.append(stripBox);
-  let stripOpen = false;
-  /** @type {'below' | 'above'} the side of the label box the strip opened on, kept as it follows the box */
-  let stripSide = 'below';
-  /** @type {string | null} the shape the node had when the strip opened, or null for one these edits cannot read */
-  let stripFrom = null;
+  shapePickerBox.append(shapePicker.el, shapePickerHint);
+  els.diagram.append(shapePickerBox);
+  let shapePickerOpen = false;
+  /** @type {'below' | 'above'} the side of the label box the shape picker opened on, kept as it follows the box */
+  let shapePickerSide = 'below';
+  /** @type {string | null} the shape the node had when the shape picker opened, or null for one these edits cannot read */
+  let shapePickerFrom = null;
 
-  /** Place the strip under the label box; `fresh`, as it opens: above it when there is no room below. */
-  function placeStrip(fresh = false) {
-    if (!stripOpen) return;
-    const r = input.getBoundingClientRect(), s = stripBox.getBoundingClientRect();
+  /** Place the shape picker under the label box; `fresh`, as it opens: above it when there is no room below. */
+  function placeShapePicker(fresh = false) {
+    if (!shapePickerOpen) return;
+    const r = input.getBoundingClientRect(), s = shapePickerBox.getBoundingClientRect();
     const center = (r.left + r.right) / 2 - s.width / 2;
     const at = place({ left: center, top: r.top, right: center + s.width, bottom: r.bottom }, s,
-      els.diagram.getBoundingClientRect(), { side: fresh ? 'below' : stripSide, gap: 6, flip: fresh });
-    if (fresh) stripSide = at.flipped ? 'above' : 'below';
-    stripBox.style.left = at.left + 'px';
-    stripBox.style.top = at.top + 'px';
+      els.diagram.getBoundingClientRect(), { side: fresh ? 'below' : shapePickerSide, gap: 6, flip: fresh });
+    if (fresh) shapePickerSide = at.flipped ? 'above' : 'below';
+    shapePickerBox.style.left = at.left + 'px';
+    shapePickerBox.style.top = at.top + 'px';
   }
 
-  /** Open the strip for node `id`; `added`: the node was just added, so it is a rectangle whatever it reads as. */
-  function openStrip(/** @type {string} */ id, /** @type {boolean} */ added) {
-    stripOpen = true;
-    stripFrom = shownShape(id) ?? (added ? 'rect' : null);
+  /** Open the shape picker for node `id`; `added`: the node was just added, so it is a rectangle whatever it reads as. */
+  function openShapePicker(/** @type {string} */ id, /** @type {boolean} */ added) {
+    shapePickerOpen = true;
+    shapePickerFrom = shownShape(id) ?? (added ? 'rect' : null);
     // A shape not in the list is named, with none pressed; one that cannot be read shows nothing as current.
-    strip.current(stripFrom, stripFrom ?? '');
-    stripBox.showPopover();
-    input.setAttribute('aria-describedby', stripHint.id);
-    placeStrip(true);
+    shapePicker.current(shapePickerFrom, shapePickerFrom ?? '');
+    shapePickerBox.showPopover();
+    input.setAttribute('aria-describedby', shapePickerHint.id);
+    placeShapePicker(true);
   }
 
-  function closeStrip() {
-    stripOpen = false;
-    stripFrom = null;
-    if (stripBox.matches(':popover-open')) stripBox.hidePopover();
+  function closeShapePicker() {
+    shapePickerOpen = false;
+    shapePickerFrom = null;
+    if (shapePickerBox.matches(':popover-open')) shapePickerBox.hidePopover();
     input.removeAttribute('aria-describedby');
   }
 
@@ -1126,7 +1126,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.setAttribute('aria-label', { node: 'Node label', edge: 'Edge label', subgraph: 'Subgraph title', title: 'Diagram title' }[target.kind]);
     input.style.display = 'block';
     sizeLabelBox();
-    if (target.kind === 'node') openStrip(target.id, same(naming, target));
+    if (target.kind === 'node') openShapePicker(target.id, same(naming, target));
     input.focus();
     input.select();
   }
@@ -1143,18 +1143,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     input.style.height = h + 'px';
     input.style.left = (r.left - box.left + r.width / 2 - w / 2) + 'px';
     input.style.top = (r.top - box.top + r.height / 2 - h / 2) + 'px';
-    placeStrip();
+    placeShapePicker();
   }
 
   // labelling goes first: hiding the input blurs it, and a blur with the box still open would save it (commit).
   function closeLabelBox() {
     labelling = null;
     input.style.display = 'none';
-    closeStrip();
+    closeShapePicker();
   }
 
   /**
-   * Focus left the label box and its strip (a click or tap away, Tab): save, as Enter does; only Escape discards
+   * Focus left the label box and its shape picker (a click or tap away, Tab): save, as Enter does; only Escape discards
    * (docs/ux.md). An emptied label is kept as it was, and the click goes on. What cannot be saved (a shape the label
    * cannot take, or another edit still saving) keeps the box open, focus back in it, and the click that left it does
    * nothing.
@@ -1184,7 +1184,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   input.addEventListener('input', sizeLabelBox);
   input.addEventListener('blur', (e) => {
-    if (!stripBox.contains(/** @type {Node | null} */ (e.relatedTarget))) commit();
+    if (!shapePickerBox.contains(/** @type {Node | null} */ (e.relatedTarget))) commit();
   });
   input.addEventListener('keydown', (e) => {
     const target = labelling;
@@ -1197,11 +1197,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (target) select(target);
       return;
     }
-    // Down goes into the strip only from the last line, where it would not move the caret. The line is the text's:
+    // Down goes into the shape picker only from the last line, where it would not move the caret. The line is the text's:
     // the box widens to its text (sizeLabelBox), so a line never wraps.
-    if (e.key === 'ArrowDown' && stripOpen && !input.value.slice(input.selectionEnd).includes('\n')) {
+    if (e.key === 'ArrowDown' && shapePickerOpen && !input.value.slice(input.selectionEnd).includes('\n')) {
       e.preventDefault();
-      strip.focus();
+      shapePicker.focus();
       return;
     }
     if (!target || !(e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey))) return;
@@ -1244,7 +1244,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   /**
-   * Save what the label box holds (and the strip's shape, while it is open), as Enter does. Returns false when it was
+   * Save what the label box holds (and the shape picker's shape, while it is open), as Enter does. Returns false when it was
    * refused, the box still open. `kept` is the notice for an emptied label kept as it was, shown once the save is done.
    */
   function submitLabel(/** @type {string | null} */ kept = null) {
@@ -1258,8 +1258,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
       return false;
     }
-    const picked = stripOpen ? strip.value() : null;
-    const shape = picked && picked !== stripFrom ? picked : null;
+    const picked = shapePickerOpen ? shapePicker.value() : null;
+    const shape = picked && picked !== shapePickerFrom ? picked : null;
     /** A node's new label and shape, as one change. */
     const renamed = (/** @type {string} */ text) => {
       const named = relabelled ? relabel(text, target.id, label).text : text;

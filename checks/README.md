@@ -62,8 +62,8 @@ it).
 practices) on what the page shows now, leaving out the diagram, and lists each violation as `[rule, impact, count,
 first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=checks/a11y-scan.js`. Scan it in each of
 these states, since each shows other elements and colors: nothing open; a node menu; an edge menu with a grayed
-item; a subgraph menu; the empty-space menu; the arrow-type picker; the node panel; the node panel with focus in
-the strip's grid; each notice kind (Connect to… for info, an emptied label kept on a click away for warning, an empty label on Enter for error); the
+item; a subgraph menu; the empty-space menu; the arrow type picker; the node panel; the node panel with focus in
+the shape picker's grid; each notice kind (Connect to… for info, an emptied label kept on a click away for warning, an empty label on Enter for error); the
 label box; Help. With `'#stage'` after the file it scans only the diagram: that is Mermaid's
 markup, so its findings are recorded as Mermaid's and never fixed here.
 

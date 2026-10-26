@@ -60,7 +60,7 @@ there is no login.
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
 | `web/keys.mjs` | What the arrows, O and I do to the selection and to Connect to…'s candidate: the trail to retrace, and I's place inside |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |
-| `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types, shapes), in a menu or as a strip |
+| `web/menu.mjs`, `web/picker.mjs` | A menu drawn from its items; a grid of choices (arrow types, shapes), in a menu or under a text field |
 | `web/arrow-types.mjs`, `web/shapes.mjs` | The arrow types and the shapes, each in a fixed, numbered order, with their names and icons |
 | `web/icons.mjs` | The frame every icon shares |
 | `web/grid.mjs` | Where an arrow key moves focus in a picker's grid |

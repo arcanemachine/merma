@@ -65,11 +65,11 @@ note where merma had to make one up.
 | **find** | The / box: every item in the diagram holding what you typed is marked, on screen or off, and Enter selects the current match. The browser's word for the same thing (Find in page); not "search". |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
-| **picker** | A grid of choices drawn as small icons, each with its digit: the arrow types and the shapes. Shows the current one. |
+| **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** (Edit arrow type ▸) and the **shape picker**. Shows the current one. |
 | **grayed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
-| **node panel** | A node's label box with the strip under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
-| **strip** | The shape picker laid under a node's label box: click a shape, or Down from the label goes into it. merma's own. |
+| **node panel** | A node's label box with the shape picker under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
+| **shape picker** | The picker laid under a node's label box: click a shape, or Down from the label goes into it. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue: what to do next, or nothing to do), **warning** (amber: something you asked for refused or kept back, or a risk to the file), **error** (red: something you tried that did not happen). `docs/ux.md` says which is which. |
 | **color words** | **info**, **success**, **warning**, **error**: each a background and a text color that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
