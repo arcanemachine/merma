@@ -31,7 +31,8 @@ them.
   Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
   agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
   the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
-  while a label box, Connect to… or a save is under way says to finish that first.
+  while a label box or Connect to… is open says to finish that first; pressed as the click away that saves a label, it
+  says the save is still going: press again.
 - The header shows the file's path on one line, cut at the start when it is long so the file name stays in view;
   hover for all of it. Click or tap it to copy the whole path.
 
