@@ -35,7 +35,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
-  | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG |
+  | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG, Download Mermaid |
 
 - An ellipsis (…) means "then you do something" (click a node, drag a handle, type), nothing else. ▸ opens a submenu. ▴ on
   a button opens a menu above it (Export ▴): the footer's other buttons act at once.
