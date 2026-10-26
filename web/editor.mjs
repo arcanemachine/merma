@@ -1234,6 +1234,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.stopPropagation();
       if (naming && same(naming, target)) { cancelAdd(naming); return; }
       closeLabelBox();
+      els.diagram.focus();
       naming = null;
       ui.hideNotice();   // a refused save's error is about the box, which is gone
       if (target) select(target);
