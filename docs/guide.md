@@ -20,7 +20,7 @@ them.
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
   it; **Download Mermaid** saves the file's text, as the page has it (not a draft in the code panel).
-- **Code** in the footer opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file (a version
+- **Code** in the footer (or `` ` ``) opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file (a version
   with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
   Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize it, or Tab to the bar
   and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
@@ -204,6 +204,7 @@ here does just what it does in the selected item's menu:
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
 | / (wherever it is on your keyboard) | Find in the whole diagram (below) |
+| ` (the key left of 1, or whichever key types it) | Show or hide the code panel, as Code in the footer does (in any diagram) |
 | Space with an edge selected | Walk the other end's edges: the cross arrows step that end's fan (the tick moves there) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |

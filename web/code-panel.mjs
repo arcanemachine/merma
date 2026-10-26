@@ -108,6 +108,17 @@ export function createCodePanel(els, file, hooks) {
 
   // Closing while editing cancels the draft first, as Cancel does; kept, the panel stays open.
   toggle.addEventListener('click', () => { if (!open || cancelEdit()) setOpen(!open); });
+  // ` is the footer's Code, pressed: a click away as a click on it is (it closes a diagram menu and ends Connect to…).
+  // The key left of 1, by place, as the pickers' digits are; or whichever key types it, for boards where that place
+  // reports another code (ISO keyboards on a Mac). preventDefault: on a layout where it is a dead key, no accent waits.
+  document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || (e.code !== 'Backquote' && e.key !== '`')) return;
+    // The editor's own two guards (its keydown, in editor.mjs): a field takes its keys, and so does an open dialog.
+    if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
+    if (document.querySelector(':popover-open:not([data-overlay])')) return;
+    e.preventDefault();
+    toggle.click();
+  });
   close.addEventListener('click', () => {
     if (!cancelEdit()) return;
     setOpen(false);
