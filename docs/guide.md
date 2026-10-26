@@ -20,14 +20,16 @@ them.
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
   it; **Download Mermaid** saves the file's text, as the page has it (not a draft in the code panel).
-- **Code** in the footer (or `` ` ``) opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file (a version
-  with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
-  Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize it, or Tab to the bar
-  and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
-  size are kept in the browser for every file, and a reload keeps it open.
+- **Code** in the footer opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file
+  (a version with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one;
+  **Dock** picks Left, Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize
+  it, or Tab to the bar and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
+  size are kept in the browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the code,
+  opening the panel if it is closed; Enter or F2 there edits; `` ` `` in the panel hides it, back to the diagram.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram (a click, a key, a
   menu, Undo) until you **Save** or **Cancel**; the notice says so. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
-  Ctrl+Z there undoes typing, and Escape goes back to the diagram, keeping the draft. Save checks the code is valid
+  Ctrl+Z there undoes typing, and Escape goes back to the diagram, keeping the draft (`` ` `` comes back to it; in the
+  draft it types a backtick). After Save or Cancel focus stays in the code. Save checks the code is valid
   Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
   agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
   the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
@@ -204,7 +206,7 @@ here does just what it does in the selected item's menu:
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
 | / (wherever it is on your keyboard) | Find in the whole diagram (below) |
-| ` (the key left of 1, or whichever key types it) | Show or hide the code panel, as Code in the footer does (in any diagram) |
+| ` (the key left of 1, or whichever key types it) | Go to the code panel's code, opening the panel if it is closed; in the panel, hide it (in any diagram) |
 | Space with an edge selected | Walk the other end's edges: the cross arrows step that end's fan (the tick moves there) |
 | O | Select the subgraph the selection is in |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |
