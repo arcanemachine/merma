@@ -233,9 +233,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
   buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
   and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key
-  there is the diagram's. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes first. ` into the panel
-  is a click into it, and opening it the footer's Code pressed: each ends find and Connect to… as the mouse's click
-  does. Close puts focus back on the footer's Code.
+  there is the diagram's. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes
+  first. ` into the panel is a click into it, and opening it the footer's Code pressed: each ends find and Connect
+  to… as the mouse's click does. Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
   diagram is view-only, and every edit there, Undo and Redo included, is refused with a warning saying why; each edit
