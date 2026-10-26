@@ -5,7 +5,7 @@ import { createEditor } from './editor.mjs';
 import { createMenu } from './menu.mjs';
 import { EXPORT_MENU } from './menu-items.mjs';
 import { createSource } from './source.mjs';
-import { createTextPanel } from './text-panel.mjs';
+import { createCodePanel } from './code-panel.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
 // Every id the page asks for is in index.html.
@@ -126,19 +126,19 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
   onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },
 });
 
-// The text panel, laid out before the first render: docked afterwards, it would shrink the diagram under its first fit,
+// The code panel, laid out before the first render: docked afterwards, it would shrink the diagram under its first fit,
 // which then refits.
-const textPanel = createTextPanel({
-  main: el('main'), panel: el('text-panel'), text: /** @type {HTMLTextAreaElement} */ (el('text')),
-  dock: /** @type {HTMLSelectElement} */ (el('text-dock')), handle: el('text-handle'), close: el('text-close'),
-  toggle: el('text-toggle'), diagram: el('diagram'),
+const codePanel = createCodePanel({
+  main: el('main'), panel: el('code-panel'), code: /** @type {HTMLTextAreaElement} */ (el('code')),
+  dock: /** @type {HTMLSelectElement} */ (el('code-dock')), handle: el('code-handle'), close: el('code-close'),
+  toggle: el('code-toggle'), diagram: el('diagram'),
 }, file);
-el('text-file').textContent = /** @type {string} */ (file.split('/').pop());
+el('code-file').textContent = /** @type {string} */ (file.split('/').pop());
 
-// Show a version of the file: a new one polled from the server, or one the editor just saved. The text panel shows
+// Show a version of the file: a new one polled from the server, or one the editor just saved. The code panel shows
 // it whether or not it parses, so a broken file can be read there.
 async function display(/** @type {string} */ text) {
-  textPanel.show(text);
+  codePanel.show(text);
   const shown = await viewer.show(text);
   if (!shown.ok) {
     showError('Syntax error; showing the last good render.\n' + shown.error);

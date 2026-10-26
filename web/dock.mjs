@@ -1,4 +1,4 @@
-// The text panel's dock: which side of the diagram it takes, and how big it may be. Sizes are in px along the dock's
+// The code panel's dock: which side of the diagram it takes, and how big it may be. Sizes are in px along the dock's
 // axis (width for left, height for top and bottom), out of `total`, the room main has that way.
 
 /** @typedef {'left' | 'top' | 'bottom'} Dock */

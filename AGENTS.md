@@ -7,9 +7,9 @@ and where the two differ, the local file wins.
 
 ## Words
 
-`GLOSSARY.md` holds the words merma uses. Use them as written there, in the page, the docs, the code and messages
+`GLOSSARY.md` holds the words merma uses. Use them as written there, in the page, the docs, merma's code and messages
 about the work; when a new word comes in, add it there in the same commit. Where Mermaid has a word for something
-(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case. American spelling throughout (color, center, behavior, gray), in the page, the docs and the code (the user).
+(node, edge, shape, subgraph, title), use Mermaid's word, never one of our own. Menu labels are in sentence case. American spelling throughout (color, center, behavior, gray), in the page, the docs and merma's code (the user).
 
 `docs/ux.md` holds the rules the page follows, and why. Read it before changing anything the user sees, and update it
 in the same commit when a rule changes. `docs/guide.md` says what each control does, and Help in `web/index.html` is a
@@ -42,7 +42,7 @@ rather than repeating it, and write down only what someone will read again.
 - **Check the page in a browser** after changing anything under `web/`; the unit tests do not cover it. Run the
   accessibility scan too: no violations outside the diagram (`checks/README.md`, "Accessibility"). After a change to
   `web/patch/`, run the browser parse check as well.
-- Say why in a comment when a reader new to the code could not work it out; nothing more.
+- Say why in a comment when a reader new to merma's code could not work it out; nothing more.
 - Conventional commits (`feat:`, `fix:`, `docs:`…), one commit per feature.
 
 ## Checks

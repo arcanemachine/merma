@@ -1,6 +1,6 @@
 # Glossary
 
-The words merma uses, in the page, the docs and the code. Use them as written here, and add a word here when a new
+The words merma uses, in the page, the docs and merma's code. Use them as written here, and add a word here when a new
 one comes in. Where Mermaid has a word, it is used; a word of merma's own says why. "Mermaid's word" means the one in
 the flowchart syntax page of the Mermaid version pinned in `web/viewer.mjs` (12.2.0), or in the ids and `data-*`
 attributes it draws. Where Mermaid has two words, one is used and the other noted, as for edge. A word in `code` is
@@ -12,6 +12,7 @@ Mermaid syntax.
 |---|---|
 | **diagram** | What a `.mmd` file describes and the page shows. |
 | **file** | The `.mmd` file. The only source of truth: merma reads it, and writes edits into it. |
+| **code** | The diagram's Mermaid code: the file's text (Mermaid's word, "Mermaid code"). merma's own source is "merma's code" wherever a sentence could be read either way. |
 | **flowchart** | A diagram whose header is `flowchart` or `graph`: the only type merma edits. Others are view-only. |
 | **header** | The `flowchart TD` line (after any frontmatter, directives and comments). |
 | **direction** | `TD` / `TB`, `BT`, `LR`, `RL` on the header: which way the diagram runs. A subgraph can set its own. |
@@ -54,7 +55,7 @@ note where merma had to make one up.
 | **page** | merma in the browser, showing one file. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel, pinch, + and -), **move** (drag, arrows with nothing selected), **fit** (Fit to window, F, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
-| **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in the code means a DOM element. |
+| **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in merma's code means a DOM element. |
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **fan** | The edges leaving a box one way (by their heading), left to right, or top to bottom: Down from a node selects the first of its down fan. merma's own. |
 | **step across** | What the cross arrows do on an edge: to the edge beside it in a fan, never onto a node. Not "page", which is merma in the browser. merma's own. |
@@ -69,8 +70,8 @@ note where merma had to make one up.
 | **grayed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
 | **node panel** | A node's label box with the shape picker under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
-| **text panel** | The file's text beside the diagram, read-only, following the file as the diagram does; Text in the footer opens it. merma's own: Mermaid has no word for it. |
-| **dock** | Where the text panel sits: left of the diagram, above it or below it. Default is left on a window wider than tall, else below. |
+| **code panel** | The file's code beside the diagram, read-only, following the file as the diagram does; Code in the footer opens it. merma's own: Mermaid has no word for it. |
+| **dock** | Where the code panel sits: left of the diagram, above it or below it. Default is left on a window wider than tall, else below. |
 | **shape picker** | The picker laid under a node's label box: click a shape, or Down from the label goes into it. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue: what to do next, or nothing to do), **warning** (amber: something you asked for refused or kept back, or a risk to the file), **error** (red: something you tried that did not happen). `docs/ux.md` says which is which. |
@@ -92,5 +93,5 @@ note where merma had to make one up.
 | **land** | Put committed, checked, reviewed work on the shared server (`./live.sh land`). |
 | **fixture** | A hand-written test diagram in `test/fixtures/`. |
 | **browser check** | A check that needs Mermaid itself, run in a browser (`checks/README.md`). |
-| **mutation check** | Breaking the code on purpose to see a test fail (`checks/mutate.sh`). |
+| **mutation check** | Breaking merma's code on purpose to see a test fail (`checks/mutate.sh`). |
 | **UAT** | Acceptance testing: by Haiku agents for behavior, by the user for look and feel. |
