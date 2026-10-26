@@ -23,8 +23,8 @@ them.
 - **Code** in the footer opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file
   (a version with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one;
   **Dock** picks Left, Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize
-  it, or Tab to the bar and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
-  size are kept in the browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
+  it, or Tab to the bar and use the arrows. **Close**, or **Code** again, closes it. Its dock and size are kept in the
+  browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
   back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
