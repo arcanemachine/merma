@@ -108,7 +108,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   label; only Enter in the label saves, so each Enter has one meaning. Escape in the grid keeps what was selected
   there. A picker in a menu saves on each pick, so there the item under the pointer takes focus, as in any menu.
 - Outside a field, a menu and a dialog, the arrows are the diagram's, even with a footer button focused: the page has
-  nothing else for them. While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
+  nothing else for them. The code panel is the exception: there they scroll the code (below). While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
   answers none.
 - An item reached by keys that is off screen is brought into view, the least move that shows it with a margin; one in
   view moves nothing (the user), for the same reason an edit keeps the view. One too big for the window at this zoom
@@ -230,9 +230,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
   level, from the code to the panel, and from the panel to closed (a draft is cancelled first, asking if it changed);
-  Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel only
-  those keys (and F2, Ctrl+Enter) are its own: the arrows and the rest are the diagram's, as everywhere outside a
-  field. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes first. ` into the panel
+  Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
+  buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
+  and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key
+  there is the diagram's. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes first. ` into the panel
   is a click into it, and opening it the footer's Code pressed: each ends find and Connect to… as the mouse's click
   does. Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.

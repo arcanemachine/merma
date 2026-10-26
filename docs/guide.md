@@ -26,8 +26,8 @@ them.
   it, or Tab to the bar and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
   size are kept in the browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
-  back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel move the
-  diagram.
+  back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel scroll the
+  code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram (a click, a key, a
   menu, Undo) until you **Save** or **Cancel**; the notice says so. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
   Ctrl+Z there undoes typing, and Escape goes out to the panel, keeping the draft (Ctrl+Enter there saves too; in the
