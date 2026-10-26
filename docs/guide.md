@@ -20,6 +20,11 @@ them.
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
   it; **Download Mermaid** saves the file's text, as the page has it.
+- **Text** in the footer opens the text panel: the file's text, read-only, updated with the file (a version with a
+  syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
+  Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize it, or Tab to the bar
+  and use the arrows. Escape in the text goes back to the diagram; **Close**, or **Text** again, closes it. Its dock and
+  size are kept in the browser for every file, and a reload keeps it open.
 - The header shows the file's path on one line, cut at the start when it is long so the file name stays in view;
   hover for all of it. Click or tap it to copy the whole path.
 
