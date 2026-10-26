@@ -1577,7 +1577,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const item = next && text === next.text ? [next.item, ...(next.others ?? [])].find((i) => elsOf(i).length) : null;
       // A find opened while the edit saved (the footer's Find, a click away from the label box): what the edit selects
       // is set aside with the find, for Escape or a click away to put back.
-      if (next && item && finding) { finding.before = item; return; }
+      // An add's panel does not open then, so the add is over: what it added is not being named.
+      if (next && item && finding) { finding.before = item; if (next.label) naming = null; return; }
       if (next && item) {
         // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
         // meanwhile, with its menu.
