@@ -17,7 +17,8 @@
   <div id="notice-status" class="visually-hidden" role="status"></div>
   <div id="notice-alert" class="visually-hidden" role="alert"></div>
   <main id="main">
-    <section id="code-panel" aria-labelledby="code-heading" hidden>
+    <section id="code-panel" tabindex="-1" aria-labelledby="code-heading" aria-describedby="code-keys" hidden>
+      <span id="code-keys" class="visually-hidden">Enter edits; Escape closes; ` goes to the diagram</span>
       <div class="code-head">
         <h2 id="code-heading">Code</h2>
         <span class="code-file" id="code-file"></span>
@@ -83,7 +84,7 @@
       <tr><th scope="row"><kbd>0</kbd></th><td>Zoom to actual size</td></tr>
       <tr><th scope="row"><kbd>F</kbd></th><td>Fit to window, or center the selection</td></tr>
       <tr><th scope="row"><kbd>/</kbd></th><td>Find in diagram</td></tr>
-      <tr><th scope="row"><kbd>`</kbd></th><td>Go to code panel, or hide it</td></tr>
+      <tr><th scope="row"><kbd>`</kbd></th><td>Go to code panel, or back to diagram</td></tr>
       <tr><th scope="row"><kbd>M</kbd> or <kbd>Shift</kbd>+<kbd>F10</kbd></th><td>Open menu</td></tr>
       <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel or deselect</td></tr>
       <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>Z</kbd></span></th><td>Undo</td></tr>

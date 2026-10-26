@@ -108,27 +108,73 @@ export function createCodePanel(els, file, hooks) {
 
   // Closing while editing cancels the draft first, as Cancel does; kept, the panel stays open.
   toggle.addEventListener('click', () => { if (!open || cancelEdit()) setOpen(!open); });
-  // ` goes to the code (opening the panel if need be), or, pressed in the panel, hides it. Going there is a click into
-  // the code, and opening it the footer's Code pressed: each a click away, as the mouse's is (it ends find and Connect
-  // to…). The key left of 1, by place, as the pickers' digits are; or whichever key types it, for boards where that
-  // place reports another code (ISO keyboards on a Mac). preventDefault: on a layout where it is a dead key, no accent
-  // waits.
+  // ` from outside the panel goes to it, opening it if need be: a click into it, or the footer's Code pressed, each a
+  // click away as the mouse's is (it ends find and Connect to…). Inside the panel its own keydown (below) has the key.
+  // The key left of 1, by place, as the pickers' digits are; or whichever key types it, for boards where that place
+  // reports another code (ISO keyboards on a Mac).
+  const isTick = (/** @type {KeyboardEvent} */ e) => e.code === 'Backquote' || e.key === '`';
+  const plain = (/** @type {KeyboardEvent} */ e) => !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey;
   document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || (e.code !== 'Backquote' && e.key !== '`')) return;
-    // The editor's own two guards (its keydown, in editor.mjs), but only a field that takes text keeps the key: the
-    // read-only code does not (`code.readOnly` sets the attribute this reads).
-    if (/** @type {Element} */ (e.target).closest?.('input, select, [contenteditable], textarea:not([readonly])')) return;
+    if (!plain(e) || !isTick(e)) return;
+    const target = /** @type {Element} */ (e.target);
+    if (panel.contains(target) || handle.contains(target)) return;
+    // The editor's own two guards (its keydown, in editor.mjs): a field takes its keys, and so does an open dialog.
+    if (target.closest?.('input, textarea, select, [contenteditable]')) return;
     if (document.querySelector(':popover-open:not([data-overlay])')) return;
+    // On a layout where it is a dead key, no accent waits.
     e.preventDefault();
-    const at = document.activeElement;
-    if (open && (panel.contains(at) || handle.contains(at))) {
-      toggle.click();
-      if (!open) diagram.focus();
+    if (open) panel.click();
+    else toggle.click();
+    panel.focus({ preventScroll: true });
+  });
+  /** Close the panel, cancelling a draft first (asking if it changed). Whether it closed. */
+  function closePanel() {
+    if (!cancelEdit()) return false;
+    setOpen(false);
+    return true;
+  }
+  // The panel's keys, by keyboard a round trip with the diagram (the user): ` flips between the two, Escape steps out a
+  // level (the code to the panel, the panel to closed), Enter goes in. Only these are the panel's: every other key goes
+  // on to the page, so the arrows on the panel are the diagram's, as everywhere outside a field. The Dock select keeps
+  // its own keys.
+  /** The panel's own keys, with focus on it (not in the code); true when one was taken. */
+  function panelKey(/** @type {KeyboardEvent} */ e) {
+    if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      if (closePanel()) diagram.focus();
+    } else if (plain(e) && isTick(e)) {
+      diagram.focus();
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && editing) {
+      saveEdit();
+    } else if ((e.key === 'Enter' || e.key === 'F2') && plain(e) && e.target === panel) {
+      if (editing) code.focus({ preventScroll: true });
+      else edit.click();
+    } else {
+      return false;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    return true;
+  }
+  panel.addEventListener('keydown', (e) => {
+    const target = /** @type {Element} */ (e.target);
+    if (target === dockSelect) return;
+    if (target !== code) { panelKey(e); return; }
+    // In the code, a field: Escape goes out to the panel, Enter or F2 edits, ` leaves the read-only code for the
+    // diagram (in a draft it types).
+    if (e.key === 'Escape') {
+      panel.focus({ preventScroll: true });
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && editing) {
+      saveEdit();
+    } else if ((e.key === 'Enter' || e.key === 'F2') && plain(e) && !editing) {
+      // As Enter and F2 edit a selection in the diagram.
+      edit.click();
+    } else if (plain(e) && isTick(e) && !editing) {
+      diagram.focus();
+    } else {
       return;
     }
-    if (open) code.click();
-    else toggle.click();
-    code.focus({ preventScroll: true });
+    e.preventDefault();
+    e.stopPropagation();
   });
   close.addEventListener('click', () => {
     if (!cancelEdit()) return;
@@ -141,27 +187,12 @@ export function createCodePanel(els, file, hooks) {
     layout();
   });
   code.addEventListener('scroll', () => { scroll = { top: code.scrollTop, left: code.scrollLeft }; });
-  // A field turns the page's keys off, so Escape is the way back to them.
-  code.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      diagram.focus();
-    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && editing) {
-      e.preventDefault();
-      saveEdit();
-    } else if ((e.key === 'Enter' || e.key === 'F2') && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !editing) {
-      // As Enter and F2 edit a selection in the diagram.
-      e.preventDefault();
-      edit.click();
-    }
-  });
-
   // --- editing ---
 
   /** @type {{ base: { text: string, version: string } } | null} */
   let editing = null;
   let shown = '';     // the file's latest text; while editing, the draft stands in its place in the field
-  const READ_TITLE = 'Enter or F2 edits; Escape goes back to the diagram; ` hides the panel';
+  const READ_TITLE = 'Enter or F2 edits; Escape goes to the panel; ` goes to the diagram';
   code.title = READ_TITLE;
 
   /** Show the header's buttons and status for editing or not. */
@@ -171,7 +202,7 @@ export function createCodePanel(els, file, hooks) {
     edit.hidden = Boolean(next);
     save.hidden = !next;
     cancel.hidden = !next;
-    code.title = next ? 'Ctrl+Enter (⌘+Enter on a Mac) saves; Escape goes back to the diagram' : READ_TITLE;
+    code.title = next ? 'Ctrl+Enter (⌘+Enter on a Mac) saves; Escape goes to the panel' : READ_TITLE;
     markChanged();
   }
   function markChanged() {
@@ -179,13 +210,13 @@ export function createCodePanel(els, file, hooks) {
     status.textContent = !editing ? '' : changed ? 'Editing: file changed since' : 'Editing';
     status.classList.toggle('changed', changed);
   }
-  /** Back to following the file, focus in the code, where its keys are (Enter edits again, ` hides the panel). */
+  /** Back to following the file, focus on the panel, where Escape lands too (Enter edits again, ` to the diagram). */
   function endEdit() {
     setEditing(null);
     code.value = shown;
     code.scrollTop = scroll.top;
     code.scrollLeft = scroll.left;
-    code.focus({ preventScroll: true });
+    panel.focus({ preventScroll: true });
   }
 
   edit.addEventListener('click', () => {
@@ -243,6 +274,7 @@ export function createCodePanel(els, file, hooks) {
   handle.addEventListener('pointerup', endDrag);
   handle.addEventListener('pointercancel', endDrag);
   handle.addEventListener('keydown', (e) => {
+    if (panelKey(e)) return;
     const by = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
     if (!by) return;
     // The page's own arrows would move the diagram as well; the two across the handle do nothing.
