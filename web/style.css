@@ -219,6 +219,7 @@ footer button:disabled { cursor: default; opacity: 0.5; }
   /* The find bar's buttons go on a second row together; the keys' hint, for a keyboard, goes. */
   #find { flex-wrap: wrap; }
   #find .find-keys { display: none; }
+  #find .find-buttons { margin-left: auto; }
   /* Five equal columns would not fit a phone without wrapping a label: here each button is as wide as its own. */
   footer { padding: 12px 8px; }
   footer .buttons { grid-auto-columns: auto; gap: 6px; }

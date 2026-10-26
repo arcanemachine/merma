@@ -19,12 +19,12 @@
     <label for="find-box">Find</label>
     <input id="find-box" type="text" autocomplete="off" spellcheck="false">
     <span id="find-count"></span>
+    <span class="find-keys">Tab: next · Enter: select · Esc: cancel</span>
     <span class="find-buttons">
       <button type="button" id="find-prev" title="Shift+Tab">Previous</button>
       <button type="button" id="find-next" title="Tab">Next</button>
       <button type="button" id="find-cancel" title="Escape">Cancel</button>
     </span>
-    <span class="find-keys">Tab: next · Enter: select · Esc: cancel</span>
   </div>
   <div id="notice-status" class="visually-hidden" role="status"></div>
   <div id="notice-alert" class="visually-hidden" role="alert"></div>
@@ -38,8 +38,8 @@
     <div class="buttons">
       <button id="undo" disabled>Undo</button>
       <button id="redo" disabled>Redo</button>
-      <button id="export" disabled aria-haspopup="menu" aria-expanded="false" title="Copy or download the diagram as drawn">Export ▴</button>
       <button id="find-toggle" title="Find in the diagram (/)">Find</button>
+      <button id="export" disabled aria-haspopup="menu" aria-expanded="false" title="Copy or download the diagram">Export ▴</button>
       <button popovertarget="help" title="How to use this page">Help</button>
     </div>
   </footer>
