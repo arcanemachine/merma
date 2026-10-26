@@ -268,7 +268,8 @@ when there is one; Down from the title goes to the box nearest below it.
 **Ways out**, wherever you are: / (find looks through the whole diagram), Ctrl+Arrows (they jump),
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back as it was (an edge keeps its end tick).
 
-**Find** with / (or **Find…** in the empty-space menu, the way in on a phone): type, and every node, edge label,
+**Find** with / (or **Find** in the footer, the way in on a phone, which closes it again; or **Find…** in the
+empty-space menu): type, and every node, edge label,
 subgraph and title holding what you typed (ignoring case), on screen or off, is outlined in amber (for an edge label,
 its edge's line turns amber). The current match is filled: as you type, the best one on screen, else the best; the
 count says how many are off screen ("2 of 5, 3 off screen"). Typing never moves the view. Tab and Shift+Tab move to
@@ -278,7 +279,8 @@ screen, and so does a click on it (or on anything else in the diagram); with not
 back what was selected, and the view from before the find unless you moved it since; a click outside the diagram puts
 back the selection and leaves the view where it is. The best match is the whole text, then one starting with it, then a
 word starting with it, then any; higher first. Tab stays in the find box, and Escape is the way out of it. / again
-shows what you last looked for, selected, so typing replaces it.
+shows what you last looked for, selected, so typing replaces it. The bar's **Previous**, **Next** and **Cancel** do
+what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
 In Connect to…, the dashed outline starts on the node or subgraph the edge comes from and moves by the same rules as
 the selection, through edges (Enter on one is refused), with I and O; Enter connects to the outlined one.
