@@ -268,8 +268,8 @@ when there is one; Down from the title goes to the box nearest below it.
 **Ways out**, wherever you are: / (find looks through the whole diagram), Ctrl+Arrows (they jump),
 Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back as it was (an edge keeps its end tick).
 
-**Find** with / (or **Find** in the footer, the way in on a phone, which closes it again; or **Find…** in the
-empty-space menu): type, and every node, edge label,
+**Find** with / (or the footer's **Find**, the way in on a phone, which opens it and closes it again; or **Find…**
+in the empty-space menu): type, and every node, edge label,
 subgraph and title holding what you typed (ignoring case), on screen or off, is outlined in amber (for an edge label,
 its edge's line turns amber). The current match is filled: as you type, the best one on screen, else the best; the
 count says how many are off screen ("2 of 5, 3 off screen"). Typing never moves the view. Tab and Shift+Tab move to
