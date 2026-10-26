@@ -211,10 +211,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift.
 
-## The text panel
+## The code panel
 
 - It follows the file as the diagram does, whoever saved it, a version that does not parse included, so you can read
-  what broke. A new version keeps its scroll; a selection in the text is lost, since the whole text is replaced.
+  what broke. A new version keeps its scroll; a selection in it is lost, since the whole code is replaced.
 - It docks beside the diagram, never over it, so opening, closing or resizing it changes the diagram's size and the
   resize rule holds: a view you have not touched refits, yours stays. The notice and the find bar stay over the
   diagram.
@@ -224,8 +224,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   A window too small for the size you set draws the panel smaller, and your size comes back when the window grows.
 - Its dock and size are the person's, kept in the browser for every file (localStorage); whether it is open is the
   tab's, per file (sessionStorage), so the page's reload for a new build keeps it open.
-- It is a view, not a wait: opening it leaves focus on its button. Escape in the text goes back to the diagram, since
-  the page's keys are off in a field; Close puts focus back on the footer's Text.
+- It is a view, not a wait: opening it leaves focus on its button. Escape in the code goes back to the diagram, since
+  the page's keys are off in a field; Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 
 ## Grayed out or left out

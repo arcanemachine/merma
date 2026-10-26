@@ -20,10 +20,10 @@ them.
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
   it; **Download Mermaid** saves the file's text, as the page has it.
-- **Text** in the footer opens the text panel: the file's text, read-only, updated with the file (a version with a
-  syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
+- **Code** in the footer opens the code panel: the file's Mermaid code, read-only, updated with the file (a version
+  with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
   Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize it, or Tab to the bar
-  and use the arrows. Escape in the text goes back to the diagram; **Close**, or **Text** again, closes it. Its dock and
+  and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
   size are kept in the browser for every file, and a reload keeps it open.
 - The header shows the file's path on one line, cut at the start when it is long so the file name stays in view;
   hover for all of it. Click or tap it to copy the whole path.
@@ -315,7 +315,7 @@ nothing but say so: press again.
 
 ## Updates to merma itself
 
-Every response from the server carries the build id of the code it has; when that differs from the one the page was
+Every response from the server carries the build id of the merma it runs; when that differs from the one the page was
 loaded with, the page reloads itself as soon as no edit is in progress. So open pages pick up a new version of merma
 without anyone reloading them. The page polls its file once a second with `If-None-Match`, so an unchanged file comes
 back as a bodiless 304 (in the browser's network panel, `-status-code:304` hides those).

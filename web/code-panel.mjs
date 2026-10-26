@@ -1,6 +1,6 @@
-// The text panel: the file's text beside the diagram, read-only, following the file as the diagram does. It docks
-// left, top or bottom of the diagram in main's grid, with a handle to resize it. Where it docks and how big it is
-// are the person's, kept in localStorage for every file; whether it is open is the tab's, per file, in
+// The code panel: the file's Mermaid code beside the diagram, read-only, following the file as the diagram does. It
+// docks left, top or bottom of the diagram in main's grid, with a handle to resize it. Where it docks and how big it
+// is are the person's, kept in localStorage for every file; whether it is open is the tab's, per file, in
 // sessionStorage, so the page's own reload on a new build keeps it open.
 
 import { DOCKS, axis, panelSize, resolveDock } from './dock.mjs';
@@ -25,21 +25,21 @@ function store(/** @type {() => Storage} */ get) {
  * @param {object} els
  * @param {HTMLElement} els.main the grid the panel docks in
  * @param {HTMLElement} els.panel
- * @param {HTMLTextAreaElement} els.text
+ * @param {HTMLTextAreaElement} els.code
  * @param {HTMLSelectElement} els.dock
  * @param {HTMLElement} els.handle
  * @param {HTMLElement} els.close
  * @param {HTMLElement} els.toggle the footer button
- * @param {HTMLElement} els.diagram where Escape in the text sends focus
+ * @param {HTMLElement} els.diagram where Escape in the code sends focus
  * @param {string} file
  */
-export function createTextPanel(els, file) {
-  const { main, panel, text, dock: dockSelect, handle, close, toggle, diagram } = els;
+export function createCodePanel(els, file) {
+  const { main, panel, code, dock: dockSelect, handle, close, toggle, diagram } = els;
   const local = store(() => localStorage);
   const session = store(() => sessionStorage);
-  const openKey = 'merma:text:' + file;
-  const dockKey = 'merma:text-dock';
-  const sizeKey = (/** @type {'x' | 'y'} */ a) => 'merma:text-size-' + a;
+  const openKey = 'merma:code:' + file;
+  const dockKey = 'merma:code-dock';
+  const sizeKey = (/** @type {'x' | 'y'} */ a) => 'merma:code-size-' + a;
 
   let open = session.get(openKey) === '1';
   const stored = local.get(dockKey);
@@ -60,7 +60,7 @@ export function createTextPanel(els, file) {
   /** Draw the panel at `next` px (clamped), and say so on the handle. */
   function setSize(/** @type {number | null} */ next) {
     size = panelSize(next, total);
-    main.style.setProperty('--text-size', size + 'px');
+    main.style.setProperty('--code-size', size + 'px');
     handle.setAttribute('aria-valuenow', String(size));
     handle.setAttribute('aria-valuemin', String(panelSize(0, total)));
     handle.setAttribute('aria-valuemax', String(panelSize(Infinity, total)));
@@ -85,7 +85,7 @@ export function createTextPanel(els, file) {
     handle.hidden = !on;
     toggle.setAttribute('aria-expanded', String(on));
     layout();
-    if (on) { text.scrollTop = scroll.top; text.scrollLeft = scroll.left; }
+    if (on) { code.scrollTop = scroll.top; code.scrollLeft = scroll.left; }
   }
 
   dockSelect.value = choice;
@@ -99,9 +99,9 @@ export function createTextPanel(els, file) {
     local.set(dockKey, choice === 'default' ? null : choice);
     layout();
   });
-  text.addEventListener('scroll', () => { scroll = { top: text.scrollTop, left: text.scrollLeft }; });
+  code.addEventListener('scroll', () => { scroll = { top: code.scrollTop, left: code.scrollLeft }; });
   // A field turns the page's keys off, so Escape is the way back to them.
-  text.addEventListener('keydown', (e) => {
+  code.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     e.preventDefault();
     diagram.focus();
@@ -123,7 +123,7 @@ export function createTextPanel(els, file) {
     handle.focus({ preventScroll: true, focusVisible: false });
     handle.setPointerCapture(e.pointerId);
     drag = { at: axis(dock) === 'x' ? e.clientX : e.clientY, from: size };
-    // The pointer crossing the text on its way would select it.
+    // The pointer crossing the code on its way would select it.
     document.body.classList.add('resizing');
   });
   handle.addEventListener('pointermove', (e) => {
@@ -149,12 +149,12 @@ export function createTextPanel(els, file) {
 
   let shown = '';
   return {
-    /** Show a version of the file. The scroll stays where it was; a selection in the text is lost. */
+    /** Show a version of the file. The scroll stays where it was; a selection in the code is lost. */
     show(/** @type {string} */ next) {
       if (next === shown) return;
       shown = next;
-      text.value = next;
-      if (open) { text.scrollTop = scroll.top; text.scrollLeft = scroll.left; }
+      code.value = next;
+      if (open) { code.scrollTop = scroll.top; code.scrollLeft = scroll.left; }
     },
   };
 }

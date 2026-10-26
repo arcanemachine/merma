@@ -64,7 +64,7 @@ first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=check
 these states, since each shows other elements and colors: nothing open; a node menu; an edge menu with a grayed
 item; a subgraph menu; the empty-space menu; the arrow type picker; the node panel; the node panel with focus in
 the shape picker's grid; each notice kind (Connect to… for info, an emptied label kept on a click away for warning, an empty label on Enter for error); the
-label box; Help; the text panel open, on a wide window and at 480 px or less; find open. With `'#stage'` after the file it scans only the diagram: that is Mermaid's
+label box; Help; the code panel open, on a wide window and at 480 px or less; find open. With `'#stage'` after the file it scans only the diagram: that is Mermaid's
 markup, so its findings are recorded as Mermaid's and never fixed here.
 
 **The virtual screen reader**, after a change to messages, live regions, names or roles: `checks/a11y-heard.js` runs

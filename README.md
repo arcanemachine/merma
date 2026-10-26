@@ -52,7 +52,7 @@ there is no login.
 | `run.sh` | Runs `bin/merma.js` from a checkout |
 | `server/server.js` | The routes (listed at the top of the file) |
 | `server/files.js` | Which files may be served, reading them, and writing over a known version |
-| `server/build.js` | The build id: which version of the code a page is running |
+| `server/build.js` | The build id: which version of merma's code a page is running |
 | `web/index.html`, `web/style.css` | The page's markup and styles |
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
@@ -68,14 +68,14 @@ there is no login.
 | `web/find.mjs` | Find on /: which drawn items match, best first |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/frame.mjs` | The view that shows find's matches all at once |
-| `web/text-panel.mjs` | The text panel: the file's text, its dock and its handle |
-| `web/dock.mjs` | Where the text panel docks, and how big it may be |
+| `web/code-panel.mjs` | The code panel: the file's code, its dock and its handle |
+| `web/dock.mjs` | Where the code panel docks, and how big it may be |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
 | `checks/` | Checks that need a browser (`checks/README.md`) |
 | `tsconfig.json`, `web/tsconfig.json`, `types/` | Type-checking (`npm run typecheck`): the Node side, the page, and declarations JSDoc cannot make (Mermaid's CDN module). Not shipped |
-| `GLOSSARY.md` | The words merma uses, in the page, the docs and the code |
+| `GLOSSARY.md` | The words merma uses, in the page, the docs and merma's code |
 | `docs/guide.md`, `docs/ux.md` | How to use the page; the rules it follows, and why |
 
 ## License

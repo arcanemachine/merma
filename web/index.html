@@ -17,21 +17,21 @@
   <div id="notice-status" class="visually-hidden" role="status"></div>
   <div id="notice-alert" class="visually-hidden" role="alert"></div>
   <main id="main">
-    <section id="text-panel" aria-labelledby="text-heading" hidden>
-      <div class="text-head">
-        <h2 id="text-heading">Text</h2>
-        <span class="text-file" id="text-file"></span>
-        <label class="text-dock">Dock <select id="text-dock">
+    <section id="code-panel" aria-labelledby="code-heading" hidden>
+      <div class="code-head">
+        <h2 id="code-heading">Code</h2>
+        <span class="code-file" id="code-file"></span>
+        <label class="code-dock">Dock <select id="code-dock">
           <option value="default">Default</option>
           <option value="left">Left</option>
           <option value="top">Top</option>
           <option value="bottom">Bottom</option>
         </select></label>
-        <button type="button" id="text-close">Close</button>
+        <button type="button" id="code-close">Close</button>
       </div>
-      <textarea id="text" readonly wrap="off" spellcheck="false" aria-label="File text"></textarea>
+      <textarea id="code" readonly wrap="off" spellcheck="false" aria-label="Mermaid code"></textarea>
     </section>
-    <div id="text-handle" role="separator" tabindex="0" aria-label="Resize text panel" aria-controls="text-panel" hidden></div>
+    <div id="code-handle" role="separator" tabindex="0" aria-label="Resize code panel" aria-controls="code-panel" hidden></div>
     <div id="notice"></div>
     <div id="find" role="search" hidden>
       <label for="find-box">Find</label>
@@ -54,7 +54,7 @@
       <button id="undo" disabled>Undo</button>
       <button id="redo" disabled>Redo</button>
       <button id="find-toggle" title="Find in the diagram (/)">Find</button>
-      <button id="text-toggle" aria-expanded="false" aria-controls="text-panel" title="Show the file's text">Text</button>
+      <button id="code-toggle" aria-expanded="false" aria-controls="code-panel" title="Show the Mermaid code">Code</button>
       <button id="export" disabled aria-haspopup="menu" aria-expanded="false" title="Copy or download the diagram">Export ▴</button>
       <button popovertarget="help" title="How to use this page">Help</button>
     </div>
