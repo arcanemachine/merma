@@ -19,12 +19,19 @@ them.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
-  it; **Download Mermaid** saves the file's text, as the page has it.
-- **Code** in the footer opens the code panel: the file's Mermaid code, read-only, updated with the file (a version
+  it; **Download Mermaid** saves the file's text, as the page has it (not a draft in the code panel).
+- **Code** in the footer opens the code panel: the file's Mermaid code, read-only until Edit, updated with the file (a version
   with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one; **Dock** picks Left,
   Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize it, or Tab to the bar
   and use the arrows. Escape in the code goes back to the diagram; **Close**, or **Code** again, closes it. Its dock and
   size are kept in the browser for every file, and a reload keeps it open.
+- **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram (a click, a key, a
+  menu, Undo) until you **Save** or **Cancel**; the notice says so. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
+  Ctrl+Z there undoes typing, and Escape goes back to the diagram, keeping the draft. Save checks the code is valid
+  Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
+  agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
+  the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
+  while a label box, Connect to… or a save is under way says to finish that first.
 - The header shows the file's path on one line, cut at the start when it is long so the file name stays in view;
   hover for all of it. Click or tap it to copy the whole path.
 

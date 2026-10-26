@@ -21,13 +21,19 @@
       <div class="code-head">
         <h2 id="code-heading">Code</h2>
         <span class="code-file" id="code-file"></span>
-        <label class="code-dock">Dock <select id="code-dock">
-          <option value="default">Default</option>
-          <option value="left">Left</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-        </select></label>
-        <button type="button" id="code-close">Close</button>
+        <span class="code-status" id="code-status" role="status"></span>
+        <span class="code-actions">
+          <label class="code-dock">Dock <select id="code-dock">
+            <option value="default">Default</option>
+            <option value="left">Left</option>
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+          </select></label>
+          <button type="button" id="code-edit">Edit</button>
+          <button type="button" id="code-save" hidden>Save</button>
+          <button type="button" id="code-cancel" hidden>Cancel</button>
+          <button type="button" id="code-close">Close</button>
+        </span>
       </div>
       <textarea id="code" readonly wrap="off" spellcheck="false" aria-label="Mermaid code"></textarea>
     </section>

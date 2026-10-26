@@ -63,6 +63,10 @@ const END_GAP = 4;
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
+  // What is drawn may be edited (a flowchart that rendered), unless the code panel holds the lock while its code is
+  // being edited; editable is the two together, set only by setEditable().
+  let drawnEditable = false;
+  let locked = false;
   let editable = false;
   /** @type {Item | null} */
   let selected = null;
@@ -187,7 +191,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
-  function setEditable(/** @type {boolean} */ on) {
+  const LOCKED = 'The code is being edited: save or cancel it to edit the diagram.';
+  /** Say why nothing happens while the code panel holds the lock; false when it does not. */
+  function refuseLocked() {
+    if (locked) ui.notice(LOCKED, 'warning');
+    return locked;
+  }
+
+  function setEditable() {
+    const on = drawnEditable && !locked;
     editable = on;
     els.stage.classList.toggle('editable', on);
     if (!on) { closeFind(null); deselect(); closeLabelBox(); }
@@ -525,7 +537,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function clicked(/** @type {Element} */ target, /** @type {number} */ x = NaN, /** @type {number} */ y = NaN) {
-    if (!editable) return;
+    if (refuseLocked() || !editable) return;
     if (ended()) return;
     const item = itemAt(target);
     clickedDuringEdit(item);
@@ -566,6 +578,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** A right-click or long-press; or, `byKey`, the menu key or Shift+F10, which open what M opens. */
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, byKey = false) {
+    if (refuseLocked()) return true;
     if (!editable) return false;
     if (byKey) { keys.m(); return true; }
     if (connecting) return true;
@@ -715,7 +728,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const had = Boolean(selected);
       if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
       deselect();
-      ui.hideNotice();
+      if (!locked) ui.hideNotice();
       return had;
     },
   };
@@ -969,6 +982,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // nothing, as in the diagram (ended()).
   els.findToggle.addEventListener('click', () => {
     if (swallowClick) return;
+    // As for /: find selects, and nothing is selected in a diagram that cannot be edited.
+    if (refuseLocked() || !editable) return;
     if (finding) { closeFind(null); return; }
     if (connecting) cancelConnect();
     openFind();
@@ -1035,7 +1050,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive.
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
-    if (e.metaKey || !keys[name] || (!editable && !VIEW_KEYS.includes(name))) return;
+    if (e.metaKey || !keys[name]) return;
+    if (!editable && !VIEW_KEYS.includes(name)) { refuseLocked(); return; }
     if (keys[name]()) e.preventDefault();
   });
 
@@ -1378,8 +1394,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   // One edit or undo at a time: a second one started while the first is saving (a held Ctrl+Z, a double-clicked menu
   // item) would be based on the text from before the first.
-  async function exclusively(/** @type {() => Promise<void>} */ work) {
+  // While the code panel holds the lock nothing here writes the file, whatever reached it (a key, a button), except the
+  // panel's own save (`whileLocked`).
+  async function exclusively(/** @type {() => Promise<void>} */ work, { whileLocked = false } = {}) {
     if (busy) return;
+    if (!whileLocked && refuseLocked()) return;
     busy = true;
     try {
       await work();
@@ -1492,18 +1511,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /**
    * Save text for the file over version `base` (default: the version the page has now), after checking it parses.
-   * Returns true when saved.
+   * Returns true when saved. `says` replaces the notices for text that does not parse and for a file changed since.
    */
-  async function save(/** @type {string} */ text, base = source.version) {
+  async function save(/** @type {string} */ text, base = source.version, /** @type {{ invalid?: string, conflict?: string }} */ says = {}) {
     try {
       await parse(text);
     } catch (e) {
-      ui.notice('Not saved: the edit would make the diagram invalid.\n' + (e.message || e), 'error');
+      ui.notice((says.invalid ?? 'Not saved: the edit would make the diagram invalid.') + '\n' + (e.message || e), 'error');
       return false;
     }
     const saved = await source.save(text, base);
     if (saved.ok === false) {
-      ui.notice('Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
+      ui.notice((saved.conflict && says.conflict) || 'Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
       return false;
     }
     return true;
@@ -1536,7 +1555,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * was one.
      */
     doubleClicked(/** @type {Element} */ target) {
-      if (!editable) return false;
+      if (refuseLocked() || !editable) return false;
       const sel = itemAt(target);
       if (!sel) return false;
       select(sel);
@@ -1550,8 +1569,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * or subgraphs come and go).
      */
     rendered(/** @type {string} */ text) {
-      setEditable(isFlowchart(text));
-      if (!editable) return;
+      drawnEditable = isFlowchart(text);
+      setEditable();
+      // Tagged while locked too, so unlocking finds the drawing ready.
+      if (!drawnEditable) return;
       const changed = text !== shownText;
       shownText = text;
       const renderId = /** @type {string} */ (viewer.renderId);   // what is on screen was rendered
@@ -1595,7 +1616,50 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
 
     /** The file no longer renders: what is on screen is an older version, so editing it would edit something else. */
-    failed() { setEditable(false); },
+    failed() { drawnEditable = false; setEditable(); },
+
+    /**
+     * The code panel starts editing the code: nothing else edits the file until unlock(). Refused, saying why, while an
+     * edit here is under way.
+     */
+    lockForCode() {
+      if (busy || labelling || connecting) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
+      locked = true;
+      setEditable();
+      ui.notice(LOCKED, 'info');
+      return true;
+    },
+    unlock() {
+      if (!locked) return;
+      locked = false;
+      setEditable();
+      ui.hideNotice();
+    },
+
+    /**
+     * Save the code panel's text over `base`, the file as it was when its editing began, so a change since is refused
+     * rather than overwritten. One undo step; the lock ends when it saves. Resolves to whether it saved.
+     */
+    async saveCode(/** @type {string} */ text, /** @type {{ text: string, version: string }} */ base) {
+      let ok = false;
+      await exclusively(async () => {
+        if (!(await save(text, base.version, {
+          invalid: 'Not saved: the code is not valid Mermaid.',
+          conflict: 'Not saved: the file changed since Edit. Cancel shows it as it is now.',
+        }))) return;
+        ok = true;
+        history.record(base.text, text, null);
+        moves.forget();
+        clickedMeanwhile = null;
+        locked = false;
+        setEditable();
+        ui.hideNotice();
+        ui.announce('Saved');
+        await display(text);
+        settled = selected;
+      }, { whileLocked: true });
+      return ok;
+    },
 
     state: () => ({
       selected: selectedNode(), selectedEdge: selected?.kind === 'edge' ? selected.id : null,
@@ -1610,6 +1674,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     redo: () => (busy ? ui.notice('Not redone: another edit is still saving; try again.', 'error') : redo()),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
-    idle: () => !busy && !labelling && !connecting,
+    idle: () => !busy && !labelling && !connecting && !locked,
   };
 }
