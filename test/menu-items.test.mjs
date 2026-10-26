@@ -17,8 +17,9 @@ const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item
 test('every menu label starts with one of the verbs, in sentence case', () => {
   for (const { item: { label } } of items) {
     assert.ok(VERBS.includes(label.split(' ')[0].replace(/…$/, '')), `${label}: not a listed verb`);
-    // An acronym (SVG) keeps its capitals.
-    assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase() || /^[A-Z]{2,}$/.test(w)), `${label}: not sentence case`);
+    // An acronym (SVG) and a name (Mermaid) keep their capitals.
+    assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase() || /^[A-Z]{2,}$/.test(w) || w === 'Mermaid'),
+      `${label}: not sentence case`);
   }
 });
 

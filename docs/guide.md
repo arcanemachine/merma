@@ -19,7 +19,7 @@ them.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it.
 - **Export ▴** in the footer opens a menu: **Copy SVG** and **Download SVG** export the diagram as the browser drew
-  it.
+  it; **Download Mermaid** saves the file's text, as the page has it.
 - The header shows the file's path on one line, cut at the start when it is long so the file name stays in view;
   hover for all of it. Click or tap it to copy the whole path.
 

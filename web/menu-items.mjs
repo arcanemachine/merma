@@ -107,6 +107,7 @@ export const MENUS = {
 export const EXPORT_MENU = [
   { action: 'copy-svg', label: 'Copy SVG', key: 'c' },
   { action: 'download-svg', label: 'Download SVG', key: 'd' },
+  { action: 'download-mermaid', label: 'Download Mermaid', key: 'm' },
 ];
 
 /**

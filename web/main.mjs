@@ -205,15 +205,22 @@ const exports = {
   },
   'download-svg': () => {
     const markup = viewer.svgMarkup();
-    if (!markup) return;
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
-    link.download = /** @type {string} */ (file.split('/').pop()).replace(/\.mmd$/, '') + '.svg';
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-    toast('SVG downloaded');
+    if (markup) download(markup, 'image/svg+xml', '.svg', 'SVG downloaded');
+  },
+  'download-mermaid': () => {
+    const text = source.snapshot().text;
+    if (text !== null) download(text, 'text/plain', '.mmd', 'Mermaid downloaded');
   },
 };
+/** Save `content` as the file's name with `ext` in place of `.mmd`. */
+function download(/** @type {string} */ content, /** @type {string} */ type, /** @type {string} */ ext, /** @type {string} */ done) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([content], { type }));
+  link.download = /** @type {string} */ (file.split('/').pop()).replace(/\.mmd$/, '') + ext;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  toast(done);
+}
 const exportMenu = createMenu(EXPORT_MENU, {
   parent: /** @type {HTMLElement} */ (document.querySelector('footer')),
   bounds: () => new DOMRect(0, 0, innerWidth, innerHeight),
