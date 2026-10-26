@@ -211,8 +211,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. `
   (the code panel) is likewise the key left of 1, or whichever key types it (that place reports another key on ISO
-  keyboards on a Mac); where it is a dead key, it waits for no accent. It is the footer's Code pressed, so it ends
-  Connect to… as that click does.
+  keyboards on a Mac); where it is a dead key, it waits for no accent.
 
 ## The code panel
 
@@ -227,8 +226,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   A window too small for the size you set draws the panel smaller, and your size comes back when the window grows.
 - Its dock and size are the person's, kept in the browser for every file (localStorage); whether it is open is the
   tab's, per file (sessionStorage), so the page's reload for a new build keeps it open.
-- It is a view, not a wait: opening it leaves focus on its button. Escape in the code goes back to the diagram, since
-  the page's keys are off in a field; Close puts focus back on the footer's Code.
+- It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard the code is the hub
+  of a round trip (the user): ` goes to it (opening the panel if need be), Enter or F2 there edits, as they edit a
+  selection, and ` there hides the panel, focus back on the diagram; after Save or Cancel focus stays in the code, so
+  those keys still work. ` into the panel is a click into it, and opening it the footer's Code pressed: each ends
+  find and Connect to… as the mouse's click does. Escape in the code goes back to the diagram, since the page's keys
+  are off in a field; in a draft, ` types a backtick (Mermaid's markdown strings use them). Close puts focus back on
+  the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
   diagram is view-only, and every edit there, Undo and Redo included, is refused with a warning saying why; each edit
