@@ -9,13 +9,19 @@ html, body { height: 100%; }
   /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
 }
-/* The notice shares the diagram's row and lies over its top, so it never resizes the diagram: a diagram that moved as
-   a notice appeared would put another node under a click aimed just before. */
 /* minmax(0, 1fr): the one column is the window's width, never the width of a long line in it (the header's path). */
 body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; grid-template-columns: minmax(0, 1fr);
        font-family: system-ui, sans-serif;
        background: #fff; color: #222; }
-#notice, #find, #diagram { grid-row: 3; grid-column: 1; }
+/* main, in the body's third row, is a grid of its own: the diagram, and the text panel docked beside it when open
+   (main[data-dock], set by text-panel.mjs; --text-size is the panel's width or height). The notice and the find bar
+   share the diagram's cell and lie over its top, so they never resize the diagram: a diagram that moved as a notice
+   appeared would put another node under a click aimed just before. */
+main { grid-row: 3; display: grid; min-height: 0; grid-template: "diagram" minmax(0, 1fr) / minmax(0, 1fr); }
+main[data-dock="left"] { grid-template: "panel handle diagram" minmax(0, 1fr) / var(--text-size) 6px minmax(0, 1fr); }
+main[data-dock="top"] { grid-template: "panel" var(--text-size) "handle" 6px "diagram" minmax(0, 1fr) / minmax(0, 1fr); }
+main[data-dock="bottom"] { grid-template: "diagram" minmax(0, 1fr) "handle" 6px "panel" var(--text-size) / minmax(0, 1fr); }
+#notice, #find, #diagram { grid-area: diagram; }
 header { padding: 8px 16px; border-bottom: 1px solid #ddd; font-size: 13px; display: flex; gap: 16px; }
 header h1 { margin: 0; font-size: 16px; white-space: nowrap; align-self: center; }
 header .paths { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -48,8 +54,7 @@ header .status { color: #666; white-space: nowrap; }
 #stage.editable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph], text.flowchartTitleText),
 #stage.editable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph]) * { cursor: pointer; }
 /* The diagram has role="application", so screen readers pass its arrow keys through instead of reading on; on <main>
-   that role would cost the landmark, so main only wraps it, and the diagram is the grid item. */
-main { display: contents; }
+   that role would cost the landmark, so main holds it as one of its grid items. */
 #diagram:focus { outline: none; }
 /* Keyboard focus: a line along the top and the bottom only. The diagram runs from edge to edge of the window, and side
    lines would sit just inside them, cutting off a diagram moved past the edge. */
@@ -101,6 +106,30 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #help kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid #ccc; border-bottom-width: 2px;
             border-radius: 3px; background: #f6f6f6; }
 #help code { font: 12px ui-monospace, monospace; }
+/* The text panel: the file's text, read-only. */
+#text-panel { grid-area: panel; display: flex; flex-direction: column; min-width: 0; min-height: 0; font-size: 13px; }
+#text-panel[hidden], #text-handle[hidden] { display: none; }
+#text-panel .text-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #ddd; }
+#text-panel h2 { margin: 0; font-size: inherit; }
+#text-panel .text-file { flex: 1; min-width: 0; color: #57606a; font-family: ui-monospace, monospace; white-space: nowrap;
+                         overflow: hidden; text-overflow: ellipsis; }
+#text-panel select, #text-panel button { font: inherit; }
+#text-panel button { padding: 2px 10px; border: 1px solid #888; border-radius: 4px; background: #fff; color: inherit;
+                     cursor: pointer; }
+#text-panel button:hover { background: #f6f6f6; }
+#text { flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; resize: none; font-family: ui-monospace, monospace;
+        font-size: 13px; line-height: 1.45; color: #222; background: #fafafa; white-space: pre; }
+#text:focus { outline: none; }
+#text:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
+/* The handle between the panel and the diagram: drag it, or focus it and use the arrows. */
+#text-handle { grid-area: handle; position: relative; z-index: 3; background: #ddd; touch-action: none; user-select: none; }
+/* Six pixels are too thin for a finger: the handle takes presses 9 px either side of it too, a 24 px band. */
+#text-handle::before { content: ""; position: absolute; inset: -9px 0; }
+main[data-dock="left"] #text-handle::before { inset: 0 -9px; }
+main[data-dock="left"] #text-handle { cursor: col-resize; }
+main:is([data-dock="top"], [data-dock="bottom"]) #text-handle { cursor: row-resize; }
+#text-handle:hover, #text-handle:focus-visible { background: #0969da; outline: none; }
+body.resizing { user-select: none; }
 /* Messages from editing: what to do next (info), what merma cannot do here (warning), what was not saved and why
    (error). Screen readers hear them from the hidden live regions. */
 #notice { display: none; position: relative; z-index: 1; align-self: start; padding: 8px 16px; font-size: 13px;
@@ -220,9 +249,10 @@ footer button:disabled { cursor: default; opacity: 0.5; }
   #find { flex-wrap: wrap; }
   #find .find-keys { display: none; }
   #find .find-buttons { margin-left: auto; }
-  /* Five equal columns would not fit a phone without wrapping a label: here each button is as wide as its own. */
+  /* Equal columns would not fit a phone without wrapping a label: here each button is as wide as its own, and they
+     wrap onto a second row when they do not fit one. */
   footer { padding: 12px 8px; }
-  footer .buttons { grid-auto-columns: auto; gap: 6px; }
+  footer .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
   footer button { padding: 6px 8px; white-space: nowrap; }
   .shape-picker .picker-grid { --columns: 5 !important; }
   /* The longest names take two lines at this width: room for both, so the shape picker keeps its height. */

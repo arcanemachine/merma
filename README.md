@@ -68,6 +68,8 @@ there is no login.
 | `web/find.mjs` | Find on /: which drawn items match, best first |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/frame.mjs` | The view that shows find's matches all at once |
+| `web/text-panel.mjs` | The text panel: the file's text, its dock and its handle |
+| `web/dock.mjs` | Where the text panel docks, and how big it may be |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
