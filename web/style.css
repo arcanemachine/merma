@@ -112,6 +112,10 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #find[hidden] { display: none; }
 #find input { font: inherit; padding: 2px 6px; border: 1px solid #888; border-radius: 4px; min-width: 12em; }
 #find .find-keys { color: #57606a; margin-left: auto; }
+#find .find-buttons { display: flex; gap: 8px; }
+#find button { font: inherit; padding: 2px 10px; border: 1px solid #888; border-radius: 4px; background: #fff;
+               color: inherit; cursor: pointer; }
+#find button:hover { background: #f6f6f6; }
 /* What find finds: every match outlined, the one Enter picks filled. */
 #stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
@@ -212,6 +216,13 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 /* On a narrow screen the shape picker's ten columns would not fit: five, in four rows. The picker's arrow keys follow
    the grid as drawn. */
 @media (max-width: 480px) {
+  /* The find bar's buttons go on a second row together; the keys' hint, for a keyboard, goes. */
+  #find { flex-wrap: wrap; }
+  #find .find-keys { display: none; }
+  /* Five equal columns would not fit a phone without wrapping a label: here each button is as wide as its own. */
+  footer { padding: 12px 8px; }
+  footer .buttons { grid-auto-columns: auto; gap: 6px; }
+  footer button { padding: 6px 8px; white-space: nowrap; }
   .shape-picker .picker-grid { --columns: 5 !important; }
   /* The longest names take two lines at this width: room for both, so the shape picker keeps its height. */
   .shape-picker .picker-name { min-height: 2.4em; }

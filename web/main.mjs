@@ -145,7 +145,8 @@ const source = createSource(file, { onText: display, onError: showError, onBuild
 editor = createEditor({
   source, viewer, parse, display, ui,
   els: { stage: el('stage'), diagram: el('diagram'), labelBox: el('label-box'), find: el('find'), findBox: el('find-box'),
-    findCount: el('find-count') },
+    findCount: el('find-count'), findPrev: el('find-prev'), findNext: el('find-next'), findCancel: el('find-cancel'),
+    findToggle: el('find-toggle') },
 });
 
 // The header: the file's path, and its host path when the server knows it, each on one line cut at the start, so the

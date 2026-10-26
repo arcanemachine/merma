@@ -60,7 +60,7 @@ const END_GAP = 4;
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
- * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount', HTMLElement>} deps.els
+ * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
   let editable = false;
@@ -943,14 +943,33 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
     if (e.key === 'Tab') {
       e.preventDefault();
-      const n = finding.matches.length;
-      if (!n) return;
-      // One move, then none (the user): with any match off screen, show them all, which counts them again.
-      if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box), underBar());
-      finding.at = (finding.at + (e.shiftKey ? -1 : 1) + n) % n;
-      markMatches();
-      ui.announce(named(finding.matches[finding.at]));
+      step(e.shiftKey ? -1 : 1);
     }
+  });
+  /** To the next match (`dir` 1) or the one before (-1), as Tab and Shift+Tab, or Next and Previous. */
+  function step(/** @type {1 | -1} */ dir) {
+    if (!finding) return;
+    const n = finding.matches.length;
+    if (!n) return;
+    // One move, then none (the user): with any match off screen, show them all, which counts them again.
+    if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box), underBar());
+    finding.at = (finding.at + dir + n) % n;
+    markMatches();
+    ui.announce(named(finding.matches[finding.at]));
+  }
+  // The bar's buttons, for the mouse and touch: a press leaves focus in the find box, so its keys still work.
+  for (const [button, act] of /** @type {const} */ ([
+    [els.findPrev, () => step(-1)], [els.findNext, () => step(1)], [els.findCancel, () => closeFind(null, true)],
+  ])) {
+    button.addEventListener('mousedown', (e) => e.preventDefault());
+    button.addEventListener('click', act);
+  }
+  // The footer's Find opens the find, or closes it as a click away does. The document's click-away below leaves the
+  // find to it, or it would close the find this click opened.
+  els.findToggle.addEventListener('click', () => {
+    if (finding) { closeFind(null); return; }
+    if (connecting) cancelConnect();
+    openFind();
   });
   // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and
   // only the viewer's click (a release without a drag) does (ended()). Outside the diagram a press is a click in
@@ -972,7 +991,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   document.addEventListener('click', (e) => {
     const at = /** @type {Node} */ (e.target);
     if (els.diagram.contains(at) || els.find.contains(at)) return;
-    if (finding) closeFind(null);
+    if (finding && !els.findToggle.contains(at)) closeFind(null);
     if (connecting) cancelConnect();
     closeMenus();
   });
