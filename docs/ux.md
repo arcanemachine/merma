@@ -62,7 +62,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   that moved as Connect to… asked for a click would put another node under the click aimed at.
   For the same reason an edit keeps the view (the user): the diagram is fitted when the page opens, and again only on
   Fit to window or, until the view is zoomed or moved, a change in the window's size. A diagram that grows can run
-  past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
+  past the edge; that is the price of nodes staying put. An add is the one exception, since its label box must be
+  in view to be used (the user): the view moves the least that shows the new item, its label box and the shape picker
+  centered under it, zoomed out only if they cannot fit, and not again while the box grows; Escape, which takes the
+  add back, puts the view back as it was, unless you moved it since. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
   pointer whenever a pick resizes the node. On a pan or zoom an open menu moves with the diagram: an item's menu with
   its item, the empty-space menu with the point it was opened at, the label box and its shape picker with their item. It keeps the side it opened on (the user: it jumped
