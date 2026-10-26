@@ -132,7 +132,8 @@ Rectangle). Nothing is drawn until Enter in the label box, or a click or tap awa
 and the shape as one change (only what changed); for a node just added, it is undone together with the add. Only
 Escape closes the panel without writing. On a node just added, Escape takes the add back, as if it never was (Redo
 does not bring it back); from the shapes it takes two, since the first goes back to the label. On a touch screen, tap
-away and then Undo. Once the panel an add opened is closed, Undo takes the add back.
+away and then Undo. Once the panel an add opened is closed, Undo takes the add back. A node or subgraph added off screen is brought
+into view with its panel, and Escape puts the view back, unless you have moved it since.
 
 - **The label:** Shift+Enter starts a new line (written as `<br>`). A label cannot be empty: Enter on an emptied
   label is refused, and the panel stays open with the error; a click or tap away, or Tab, keeps the label as it was

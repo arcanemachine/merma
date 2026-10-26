@@ -97,8 +97,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** @type {Item | null} what the last edit, undo or redo left selected: redo moves the selection only from there */
   let settled = null;
   let busy = false;           // an edit or undo is being checked or saved; input meanwhile is ignored
-  /** @type {(Item & { entry: import('./history.mjs').Entry }) | null} while what was just added is named: its name belongs to its add */
+  /**
+   * @type {(Item & { entry: import('./history.mjs').Entry, view: ReturnType<typeof viewer.getView>, moved: boolean }) | null}
+   * while what was just added is named: its name belongs to its add. `view`: the view before the add, which Escape puts
+   * back unless the user `moved` it since.
+   */
   let naming = null;
+  /** @type {{ text: string, view: ReturnType<typeof viewer.getView> } | null} an add taken back: its view, once drawn */
+  let viewBack = null;
   /** @type {Item | null} while the label box is open over it */
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
@@ -484,9 +490,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @param {'node' | 'subgraph'} [kind]
    */
   function addAndName(change, into = null, kind = 'node') {
+    const view = viewer.getView();
     /** @type {EditOptions} */
     const options = {
-      afterSave: (result, entry) => { naming = { kind, id: result.id, entry }; },
+      afterSave: (result, entry) => { naming = { kind, id: result.id, entry, view, moved: false }; },
       after: (result) => ({ item: { kind, id: result.id }, label: true }),
     };
     if (into && drawnOnly(into)) editDrawn(change, options); else edit(change, options);
@@ -796,9 +803,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     ui.announce(`${named(item)}: ${what}`);
     reveal(item);
   }
-  /** Bring `item` into view: all that is drawn for it, an edge's line and its label together. */
-  function reveal(/** @type {Item} */ item) {
-    const rects = elsOf(item).map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height);
+  /** Bring `item` into view: all that is drawn for it, an edge's line and its label together, and any `more`. */
+  function reveal(/** @type {Item} */ item, /** @type {DOMRect[]} */ more = []) {
+    const rects = [...elsOf(item).map((e) => e.getBoundingClientRect()), ...more].filter((r) => r.width || r.height);
     if (!rects.length) return;
     const left = Math.min(...rects.map((r) => r.left)), right = Math.max(...rects.map((r) => r.right));
     const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
@@ -1098,6 +1105,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     shapePickerBox.style.top = at.top + 'px';
   }
 
+  /**
+   * Bring what was just added into view with its label box and the shape picker under it (the user), so all of it can
+   * be used. The shape picker counts where it would lie below the box, not where the window's edge has pushed it; once
+   * in view, it is placed afresh, so one flipped above for want of room goes back below.
+   */
+  function revealLabelBox(/** @type {Item} */ item) {
+    const r = input.getBoundingClientRect(), s = shapePickerBox.getBoundingClientRect();
+    const below = new DOMRect((r.left + r.right) / 2 - s.width / 2, r.bottom + 6, s.width, s.height);
+    reveal(item, shapePickerOpen ? [r, below] : [r]);
+    placeShapePicker(true);
+  }
+
   /** Open the shape picker for node `id`; `added`: the node was just added, so it is a rectangle whatever it reads as. */
   function openShapePicker(/** @type {string} */ id, /** @type {boolean} */ added) {
     shapePickerOpen = true;
@@ -1235,6 +1254,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (!(await save(added.entry.before, base.version))) return;
       history.discard(added.entry);
       deselect();
+      // Put back the view from before the add once the smaller diagram is drawn: a fit now would fit it with the node.
+      if (!added.moved) viewBack = { text: added.entry.before, view: added.view };
       await display(added.entry.before);
       ui.announce('Add cancelled');
     });
@@ -1478,6 +1499,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         refind();
         showCount();
       }
+      if (naming && byUser) naming.moved = true;
       if (labelling) sizeLabelBox();
       markEnd(false);
       const el = selectedEl();
@@ -1527,6 +1549,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       tagEdges(text);
       // A new drawing while finding: find again in it, so no mark is left on what has gone.
       if (finding) { refind(); markMatches(); }
+      const back = viewBack;
+      viewBack = null;
+      if (back && text === back.text) { if (back.view.touched) viewer.setView(back.view); else viewer.fit(); }
       const menu = menuOpen();
       const sel = selected;
       const next = pending;
@@ -1537,7 +1562,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         // meanwhile, with its menu.
         if (next.reveal) selectByKey(item, next.say);
         else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
-        if (next.label) openLabelBox(item);
+        if (next.label) { openLabelBox(item); revealLabelBox(item); }
         return;
       }
       const kept = sel && elsOf(sel).length
