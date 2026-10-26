@@ -2,9 +2,9 @@
 // names the entry under the pointer, else the one with keyboard focus, else the current one. It reports a pick; what a
 // pick does is up to whoever shows it (a menu makes the edit at once, the label box keeps it until Enter). Keys while
 // focus is in it: a digit picks, the arrow keys move, wrapping within their row or column (grid.mjs), Enter picks the
-// focused one. Keys it does not use (Escape; in a strip, Up from the top row) go on to whoever holds it.
+// focused one. Keys it does not use (Escape; hosted under a text field, Up from the top row) go on to whoever holds it.
 //
-// As a strip (under a text field), its buttons take focus only when its host gives it (`focus`), not under the pointer;
+// Hosted under a text field, its buttons take focus only when its host gives it (`focus`), not under the pointer;
 // the host keeps a click from moving focus. It remembers where the arrows were when focus went back to its field, and
 // `focus` returns there; a pick moves that place to the picked entry. A picker in a menu always starts at the current one.
 
@@ -44,9 +44,9 @@ const label = (/** @type {PickerEntry} */ entry) => entry.name
  * @param {PickerEntry[]} options.entries
  * @param {(key: string) => void} options.onPick
  * @param {number} [options.columns]
- * @param {boolean} [options.strip] its buttons never take focus
+ * @param {boolean} [options.hosted] under a text field: its buttons never take focus
  */
-export function createPicker({ title, entries, onPick, columns = 5, strip = false }) {
+export function createPicker({ title, entries, onPick, columns = 5, hosted = false }) {
   watchShift();
   const el = document.createElement('div');
   el.className = 'picker';
@@ -70,18 +70,18 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
     b.setAttribute('aria-label', (entry.digit ? `${entry.shift ? 'Shift ' : ''}${entry.digit} ` : '') + label(entry));
     b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit${entry.shift ? ' shift' : ''}">${entry.shift ? '⇧' : ''}${entry.digit}</span>` : '');
     b.addEventListener('click', () => {
-      // A click moves keyboard focus only when it is in the grid already (a strip's host keeps it in its field).
-      if (!strip || grid.contains(document.activeElement)) b.focus();
+      // A click moves keyboard focus only when it is in the grid already (a hosted picker's field keeps it).
+      if (!hosted || grid.contains(document.activeElement)) b.focus();
       onPick(entry.key);
     });
     b.addEventListener('pointerenter', (e) => {
       // Touch has no hover: a tap names the current one (docs/ux.md).
       if (e.pointerType !== 'touch') hovered = entry;
-      if (!strip) b.focus();
+      if (!hosted) b.focus();
       showName();
     });
-    b.addEventListener('focus', () => { if (strip) markStart(b); showName(); });
-    if (strip) b.tabIndex = -1;
+    b.addEventListener('focus', () => { if (hosted) markStart(b); showName(); });
+    if (hosted) b.tabIndex = -1;
     grid.append(b);
     return b;
   });
@@ -125,15 +125,15 @@ export function createPicker({ title, entries, onPick, columns = 5, strip = fals
   el.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
-    // The columns as drawn: CSS may lay the grid out with fewer than it was made with (the strip on a narrow screen).
+    // The columns as drawn: CSS may lay the grid out with fewer than it was made with (the shape picker on a narrow screen).
     const across = buttons.filter((b) => b.offsetTop === buttons[0].offsetTop).length;
     // By the key's place, not its character: on AZERTY the digit row types &é"' without Shift.
     // Shift picks from the second ten; the numpad gives a digit only with Num Lock on (else it is an arrow).
     const digit = entries.findIndex((entry) => entry.digit && Boolean(entry.shift) === e.shiftKey
       && (e.code === `Digit${entry.digit}` || (e.code === `Numpad${entry.digit}` && e.key === entry.digit)));
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); buttons[digit].focus(); onPick(entries[digit].key); return; }
-    // In a strip, Up from the top row is the way back to its field.
-    if (at < 0 || (strip && e.key === 'ArrowUp' && at < across)) return;
+    // Hosted, Up from the top row is the way back to its field.
+    if (at < 0 || (hosted && e.key === 'ArrowUp' && at < across)) return;
     const to = move(at, e.key, buttons.length, across);
     if (to === null) return;
     e.preventDefault();

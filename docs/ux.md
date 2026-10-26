@@ -56,7 +56,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
 - Not every key needs a hint on the page (the user). A hint goes on the page only where it fits and is worth its
   space; the guide holds the rest. A little friction while learning is fine when what the page shows leads the way:
-  the strip's digits say there is a way in, and Down from the label box is it.
+  the shape picker's digits say there is a way in, and Down from the label box is it.
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open, and a notice lies over
   the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
   that moved as Connect to… asked for a click would put another node under the click aimed at.
@@ -65,9 +65,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   past the edge; that is the price of nodes staying put. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
   pointer whenever a pick resizes the node. On a pan or zoom an open menu moves with the diagram: an item's menu with
-  its item, the empty-space menu with the point it was opened at, the label box and its shape strip with their item. It keeps the side it opened on (the user: it jumped
+  its item, the empty-space menu with the point it was opened at, the label box and its shape picker with their item. It keeps the side it opened on (the user: it jumped
   across its item as it neared the edge), so at the window's edge it stops there, over its item if need be, and stays
-  on that side even when the other has room again. Its submenu and the shape strip do the same.
+  on that side even when the other has room again. Its submenu and the shape picker do the same.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A drag is never a cancel (the user: it had bitten more than once). In the diagram, where a press can become a pan
@@ -95,9 +95,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
 - Arrow keys in a picker wrap within their row or column, never on into the next: Right at a row's end goes to its
   start, Down at the bottom to the top of the same column. So a key always moves along one line of the grid, and
-  Left does not close a picker in a submenu (Escape does). The strip's one exception: Up from its top row goes back to
+  Left does not close a picker in a submenu (Escape does). The shape picker's one exception: Up from its top row goes back to
   the label box above it.
-- In the strip, selected and focused are apart (the user): the fill is the selected shape, moved only by a click, a
+- In the shape picker, selected and focused are apart (the user): the fill is the selected shape, moved only by a click, a
   digit or Enter; the outline is keyboard focus, moved by the arrows. While focus is not in the grid, the outline
   stays where the arrows go on from (the user): Up or Escape back to the label leaves it on the shape last focused, and
   Down returns there; a pick moves it to the picked shape. A picker in a menu keeps it on the current entry instead,
@@ -225,7 +225,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
   just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
   does the same: it looks no different. A delete selects nothing, since the item is gone.
-- A pick in the arrow-type picker is the one edit that keeps its menu open, on the new current entry, so
+- A pick in the arrow type picker is the one edit that keeps its menu open, on the new current entry, so
   the next pick can follow; a click away or Escape closes it. Picking the current entry writes nothing.
 - Undo and redo select nothing: an undo can take back an add, and what it selects would depend on the edit it undid.
 

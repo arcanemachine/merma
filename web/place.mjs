@@ -1,4 +1,4 @@
-// Where to put a box (a menu, a submenu, a strip) beside an anchor so that it stays inside some bounds: on the side
+// Where to put a box (a menu, a submenu, a shape picker) beside an anchor so that it stays inside some bounds: on the side
 // asked for, on the opposite side when there is no room there (unless `flip` is off), and pushed back inside when it
 // still sticks out. Rectangles are { left, top, right, bottom } in one coordinate space (the viewport's, from
 // getBoundingClientRect).
