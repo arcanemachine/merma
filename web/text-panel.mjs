@@ -118,7 +118,9 @@ export function createTextPanel(els, file) {
   let drag = null;
   handle.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
-    e.preventDefault();
+    // A press outside the diagram is a click away, which saves an open label box as focus leaves it; a finger's drag
+    // moves no focus of its own.
+    handle.focus({ preventScroll: true, focusVisible: false });
     handle.setPointerCapture(e.pointerId);
     drag = { at: axis(dock) === 'x' ? e.clientX : e.clientY, from: size };
     // The pointer crossing the text on its way would select it.
