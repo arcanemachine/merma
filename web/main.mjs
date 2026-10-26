@@ -131,8 +131,14 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
 const codePanel = createCodePanel({
   main: el('main'), panel: el('code-panel'), code: /** @type {HTMLTextAreaElement} */ (el('code')),
   dock: /** @type {HTMLSelectElement} */ (el('code-dock')), handle: el('code-handle'), close: el('code-close'),
-  toggle: el('code-toggle'), diagram: el('diagram'),
-}, file);
+  toggle: el('code-toggle'), diagram: el('diagram'), edit: el('code-edit'), save: el('code-save'),
+  cancel: el('code-cancel'), status: el('code-status'),
+}, file, {
+  snapshot: () => source.snapshot(),
+  lock: () => editor?.lockForCode() ?? false,
+  unlock: () => editor?.unlock(),
+  save: async (text, base) => (await editor?.saveCode(text, base)) ?? false,
+});
 el('code-file').textContent = /** @type {string} */ (file.split('/').pop());
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved. The code panel shows

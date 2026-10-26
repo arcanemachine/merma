@@ -227,6 +227,15 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - It is a view, not a wait: opening it leaves focus on its button. Escape in the code goes back to the diagram, since
   the page's keys are off in a field; Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
+- Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
+  diagram is view-only, and every edit there, Undo and Redo included, is refused with a warning saying why; each edit
+  mode is its own lock, so Edit waits for a label box, Connect to… or a save to finish. The lock is this page's only:
+  an agent, an editor or another tab can still write the file. That is what saving over the version Edit started from
+  is for: a change since is refused, never overwritten, and the draft kept; the header says so before you try.
+- While editing, a new version of the file does not replace the draft, and the page does not reload itself for a new
+  build of merma. Save and Cancel only: Ctrl+Z in the field takes back typing, and Cancel shows the file as it is now,
+  so there is nothing for a Revert or a Reload to do. Cancel asks first only when the draft differs. Save and Cancel
+  leave nothing selected, and Undo of a saved draft selects nothing.
 
 ## Grayed out or left out
 
