@@ -1623,7 +1623,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * edit here is under way.
      */
     lockForCode() {
-      if (busy || labelling || connecting) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
+      if (labelling || connecting) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
+      // A press that started a save as its click away (the label box's) does not wait for it, as for Undo.
+      if (busy) { ui.notice('Not started: another edit is still saving; try again.', 'error'); return false; }
       locked = true;
       setEditable();
       ui.notice(LOCKED, 'info');
