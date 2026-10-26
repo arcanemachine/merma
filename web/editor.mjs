@@ -965,8 +965,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     button.addEventListener('click', act);
   }
   // The footer's Find opens the find, or closes it as a click away does. The document's click-away below leaves the
-  // find to it, or it would close the find this click opened.
+  // find to it, or it would close the find this click opened. A click that left a label box that could not save does
+  // nothing, as in the diagram (ended()).
   els.findToggle.addEventListener('click', () => {
+    if (swallowClick) return;
     if (finding) { closeFind(null); return; }
     if (connecting) cancelConnect();
     openFind();
@@ -1573,6 +1575,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const next = pending;
       pending = null;
       const item = next && text === next.text ? [next.item, ...(next.others ?? [])].find((i) => elsOf(i).length) : null;
+      // A find opened while the edit saved (the footer's Find, a click away from the label box): what the edit selects
+      // is set aside with the find, for Escape or a click away to put back.
+      if (next && item && finding) { finding.before = item; return; }
       if (next && item) {
         // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
         // meanwhile, with its menu.
