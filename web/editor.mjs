@@ -405,12 +405,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return null;
     };
     const ends = find('straight') ?? find('centered') ?? tick(start).ends;
+    // Last in the svg, so no node paints over it (Mermaid draws nodes after edges), in the svg's own units: getCTM()
+    // would count its viewBox too. Mermaid's groups only translate, so the width carries over.
+    const svg = /** @type {SVGSVGElement} */ (path.ownerSVGElement);
+    const toSvg = /** @type {DOMMatrix} */ (svg.getScreenCTM()).inverse().multiply(m);
+    const [u, v] = ends.map((q) => new DOMPoint(q.x, q.y).matrixTransform(toSvg));
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    for (const [a, v] of Object.entries({ x1: ends[0].x, y1: ends[0].y, x2: ends[1].x, y2: ends[1].y })) el.setAttribute(a, String(v));
+    for (const [a, n] of Object.entries({ x1: u.x, y1: u.y, x2: v.x, y2: v.y })) el.setAttribute(a, String(n));
     el.setAttribute('stroke-width', String(width));
     el.setAttribute('data-page-end', '');
     el.setAttribute('data-page-only', '');
-    /** @type {Element} */ (path.parentNode).append(el);
+    svg.append(el);
   }
 
   /**
