@@ -134,12 +134,24 @@ export function createCodePanel(els, file, hooks) {
     return true;
   }
   // The panel's keys, by keyboard a round trip with the diagram (the user): ` flips between the two, Escape steps out a
-  // level (the code to the panel, the panel to closed), Enter goes in. Only these are the panel's: every other key goes
-  // on to the page, so the arrows on the panel are the diagram's, as everywhere outside a field. The Dock select keeps
-  // its own keys.
+  // level (the code to the panel, the panel to closed), Enter goes in, and the arrows scroll the code (the user: the
+  // panel is where you read it; ` is one key to the diagram), with a modifier doing nothing rather than panning. Every
+  // other key goes on to the page. The Dock select keeps its own keys, and the handle its arrows.
+  const SCROLL_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End'];
+  /** Scroll the code as its own keys would, a line (or a page, or to an end) at a time. */
+  function scrollCode(/** @type {string} */ key) {
+    const line = parseFloat(getComputedStyle(code).lineHeight) || 19;
+    const page = Math.max(line, code.clientHeight - line);
+    const by = { ArrowUp: [0, -line], ArrowDown: [0, line], ArrowLeft: [-line, 0], ArrowRight: [line, 0],
+      PageUp: [0, -page], PageDown: [0, page], Home: [0, -code.scrollHeight], End: [0, code.scrollHeight] }[key];
+    if (by) code.scrollBy(by[0], by[1]);
+  }
   /** The panel's own keys, with focus on it (not in the code); true when one was taken. */
   function panelKey(/** @type {KeyboardEvent} */ e) {
-    if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    if (SCROLL_KEYS.includes(e.key)) {
+      if (e.target === handle) return false;
+      if (plain(e)) scrollCode(e.key);
+    } else if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
       if (closePanel()) diagram.focus();
     } else if (plain(e) && isTick(e)) {
       diagram.focus();
