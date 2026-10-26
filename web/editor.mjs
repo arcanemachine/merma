@@ -416,6 +416,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     el.setAttribute('stroke-width', String(width));
     el.setAttribute('data-page-end', '');
     el.setAttribute('data-page-only', '');
+    // Among the edges, so nodes paint over it: where a line starts inside a node's box, part of it hides. The user
+    // prefers that to a tick over the node or slid clear of it.
     /** @type {Element} */ (path.parentNode).append(el);
   }
 
