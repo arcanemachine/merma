@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { EXPORT_MENU, GLOBAL_KEYS, keyIndex, MENUS, VERBS } from '../web/menu-items.mjs';
+import { applies, EXPORT_MENU, GLOBAL_KEYS, keyIndex, LOCKED, MENUS, VERBS, whyNot } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -126,4 +126,22 @@ test('every icon is the shared frame around at least one drawing', () => {
     assert.match(svg, /^<svg viewBox="0 0 \d+ \d+" [^>]*aria-hidden="true">.*<\/svg>$/s, name);
     assert.match(svg, /<path d="[^"]+"|<circle |<rect /, `${name} draws nothing`);
   }
+});
+
+test('while the code is being edited only the view items apply, and the rest say why', () => {
+  const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
+  const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'find', 'fit-view']);
+  for (const item of Object.values(MENUS).flat()) {
+    if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
+  }
+});
+
+test('unlocked, an item applies and says why by its own rule', () => {
+  const unlocked = { edgesOk: false, selfLoop: true, nameWhy: 'no id', locked: false };
+  const del = /** @type {import('../web/menu-items.mjs').MenuItem} */ (MENUS.node.find((i) => i.action === 'delete-node'));
+  const add = /** @type {import('../web/menu-items.mjs').MenuItem} */ (MENUS.node.find((i) => i.action === 'add-connected-node'));
+  assert.equal(applies(add, unlocked), true);
+  assert.equal(applies(del, unlocked), false);
+  assert.notEqual(whyNot(del, unlocked), LOCKED);
 });

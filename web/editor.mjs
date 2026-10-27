@@ -9,7 +9,7 @@ import { createBlink } from './blink.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
-import { GLOBAL_KEYS, MENUS, NO_EDGE_MATCH } from './menu-items.mjs';
+import { applies, GLOBAL_KEYS, LOCKED, MENUS, NO_EDGE_MATCH, whyNot } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
@@ -64,10 +64,11 @@ const END_GAP = 4;
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
 export function createEditor({ source, viewer, parse, display, ui, els }) {
-  // What is drawn may be edited (a flowchart that rendered), unless the code panel holds the lock while its code is
-  // being edited; editable is the two together, set only by setEditable().
+  // What is drawn may be selected and edited (a flowchart that rendered). While the code panel holds the lock (its code
+  // being edited) it may still be selected, walked and found, but not edited (the user). Both set only by setEditable().
   let drawnEditable = false;
   let locked = false;
+  let selectable = false;
   let editable = false;
   /** @type {Item | null} */
   let selected = null;
@@ -192,7 +193,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
-  const LOCKED = 'The code is being edited: save or cancel it to edit the diagram.';
   /** Say why nothing happens while the code panel holds the lock; false when it does not. */
   function refuseLocked() {
     if (locked) ui.notice(LOCKED, 'warning');
@@ -200,10 +200,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function setEditable() {
-    const on = drawnEditable && !locked;
-    editable = on;
-    els.stage.classList.toggle('editable', on);
-    if (!on) { closeFind(null); deselect(); closeLabelBox(); }
+    selectable = drawnEditable;
+    editable = drawnEditable && !locked;
+    els.stage.classList.toggle('selectable', selectable);
+    els.diagram.classList.toggle('locked', locked);
+    if (!selectable) { closeFind(null); deselect(); }
+    if (!editable) closeLabelBox();
     historyChanged();
   }
   const historyChanged = () => ui.history({ undo: editable && history.size > 0, redo: editable && history.redoSize > 0 });
@@ -300,6 +302,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       edgesOk,
       selfLoop: selected?.kind === 'edge' && shownEdge(selected.id)?.from === shownEdge(selected.id)?.to,
       nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
+      locked,
     };
   }
 
@@ -521,7 +524,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** Open the label box on a subgraph's title, unless writing it would need an id the file cannot take. */
   function editTitle(/** @type {Item} */ sel) {
-    if (!refuseUnnamed(sel.id)) openLabelBox(sel);
+    if (!refuseLocked() && !refuseUnnamed(sel.id)) openLabelBox(sel);
   }
 
   /**
@@ -538,7 +541,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function clicked(/** @type {Element} */ target, /** @type {number} */ x = NaN, /** @type {number} */ y = NaN) {
-    if (refuseLocked() || !editable) return;
+    if (!selectable) return;
     if (ended()) return;
     const item = itemAt(target);
     clickedDuringEdit(item);
@@ -579,8 +582,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** A right-click or long-press; or, `byKey`, the menu key or Shift+F10, which open what M opens. */
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, byKey = false) {
-    if (refuseLocked()) return true;
-    if (!editable) return false;
+    if (!selectable) return false;
     if (byKey) { keys.m(); return true; }
     if (connecting) return true;
     if (ended()) return true;
@@ -608,7 +610,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** Delete the selected node or edge. */
   function deleteSelected() {
     const sel = selected;
-    if (!sel) return;
+    if (!sel || refuseLocked()) return;
     if (sel.kind === 'subgraph') { ui.notice('Deleting a subgraph is not supported yet; edit it in the file.', 'warning'); return; }
     if (sel.kind === 'title') { ui.notice('Removing the title is not supported; edit it in the file.', 'warning'); return; }
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
@@ -651,18 +653,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     c: () => {
       if (connecting) return true;
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
-      const item = MENUS[selected.kind].find((i) => i.action === 'connect');
+      const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[selected.kind].find((i) => i.action === 'connect'));
       const state = menuState();
-      if (item?.applies && !item.applies(state)) { ui.notice(item.why?.(state) ?? '', 'warning'); return true; }
+      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
       handlers.connect();
       return true;
     },
     // R reverses a selected edge, as the edge menu's R does, and is refused as it is grayed there.
     r: () => {
       if (connecting || selected?.kind !== 'edge') return false;
-      const item = MENUS.edge.find((i) => i.action === 'reverse-edge');
+      const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === 'reverse-edge'));
       const state = menuState();
-      if (item?.applies && !item.applies(state)) { ui.notice(item.why?.(state) ?? '', 'warning'); return true; }
+      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
       handlers['reverse-edge']();
       return true;
     },
@@ -1003,8 +1005,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // nothing, as in the diagram (ended()).
   els.findToggle.addEventListener('click', () => {
     if (swallowClick) return;
-    // As for /: find selects, and nothing is selected in a diagram that cannot be edited.
-    if (refuseLocked() || !editable) return;
+    // As for /: find selects, and nothing is selected in a diagram that cannot be.
+    if (!selectable) return;
     if (finding) { closeFind(null); return; }
     if (connecting) cancelConnect();
     openFind();
@@ -1072,7 +1074,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
     if (e.metaKey || !keys[name]) return;
-    if (!editable && !VIEW_KEYS.includes(name)) { refuseLocked(); return; }
+    // A diagram that cannot be selected (not a flowchart) takes only the view keys, silently.
+    if (!selectable && !VIEW_KEYS.includes(name)) return;
     if (keys[name]()) e.preventDefault();
   });
 
@@ -1191,6 +1194,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   function openLabelBox(/** @type {Item} */ target) {
+    if (refuseLocked()) return;
     const r = labelBoxRect(target);
     if (!r) return;
     closeMenus();
@@ -1576,7 +1580,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * was one.
      */
     doubleClicked(/** @type {Element} */ target) {
-      if (refuseLocked() || !editable) return false;
+      if (!selectable) return false;
       const sel = itemAt(target);
       if (!sel) return false;
       select(sel);

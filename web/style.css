@@ -4,7 +4,7 @@ html, body { height: 100%; }
 :root {
   --info-bg: #ddf4ff; --info-fg: #0a3069;
   --success-bg: #dafbe1; --success-fg: #1a7f37;
-  --warning-bg: #fff4d6; --warning-fg: #5c4400;
+  --warning-bg: #fff4d6; --warning-fg: #5c4400; --warning-line: #9a6700;
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
   /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
@@ -51,8 +51,8 @@ header .status { color: #666; white-space: nowrap; }
 /* The pointer says what a click does: the pointing finger on whatever it would select, the hand (drag to move)
    everywhere else. */
 #stage, #stage * { cursor: inherit; }
-#stage.editable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph], text.flowchartTitleText),
-#stage.editable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph]) * { cursor: pointer; }
+#stage.selectable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph], text.flowchartTitleText),
+#stage.selectable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph]) * { cursor: pointer; }
 /* The diagram has role="application", so screen readers pass its arrow keys through instead of reading on; on <main>
    that role would cost the landmark, so main holds it as one of its grid items. */
 #diagram:focus { outline: none; }
@@ -60,6 +60,12 @@ header .status { color: #666; white-space: nowrap; }
    lines would sit just inside them, cutting off a diagram moved past the edge. */
 #diagram:focus-visible::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
                                 border-block: 2px solid #0969da; }
+/* While the code is being edited the diagram can be looked through, not edited: a frame in the warning's color, a
+   second cue to the notice and the grayed menu items. */
+#diagram.locked::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+                          box-shadow: inset 0 0 0 3px var(--warning-line); }
+/* The focus ring inside the frame, so each reads on its own. */
+#diagram.locked:focus-visible::after { inset: 3px 0; }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #stage svg { display: block; max-width: none; }
 footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid #ddd; display: flex; justify-content: center;
@@ -186,12 +192,12 @@ body.resizing { user-select: none; }
 #notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
 #notice.error { background: var(--error-bg); color: var(--error-fg); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-/* Flowchart nodes, edges and subgraphs can be clicked to edit; the selected one is outlined in blue, whatever its
+/* Flowchart nodes, edges and subgraphs can be clicked to select; the selected one is outlined in blue, whatever its
    shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage
    leaves stray fragments around it. !important wins over the colors Mermaid writes inline from classDef and style. */
-#stage.editable g.node[data-page-node], #stage.editable g.node[data-page-node] *,
-#stage.editable g.cluster[data-page-subgraph], #stage.editable g.cluster[data-page-subgraph] *,
-#stage.editable [data-page-edge], #stage.editable [data-page-edge] * { cursor: pointer !important; }
+#stage.selectable g.node[data-page-node], #stage.selectable g.node[data-page-node] *,
+#stage.selectable g.cluster[data-page-subgraph], #stage.selectable g.cluster[data-page-subgraph] *,
+#stage.selectable [data-page-edge], #stage.selectable [data-page-edge] * { cursor: pointer !important; }
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-selected] > rect { stroke: #0969da !important; stroke-width: 3px !important; }
 /* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text color give way. */

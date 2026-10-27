@@ -134,7 +134,7 @@ export function createCodePanel(els, file, hooks) {
     return true;
   }
   // The panel's keys, by keyboard a round trip with the diagram (the user): ` flips between the two, Escape steps out a
-  // level (the code to the panel, the panel to closed), Enter goes in, and the arrows scroll the code (the user: the
+  // level (the code to the panel, a draft to the read-only code, the panel to closed), Enter goes in, and the arrows scroll the code (the user: the
   // panel is where you read it; ` is one key to the diagram), with a modifier doing nothing rather than panning. Every
   // other key goes on to the page. The Dock select keeps its own keys, and the handle its arrows.
   const SCROLL_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End'];
@@ -152,7 +152,9 @@ export function createCodePanel(els, file, hooks) {
       if (e.target === handle) return false;
       if (plain(e)) scrollCode(e.key);
     } else if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      if (closePanel()) diagram.focus();
+      // A draft is cancelled first, the panel staying open (the user: a keyboard way to cancel without closing).
+      if (editing) cancelEdit();
+      else if (closePanel()) diagram.focus();
     } else if (plain(e) && isTick(e)) {
       diagram.focus();
     } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && editing) {

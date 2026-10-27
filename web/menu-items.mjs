@@ -47,13 +47,25 @@ export const GLOBAL_KEYS = {
 export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no edge match), so deleting could change the wrong "
   + 'edge. Delete it in the file.';
 
+/** Why an edit does nothing while the code panel's draft holds the lock: the warning, and a grayed item's reason. */
+export const LOCKED = 'The code is being edited: save or cancel it to edit the diagram.';
+
 /**
  * What a menu needs to know to gray its items.
  * @typedef {object} MenuState
+ * @property {boolean} [locked] the code is being edited, so only `view` items apply
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  */
+
+/** Whether `item` can be chosen in `state`. */
+export const applies = (/** @type {MenuItem} */ item, /** @type {MenuState} */ state) =>
+  (!state.locked || Boolean(item.view)) && (!item.applies || item.applies(state));
+
+/** What a grayed `item` says in `state`. */
+export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ state) =>
+  (state.locked && !item.view ? LOCKED : item.why?.(state) ?? '');
 
 /**
  * A menu item.
@@ -66,6 +78,7 @@ export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no ed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
  * @property {boolean} [mode] it waits for a further click or typing
+ * @property {boolean} [view] it changes only the view, so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
  */
 
@@ -76,21 +89,21 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'edit-node', label: 'Edit node', key: 'e' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
   ],
   edge: [
     { action: 'edit-label', label: 'Edit label', key: 'e' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
   ],
   subgraph: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
   ],
   title: [
     { action: 'edit-title', label: 'Edit title', key: 't' },
@@ -98,8 +111,8 @@ export const MENUS = {
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
-    { action: 'find', label: 'Find…', key: '/', aside: true, mode: true, separated: true },
-    { action: 'fit-view', label: 'Fit to window', key: 'f' },
+    { action: 'find', label: 'Find…', key: '/', aside: true, mode: true, separated: true, view: true },
+    { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
   ],
 };
 

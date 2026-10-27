@@ -234,7 +234,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
-  level, from the code to the panel, and from the panel to closed (a draft is cancelled first, asking if it changed);
+  level, from the code to the panel, from a draft to the read-only code (Cancel, asking if it changed; the user: a
+  keyboard way to cancel without closing), and from the panel to closed;
   Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
   buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
   and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key
@@ -243,7 +244,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to… as the mouse's click does. Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
-  diagram is view-only, and every edit there, Undo and Redo included, is refused with a warning saying why; each edit
+  diagram can be looked through, not edited (the user: "just because I am editing doesn't mean I don't want to
+  navigate it"). Selecting, the keys that move about, and find work; every edit, Undo and Redo included, is refused
+  with a warning saying why, and a menu opens with its edits grayed for the same reason (Center in window and Find…
+  work). An amber frame round the diagram (the warning's color) shows it, a second cue to the notice. Each edit
   mode is its own lock, so Edit waits for a label box, Connect to… or a save to finish. The lock is this page's only:
   an agent, an editor or another tab can still write the file. That is what saving over the version Edit started from
   is for: a change since is refused, never overwritten, and the draft kept; the header says so before you try.

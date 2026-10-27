@@ -8,7 +8,7 @@
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
-import { keyIndex } from './menu-items.mjs';
+import { applies as appliesIn, keyIndex, whyNot } from './menu-items.mjs';
 import { place, OPPOSITE } from './place.mjs';
 
 /**
@@ -59,7 +59,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   const opener = (/** @type {MenuItem} */ item) => buttons[items.indexOf(item)];
 
   /** @typedef {import('./menu-items.mjs').MenuItem} MenuItem */
-  const applies = (/** @type {MenuItem} */ item) => !item.applies || item.applies(state);
+  const applies = (/** @type {MenuItem} */ item) => appliesIn(item, state);
+  const why = (/** @type {MenuItem} */ item) => whyNot(item, state);
 
   /** Draw the items for the current state: labels, keys, and which are grayed. */
   function render() {
@@ -75,20 +76,20 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
-      if (off) b.title = item.why?.(state) ?? ''; else b.removeAttribute('title');
+      if (off) b.title = why(item); else b.removeAttribute('title');
     });
   }
 
   function choose(/** @type {MenuItem} */ item) {
     if (item.submenu) { toggleSub(item); return; }
-    if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
+    if (!applies(item)) { onRefuse(why(item)); return; }
     close();
     onRun(item.action);
   }
 
   /** Open `item`'s submenu, or close it when it is open. */
   function toggleSub(/** @type {MenuItem} */ item) {
-    if (!applies(item)) { onRefuse(item.why?.(state) ?? ''); return; }
+    if (!applies(item)) { onRefuse(why(item)); return; }
     if (openSub === item) closeSub(); else openSubmenu(item);
   }
 

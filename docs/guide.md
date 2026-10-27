@@ -28,11 +28,12 @@ them.
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
   back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
-- **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram (a click, a key, a
-  menu, Undo) until you **Save** or **Cancel**; the notice says so. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
+- **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
+  or **Cancel**: the notice says so, and the diagram gets an amber frame. You can still select, move about with the
+  keys and find (/); a menu still opens, its edits grayed with the reason, Center in window and Find… working. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
   Ctrl+Z there undoes typing, and Escape goes out to the panel, keeping the draft (Ctrl+Enter there saves too; in the
-  draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, and
-  closes the panel. After Save or Cancel focus is on the panel. Save checks the code is valid
+  draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, the
+  panel staying open (the keyboard's Cancel); Escape again closes it. After Save or Cancel focus is on the panel. Save checks the code is valid
   Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
   agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
   the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
