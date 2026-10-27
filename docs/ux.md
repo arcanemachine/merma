@@ -248,7 +248,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   navigate it"). Selecting, the keys that move about, and find work; every edit, Undo and Redo included, is refused
   with a warning saying why, and a menu opens with its edits grayed for the same reason (Center in window and Find…
   work). The diagram's background turns muted gray (the user), as the read-only code's is: whichever side is
-  read-only is gray, a second cue to the notice. Each edit mode is its own lock, so Edit waits for a label box, Connect to… or a save to finish. The lock is this page's only:
+  read-only is gray, a second cue to the notice. The selection turns muted gray too (the user): blue promises an
+  action, gray says it is not to be had now. Each edit mode is its own lock, so Edit waits for a label box, Connect to… or a save to finish. The lock is this page's only:
   an agent, an editor or another tab can still write the file. That is what saving over the version Edit started from
   is for: a change since is refused, never overwritten, and the draft kept; the header says so before you try.
 - While editing, a new version of the file does not replace the draft, and the page does not reload itself for a new
