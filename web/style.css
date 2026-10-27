@@ -62,11 +62,8 @@ header .status { color: #666; white-space: nowrap; }
 #stage.selectable :is(g.node[data-page-node], [data-page-edge], [data-page-subgraph]) * { cursor: pointer; }
 /* The diagram has role="application", so screen readers pass its arrow keys through instead of reading on; on <main>
    that role would cost the landmark, so main holds it as one of its grid items. */
+/* No focus ring on the diagram (docs/ux.md): it is where focus rests, and everything else shows its own. */
 #diagram:focus { outline: none; }
-/* Keyboard focus: a line along the top and the bottom only. The diagram runs from edge to edge of the window, and side
-   lines would sit just inside them, cutting off a diagram moved past the edge. */
-#diagram:focus-visible::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-                                border-block: 2px solid #0969da; }
 /* Declared here, not on :root: a var() in a custom property is resolved where it is declared, so this one follows a
    --select set on the diagram or inside it. */
 #diagram { --select-faint: color-mix(in srgb, var(--select) 30%, transparent); }
@@ -242,7 +239,6 @@ body.resizing { user-select: none; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
                background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
 .menu button:focus { background: #eef3fb; outline: none; }
-.menu button u { text-underline-offset: 2px; }
 .menu button .more { margin-left: auto; color: #888; }
 .menu button .key { margin-left: auto; font: inherit; color: #57606a; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }

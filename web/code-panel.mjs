@@ -127,12 +127,6 @@ export function createCodePanel(els, file, hooks) {
     else toggle.click();
     panel.focus({ preventScroll: true });
   });
-  /** Close the panel, cancelling a draft first (asking if it changed). Whether it closed. */
-  function closePanel() {
-    if (!cancelEdit()) return false;
-    setOpen(false);
-    return true;
-  }
   // The panel's keys, by keyboard a round trip with the diagram (the user): ` flips between the two, Escape steps out a
   // level (the code to the panel, a draft to the read-only code, the panel to closed), Enter goes in, and the arrows scroll the code (the user: the
   // panel is where you read it; ` is one key to the diagram), with a modifier doing nothing rather than panning. Every
@@ -152,9 +146,10 @@ export function createCodePanel(els, file, hooks) {
       if (e.target === handle) return false;
       if (plain(e)) scrollCode(e.key);
     } else if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      // A draft is cancelled first, the panel staying open (the user: a keyboard way to cancel without closing).
+      // A draft is cancelled first, the panel staying open (the user: a keyboard way to cancel without closing); then
+      // out to the diagram, the panel still open, where the next Escape closes it.
       if (editing) cancelEdit();
-      else if (closePanel()) diagram.focus();
+      else diagram.focus();
     } else if (plain(e) && isTick(e)) {
       diagram.focus();
     } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && editing) {
@@ -246,6 +241,7 @@ export function createCodePanel(els, file, hooks) {
     else code.focus({ preventScroll: true });
   }
   save.addEventListener('click', saveEdit);
+  let closing = false;   // Escape on the diagram is saving the draft to close the panel: a second asks nothing
   /** Drop the draft, asking first if it differs from where it started. Whether it was dropped (or there was none). */
   function cancelEdit() {
     if (!editing) return true;
@@ -298,10 +294,23 @@ export function createCodePanel(els, file, hooks) {
   });
 
   return {
-    /** Escape from the diagram: close the panel, unless a draft is open (it is cancelled from the panel). Whether it closed. */
+    /**
+     * Escape from the diagram: close the panel. A changed draft is saved first, if the user says so (the user: from the
+     * diagram, Escape offers to save and close); one that does not save stays open. Whether Escape was taken.
+     */
     escape() {
-      if (!open || editing) return false;
+      if (!open) return false;
+      if (closing) return true;
+      if (editing && code.value !== editing.base.text) {
+        if (confirm('Save the code and close the panel? Cancel keeps editing.')) {
+          closing = true;
+          saveEdit().then(() => { if (!editing) { setOpen(false); diagram.focus(); } }).finally(() => { closing = false; });
+        }
+        return true;
+      }
+      cancelEdit();
       setOpen(false);
+      diagram.focus();
       return true;
     },
     /**

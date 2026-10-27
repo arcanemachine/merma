@@ -55,8 +55,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
   other key does the job (the user): Enter and F2 edit, Delete deletes, so E and D stay in menus; R, C and N have no
   other key. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
-- No hidden affordances. A shortcut is shown where its item is: a letter underlined, a digit in a picker, or a key
-  shown at the right of a label it is not a letter of (Center in window, F: F is the view key everywhere; Find…, /). Names
+- The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
+  other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
+  on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that
+  inference rather than a ring; the user chose it over a ring shown only with nothing selected, so an accessibility
+  sweep should not reopen it without them.
+- No hidden affordances. A shortcut is shown where its item is: a menu item's key at its right, as most apps show
+  them (the user: one system, no underlined letters), and a digit in a picker. A key is a letter of its label where
+  one fits, for the memory, but need not be (Center in window, F: F is the view key everywhere; Find…, /). Names
   show as text: a picker's line names the entry under the pointer, else the one with keyboard focus, else the current
   one. On touch, which
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
@@ -243,9 +249,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
   level, from the code to the panel, from a draft to the read-only code (Cancel, asking if it changed; the user: a
-  keyboard way to cancel without closing), and from the panel to closed; from the diagram too, as its outermost level
-  (the user): after Connect to…, the selection and a notice, Escape closes the panel, but never a draft's (the
-  diagram's side cannot cancel the panel's work);
+  keyboard way to cancel without closing), from the panel to the diagram, the panel staying open, and from the
+  diagram to closed, as its outermost level (the user): after Connect to…, the selection and a notice, Escape closes
+  the panel. With a changed draft it asks first, "Save the code and close the panel? Cancel keeps editing.": the one
+  Escape in the page that saves (the user), worded so OK cannot read as discard; a reflexive Escape in the question
+  keeps the draft. The mouse reaches the same by Save, then Close;
   Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
   buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
   and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key

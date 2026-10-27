@@ -3,7 +3,7 @@
 What the page does, control by control. What goes here: what each gesture, key and menu item does. What does not: why
 the page works the way it does (`docs/ux.md`), what the words mean (`GLOSSARY.md`), how to start merma (`README.md`).
 The page's Help panel is a short subset of this guide: the gestures and the keys that work outside menus. Menu letters
-are shown in the menus (underlined, or at the right of the item), and digits in the pickers, so Help does not list
+are shown in the menus (at the right of each item), and digits in the pickers, so Help does not list
 them.
 
 ## Viewing
@@ -26,15 +26,17 @@ them.
   it, or Tab to the bar and use the arrows. **Close**, or **Code** again, closes it. Its dock and size are kept in the
   browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
-  back into a draft) and Escape closes it; Escape in the code goes out to the panel. Escape on the diagram closes it
-  too, once nothing is selected and no notice shows (not while editing). The arrows on the panel scroll the
+  back into a draft) and Escape goes back to the diagram, the panel staying open; Escape in the code goes out to the
+  panel. Escape on the diagram closes the panel, once nothing is selected and no notice shows. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
   or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
   keys and find (/); a menu still opens, its edits grayed with the reason, Center in window and Find… working. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
   Ctrl+Z there undoes typing, and Escape goes out to the panel, keeping the draft (Ctrl+Enter there saves too; in the
   draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, the
-  panel staying open (the keyboard's Cancel); Escape again closes it. After Save or Cancel focus is on the panel. Save checks the code is valid
+  panel staying open (the keyboard's Cancel); Escape again goes to the diagram. Escape on the diagram with a changed
+  draft asks "Save the code and close the panel? Cancel keeps editing.": OK saves and closes (a draft that is not valid
+  stays open, with the error), Cancel or Escape keeps editing. After Save or Cancel focus is on the panel. Save checks the code is valid
   Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
   agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
   the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
@@ -65,7 +67,7 @@ are left to the file.
 ## Menus
 
 A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
-with nothing selected the empty-space menu. Each item's key is underlined: press it to run the item.
+with nothing selected the empty-space menu. Each item's key is shown at its right: press it to run the item.
 Up and Down move between items, Enter runs one. An item that does not apply right now is grayed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Escape, its key again or
 another click on it closes it.
@@ -228,7 +230,7 @@ here does just what it does in the selected item's menu:
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
-| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel |
+| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel (asking to save a changed draft first) |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 

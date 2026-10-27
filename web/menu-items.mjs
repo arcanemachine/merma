@@ -1,6 +1,6 @@
 // What each menu holds, as data: the editor maps each action to what it does, and menu.mjs draws them. The rules the
 // items follow (docs/ux.md) are tested against this file: labels start with a verb from VERBS, each key is unique in
-// its menu and is a letter of its label (else shown at its right, `aside`), a key the page also uses outside menus runs the same action here, and only
+// its menu and is shown at the item's right, a key the page also uses outside menus runs the same action here, and only
 // an item that waits for a further click or typing (mode) ends in "…".
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
@@ -80,7 +80,6 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {string} action what the editor runs
  * @property {string} label
  * @property {string} key its shortcut letter
- * @property {boolean} [aside] its key is not a letter of its label, so it is shown at the label's right
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
@@ -102,14 +101,14 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'edit-node', label: 'Edit node', key: 'e' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
   edge: [
     { action: 'edit-label', label: 'Edit label', key: 'e' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
   subgraph: [
     { action: 'add-node', label: 'Add node', key: 'n' },
@@ -118,7 +117,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', view: true },
   ],
   box: [
     { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
@@ -127,7 +126,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', view: true },
   ],
   title: [
     { action: 'edit-title', label: 'Edit title', key: 't' },
@@ -135,7 +134,7 @@ export const MENUS = {
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
-    { action: 'find', label: 'Find…', key: '/', aside: true, mode: true, separated: true, view: true },
+    { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
   ],
 };
@@ -146,14 +145,3 @@ export const EXPORT_MENU = [
   { action: 'download-svg', label: 'Download SVG', key: 'd' },
   { action: 'download-mermaid', label: 'Download Mermaid', key: 'm' },
 ];
-
-/**
- * Where an item's key is shown in its label: its first letter that starts a word, else its first letter at all.
- * @param {string} label
- * @param {string} key
- */
-export function keyIndex(label, key) {
-  const lower = label.toLowerCase();
-  const word = [...lower].findIndex((c, i) => c === key && (i === 0 || /\W/.test(lower[i - 1])));
-  return word >= 0 ? word : lower.indexOf(key);
-}

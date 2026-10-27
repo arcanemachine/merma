@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { applies, EXPORT_MENU, GLOBAL_KEYS, keyIndex, LOCKED, MENUS, VERBS, whyNot } from '../web/menu-items.mjs';
+import { applies, EXPORT_MENU, GLOBAL_KEYS, LOCKED, MENUS, VERBS, whyNot } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -23,15 +23,11 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
   }
 });
 
-test('keys are unique within a menu and are a letter of their label, or else shown at its right', () => {
+test('keys are unique within a menu, each one key', () => {
   for (const [menu, list] of Object.entries(ALL_MENUS)) {
     const keys = list.map((i) => i.key);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
-    for (const item of list) {
-      assert.match(item.key, /^[a-z/]$/);
-      // A key in its label is underlined there, never put aside; one not in it must be.
-      assert.equal(Boolean(item.aside), keyIndex(item.label, item.key) < 0, `${item.action}: ${item.key}`);
-    }
+    for (const item of list) assert.match(item.key, /^[a-z/]$/);
   }
 });
 
@@ -73,13 +69,6 @@ test('an item that can be grayed says why', () => {
     assert.equal(typeof item.why, 'function', item.action);
     for (const state of STATES) if (!item.applies(state)) assert.ok(item.why(state).length > 0);
   }
-});
-
-test('the key is shown at the start of a word when it starts one', () => {
-  assert.equal(keyIndex('Edit arrow type', 't'), 11);
-  assert.equal(keyIndex('Add connected node', 'n'), 14);
-  assert.equal(keyIndex('Reverse edge', 'v'), 2);
-  assert.equal(keyIndex('Edit label', 'z'), -1);
 });
 
 test('arrow types: digits unique, every one is an arrow type merma can write, and every one of those is listed', () => {

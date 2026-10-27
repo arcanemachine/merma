@@ -1,4 +1,4 @@
-// A menu drawn from its items (menu-items.mjs): one button per item, its key underlined, an item that does not apply
+// A menu drawn from its items (menu-items.mjs): one button per item, its key at its right, an item that does not apply
 // grayed with its reason as the hover title. It is a manual popover, so it sits above everything without z-index, and
 // it stays open until whoever opened it closes it: a pan of the diagram is not a click away.
 //
@@ -8,7 +8,7 @@
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
-import { applies as appliesIn, keyIndex, whyNot } from './menu-items.mjs';
+import { applies as appliesIn, whyNot } from './menu-items.mjs';
 import { place, OPPOSITE } from './place.mjs';
 
 /**
@@ -66,13 +66,12 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function render() {
     items.forEach((item, i) => {
       const b = buttons[i];
-      const label = item.label;
-      const at = item.aside ? -1 : keyIndex(label, item.key);
-      const text = document.createElement('span');
-      if (at < 0) text.append(label);
-      else text.append(label.slice(0, at), Object.assign(document.createElement('u'), { textContent: label[at] }), label.slice(at + 1));
-      b.replaceChildren(text);
-      if (at < 0) b.append(Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() }));
+      const text = Object.assign(document.createElement('span'), { textContent: item.label });
+      // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
+      const key = Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() });
+      key.setAttribute('aria-hidden', 'true');
+      b.replaceChildren(text, key);
+      b.setAttribute('aria-keyshortcuts', item.key.toUpperCase());
       if (item.submenu) b.append(Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' }));
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
