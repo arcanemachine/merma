@@ -290,7 +290,8 @@ Up to the title, or Escape and a click. Escape clears the selection; Enter bring
 **Find** with / (or the footer's **Find**, the way in on a phone, which opens it and closes it again; or **Find…**
 in the empty-space menu): type, and every node, edge label,
 subgraph and title holding what you typed (ignoring case), on screen or off, is outlined in amber (for an edge label,
-its edge's line turns amber). The current match is filled: as you type, the best one on screen, else the best; the
+its edge's line turns amber). The current match is filled (an edge's line a darker amber), and blinks a few times as
+it becomes current: as you type, the best one on screen, else the best; the
 count says how many are off screen ("2 of 5, 3 off screen"). Typing never moves the view. Tab and Shift+Tab move to
 the next match and the one before; the first of them with any match off screen also moves the view once so every match
 is on screen, zooming out only if they do not fit. Enter selects the current match, centering it when it is off

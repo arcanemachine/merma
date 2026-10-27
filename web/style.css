@@ -167,17 +167,15 @@ body.resizing { user-select: none; }
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-bg) !important; }
-/* An edge is marked by its line, never a border round its label, which would cut into a short label's text (the
-   user). The current match's label is filled too, on the text's own background, which Mermaid draws opaque over the
-   label's box. */
-#stage:not([data-page-blink-off]) g.edgeLabel[data-page-current] .labelBkg :is(span, p) { background: var(--find-bg) !important;
-  color: var(--find-text) !important; }
-/* A found edge's line too, as the selection's (below) in blue. */
+/* An edge is marked by its line alone, as the selection's (below) in blue; never its label: a border would cut into a
+   short label's text, and a blinking fill distracts (the user). The current one shows by its line's darker amber. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 4.5px !important; }
 #stage path.edge-thickness-invisible[data-page-match] + path[data-page-only] { stroke: rgba(191, 135, 0, 0.3); }
+#stage:not([data-page-blink-off]) path.edge-thickness-invisible[data-page-current] + path[data-page-only] {
+  stroke: rgba(125, 78, 0, 0.3); }
 /* The current edge's line is the darker amber, a color change and not a wider line, which would jitter as it blinks.
    Its specificity equals the match rules' above: keep it after them. */
 #stage:not([data-page-blink-off]) path[data-page-edge][data-page-current]:not([data-page-only], .edge-thickness-invisible) {

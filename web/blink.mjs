@@ -1,5 +1,5 @@
 // The find's blink: the current match shown on and off like a turn signal, a third of a second each, seven times, then
-// steady on. It blinks only when the current match changes, which is when it helps, and stops within 5 s,
+// steady on (docs/ux.md). It blinks only when the current match changes, which is when it helps, and stops within 5 s,
 // as WCAG 2.2.2 asks of blinking with no control to stop it. The phase comes from the time since it started, so a late
 // timer never drifts it.
 
