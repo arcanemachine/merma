@@ -59,7 +59,7 @@ const END_GAP = 4;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -724,15 +724,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     0: () => { viewer.zoomTo(1); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
-    // Escape is claimed only when it let go of something, so that otherwise the browser's own use of it (closing Help)
-    // goes ahead.
+    // Escape steps out one level: Connect to…, the selection, a notice, then whatever the page holds open around the
+    // diagram (ui.escape: the code panel). It is claimed only when it let go of something, so that otherwise the
+    // browser's own use of it goes ahead.
     escape: () => {
       if (connecting) { cancelConnect(); return true; }
       const had = Boolean(selected);
       if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
       deselect();
-      if (!locked) ui.hideNotice();
-      return had;
+      const hid = !locked && ui.hideNotice();
+      return had || hid || ui.escape();
     },
   };
   const VIEW_KEYS = ['f', 'escape', '+', '=', '-', '0',

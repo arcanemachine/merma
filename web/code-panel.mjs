@@ -298,6 +298,12 @@ export function createCodePanel(els, file, hooks) {
   });
 
   return {
+    /** Escape from the diagram: close the panel, unless a draft is open (it is cancelled from the panel). Whether it closed. */
+    escape() {
+      if (!open || editing) return false;
+      setOpen(false);
+      return true;
+    },
     /**
      * Show a version of the file. The scroll stays where it was; a selection in the code is lost. While editing, the
      * draft stays, and the header says when the file has changed since.

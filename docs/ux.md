@@ -237,7 +237,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
   level, from the code to the panel, from a draft to the read-only code (Cancel, asking if it changed; the user: a
-  keyboard way to cancel without closing), and from the panel to closed;
+  keyboard way to cancel without closing), and from the panel to closed; from the diagram too, as its outermost level
+  (the user): after Connect to…, the selection and a notice, Escape closes the panel, but never a draft's (the
+  diagram's side cannot cancel the panel's work);
   Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
   buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
   and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key

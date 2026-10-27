@@ -26,7 +26,8 @@ them.
   it, or Tab to the bar and use the arrows. **Close**, or **Code** again, closes it. Its dock and size are kept in the
   browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
-  back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel scroll the
+  back into a draft) and Escape closes it; Escape in the code goes out to the panel. Escape on the diagram closes it
+  too, once nothing is selected and no notice shows (not while editing). The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
   or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
@@ -221,7 +222,7 @@ here does just what it does in the selected item's menu:
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
-| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again |
+| Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 

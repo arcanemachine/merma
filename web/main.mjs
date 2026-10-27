@@ -100,11 +100,16 @@ const ui = {
   },
   /** What an edit did, for screen readers only: on screen, the redrawn diagram shows it. */
   announce: (/** @type {string} */ message) => speak('notice-status', message),
+  /** Hide the notice; whether one was showing. */
   hideNotice() {
     cancelAnimationFrame(speakFrame);
+    const shown = el('notice').classList.contains('show');
     el('notice').classList.remove('show');
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
+    return shown;
   },
+  /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
+  escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
     for (const [id, on] of /** @type {const} */ ([['undo', can.undo], ['redo', can.redo]])) {
       const b = /** @type {HTMLButtonElement} */ (el(id));
