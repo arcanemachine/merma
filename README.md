@@ -66,6 +66,7 @@ there is no login.
 | `web/grid.mjs` | Where an arrow key moves focus in a picker's grid |
 | `web/navigate.mjs` | Where an arrow key moves the selection: along edges, or to the next thing that way |
 | `web/find.mjs` | Find on /: which drawn items match, best first |
+| `web/blink.mjs` | When find's current match blinks |
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/frame.mjs` | The view that shows find's matches all at once |
 | `web/code-panel.mjs` | The code panel: the file's code, its dock and its handle |

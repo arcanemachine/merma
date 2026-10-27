@@ -161,15 +161,16 @@ body.resizing { user-select: none; }
 #find button { font: inherit; padding: 2px 10px; border: 1px solid #888; border-radius: 4px; background: #fff;
                color: inherit; cursor: pointer; }
 #find button:hover { background: #f6f6f6; }
-/* What find finds: every match outlined, the one Enter picks filled. */
+/* What find finds: every match outlined, the one Enter picks filled. The current one blinks: while the stage has
+   data-page-blink-off (editor.mjs), it shows as a plain match. */
 #stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
-#stage g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
-#stage g.cluster[data-page-current] > rect { fill: var(--find-bg) !important; }
+#stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-bg) !important; }
 /* An edge is marked by its line, never a border round its label, which would cut into a short label's text (the
    user). The current match's label is filled too, on the text's own background, which Mermaid draws opaque over the
    label's box. */
-#stage g.edgeLabel[data-page-current] .labelBkg :is(span, p) { background: var(--find-bg) !important;
+#stage:not([data-page-blink-off]) g.edgeLabel[data-page-current] .labelBkg :is(span, p) { background: var(--find-bg) !important;
   color: var(--find-text) !important; }
 /* A found edge's line too, as the selection's (below) in blue. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-match]:not([data-page-only]) {
@@ -177,8 +178,12 @@ body.resizing { user-select: none; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 4.5px !important; }
 #stage path.edge-thickness-invisible[data-page-match] + path[data-page-only] { stroke: rgba(191, 135, 0, 0.3); }
+/* The current edge's line is the darker amber, a color change and not a wider line, which would jitter as it blinks.
+   Its specificity equals the match rules' above: keep it after them. */
+#stage:not([data-page-blink-off]) path[data-page-edge][data-page-current]:not([data-page-only], .edge-thickness-invisible) {
+  stroke: var(--find-text) !important; }
 #stage text.flowchartTitleText[data-page-match] { text-decoration: underline 2px var(--find-mark); }
-#stage text.flowchartTitleText[data-page-current] { fill: var(--find-text); }
+#stage:not([data-page-blink-off]) text.flowchartTitleText[data-page-current] { fill: var(--find-text); }
 #notice.info { background: var(--info-bg); color: var(--info-fg); }
 #notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
 #notice.error { background: var(--error-bg); color: var(--error-fg); }

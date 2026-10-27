@@ -5,6 +5,7 @@
 // `data-page-…`, which the SVG export leaves out.
 
 import { ARROW_TYPES } from './arrow-types.mjs';
+import { createBlink } from './blink.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
@@ -877,18 +878,38 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     add(TITLE, titleEl(), titleEl()?.textContent ?? '');
     return out;
   }
-  function markMatches() {
+  // The current match blinks (blink.mjs). The page's clock sets data-page-blink-off on the stage, which the styles
+  // read, so re-marking never restarts it and every part of the match blinks together.
+  const blink = createBlink();
+  /** @type {ReturnType<typeof setTimeout> | undefined} */
+  let blinkTimer;
+  /** Show the blink's phase now, and wake when it next changes. */
+  function blinkTick() {
+    clearTimeout(blinkTimer);
+    const now = performance.now();
+    els.stage.toggleAttribute('data-page-blink-off', blink.phase(now) === 'off');
+    const wait = blink.next(now);
+    // A wake a hair early would show the old phase again: aim just past the change.
+    blinkTimer = wait === null ? undefined : setTimeout(blinkTick, wait + 5);
+  }
+  /** Mark the matches; `again` blinks the current one afresh even when it has not changed (a step, a typed change). */
+  function markMatches(again = false) {
     clearMarks('data-page-match', 'data-page-current');
-    if (!finding) return;
-    const { matches, at } = finding;
-    // All that is drawn for it, as the selection marks: for an edge, its line as well as its label.
-    matches.forEach((m, k) => {
-      for (const el of elsOf(m)) {
-        mark(el, 'data-page-match');
-        if (k === at) mark(el, 'data-page-current');
-      }
-    });
-    showCount();
+    const current = finding?.matches[finding.at];
+    if (finding) {
+      const { matches, at } = finding;
+      // All that is drawn for it, as the selection marks: for an edge, its line as well as its label.
+      matches.forEach((m, k) => {
+        for (const el of elsOf(m)) {
+          mark(el, 'data-page-match');
+          if (k === at) mark(el, 'data-page-current');
+        }
+      });
+      showCount();
+    }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    blink.show(current ? `${current.kind}:${current.id}` : null, performance.now(), reduce, again);
+    blinkTick();
   }
   function showCount() {
     if (finding) els.findCount.textContent = findBox.value.trim() ? countText(finding.matches, finding.at) : '';
@@ -906,7 +927,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const f = /** @type {NonNullable<typeof finding>} */ (finding);
     f.matches = find(findables(), findBox.value);
     f.at = firstShown(f.matches);
-    markMatches();
+    markMatches(true);
     const at = f.matches[f.at];
     const off = f.matches.filter((m) => !m.on).length;
     ui.announce(at ? `${f.matches.length} found${off ? `, ${off} off screen` : ''}; ${named(at)}` : findBox.value.trim() ? 'No match' : '');
@@ -967,7 +988,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // One move, then none (the user): with any match off screen, show them all, which counts them again.
     if (finding.matches.some((m) => !m.on)) viewer.frame(finding.matches.map((m) => m.box), underBar());
     finding.at = (finding.at + dir + n) % n;
-    markMatches();
+    markMatches(true);
     ui.announce(named(finding.matches[finding.at]));
   }
   // The bar's buttons, for the mouse and touch: a press leaves focus in the find box, so its keys still work.

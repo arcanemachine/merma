@@ -64,6 +64,7 @@ note where merma had to make one up.
 | **trail** | The arrow moves since the selection was last set another way, steps across left out: the opposite arrow retraces them, and a click, a find, O, I, an edit or Escape starts a new one. merma's own. |
 | **place inside** | For each subgraph, the item you last left it by, which I goes back to; kept while keys select, forgotten on a click, a find or an edit. Not the trail. merma's own. |
 | **find** | The / box: every item in the diagram holding what you typed is marked, on screen or off, and Enter selects the current match. The browser's word for the same thing (Find in page); not "search". |
+| **blink** | The find's current match shown on and off, a third of a second each, seven times, then steady; again each time the current match changes. merma's own: Mermaid has no word for it. |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** (Edit arrow type ▸) and the **shape picker**. Shows the current one. |
