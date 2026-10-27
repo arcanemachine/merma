@@ -6,6 +6,12 @@ declare module 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min
     initialize(config: object): void;
     render(id: string, text: string, svgContainingElement?: Element): Promise<{ svg: string }>;
     parse(text: string): Promise<unknown>;
+    mermaidAPI: {
+      // Not in Mermaid's documented API: viewer.mjs reads a flowchart's subgraphs from it (the bump check covers it).
+      getDiagramFromText(text: string): Promise<{
+        db: { getSubGraphs?(): { id: string, title: string, nodes: string[], metadata?: { view?: string } }[] },
+      }>;
+    };
   };
   export default mermaid;
 }

@@ -6,6 +6,7 @@
 
 import { ARROW_TYPES } from './arrow-types.mjs';
 import { createBlink } from './blink.mjs';
+import { drawnAs, drawnEdges } from './collapse.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
@@ -59,7 +60,7 @@ const END_GAP = 4;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -74,6 +75,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let selected = null;
   /** @type {string} the text on screen, which edge ids refer to */
   let shownText = '';
+  /** @type {{ subs: import('./collapse.mjs').SubgraphInfo[], overrides: import('./collapse.mjs').Overrides }} */
+  let collapse = { subs: [], overrides: new Map() };   // how the shown drawing's subgraphs are collapsed
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
   /** @type {Item | null} while connecting by keys: the node or subgraph the arrows have reached, which Enter connects to */
@@ -123,7 +126,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const drawn = (/** @type {string} */ selector) => /** @type {SVGElement[]} */ ([...els.stage.querySelectorAll(selector)]);
   const nodeEl = (/** @type {string} */ id) => drawn('g.node[data-page-node]').find((g) => g.dataset.pageNode === id);
   const edgeEls = (/** @type {string} */ id) => drawn('[data-page-edge]').filter((e) => e.dataset.pageEdge === id);
-  const clusterEl = (/** @type {string} */ id) => drawn('g.cluster[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
+  const clusterEl = (/** @type {string} */ id) => drawn('[data-page-subgraph]').find((g) => g.dataset.pageSubgraph === id);
   /** The diagram's title (frontmatter `title:`), as Mermaid draws it over a flowchart. */
   const titleEl = () => drawn('text.flowchartTitleText')[0];
   const TITLE = /** @type {Item} */ ({ kind: 'title', id: '' });
@@ -148,7 +151,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const edge = edgesOk && (/** @type {SVGElement | null} */ (target.closest('[data-page-edge]')))?.dataset.pageEdge;
     if (edge) return { kind: 'edge', id: edge };
     if (target.closest('text.flowchartTitleText')) return TITLE;
-    const subgraph = (/** @type {SVGElement | null} */ (target.closest('g.cluster[data-page-subgraph]')))?.dataset.pageSubgraph;
+    const subgraph = (/** @type {SVGElement | null} */ (target.closest('[data-page-subgraph]')))?.dataset.pageSubgraph;
     return subgraph ? { kind: 'subgraph', id: subgraph } : null;
   }
   const same = (/** @type {Item | null} */ a, /** @type {Item | null} */ b) => a?.kind === b?.kind && a?.id === b?.id;
@@ -188,7 +191,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (why) ui.notice(why, 'warning');
     return Boolean(why);
   }
-  const shownEdge = (/** @type {string} */ id) => edges(shownText).find((e) => e.svgId === id);
+  /** What a node or subgraph is drawn as: itself, or the collapsed subgraph's box hiding it. */
+  const drawnEnd = (/** @type {string} */ id) => drawnAs(id, collapse.subs, collapse.overrides);
+  /** A drawn edge, its ends as drawn: one hidden in a collapsed subgraph is that subgraph's box. */
+  const shownEdge = (/** @type {string} */ id) => {
+    const e = edges(shownText).find((x) => x.svgId === id);
+    return e && { ...e, from: drawnEnd(e.from), to: drawnEnd(e.to) };
+  };
   /** A drawn node's shape as written, or null for one these edits cannot read (an id they do not take). */
   const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
@@ -241,6 +250,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const parent = selectedSubgraph();
       addAndName((text) => addSubgraph(text, { parent }), parent, 'subgraph');
     },
+    // Page-only (collapse.mjs): the file is not written, and no undo step is made.
+    'collapse-subgraph': () => { const { id } = selection(); ui.setView(id, 'collapsed').then(() => ui.announce(`Collapsed ${named({ kind: 'subgraph', id })}`)); },
+    'expand-subgraph': () => { const { id } = selection(); ui.setView(id, 'expanded').then(() => ui.announce(`Expanded ${named({ kind: 'subgraph', id })}`)); },
     'fit-view': () => viewer.fit(),
     'find': () => openFind(),
     // The selection in the middle of the view, at the zoom it has (the user).
@@ -294,7 +306,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   const menus = Object.fromEntries(Object.entries(MENUS).map(([kind, items]) => [kind, createMenu(items, menuOptions)]));
   const closeMenus = () => { for (const m of Object.values(menus)) m.close(); };
-  const menuOpen = () => menus.node.isOpen() || menus.edge.isOpen() || menus.subgraph.isOpen() || menus.title.isOpen();
+  const menuOpen = () => menus.node.isOpen() || menus.edge.isOpen() || menus.subgraph.isOpen() || menus.box.isOpen()
+    || menus.title.isOpen();
+  /** A subgraph drawn collapsed, as one box. */
+  const isBox = (/** @type {Item | null} */ sel) => sel?.kind === 'subgraph' && Boolean(clusterEl(sel.id)?.hasAttribute('data-page-collapsed'));
+  /** The menu of `sel`'s kind; a collapsed subgraph's is the box's. */
+  const menuOf = (/** @type {Item} */ sel) => menus[isBox(sel) ? 'box' : sel.kind];
 
   /** What the menus need to know to gray their items. */
   function menuState() {
@@ -357,7 +374,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const arrow = shownEdge(sel.id)?.arrow ?? '';
       arrowPicker.current(arrowType(arrow), arrow);
     }
-    menus[sel.kind].open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
+    menuOf(sel).open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
   }
 
   /** @type {'start' | 'end' | null} the end of the selected edge its mark is at */
@@ -708,14 +725,26 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return [[name, () => arrow(key, 'plain')], [`ctrl+${name}`, () => arrow(key, 'ctrl')], [`shift+${name}`, () => arrow(key, 'shift')]];
     })),
     o: () => moves.out(),
-    i: () => moves.into(),
+    // I on a collapsed subgraph expands it first: what it holds must be drawn to go into.
+    i: () => {
+      const at = connecting ? candidate : selected;
+      if (!at || !isBox(at)) return moves.into();
+      ui.setView(at.id, 'expanded').then(() => moves.into());
+      return true;
+    },
+    // H collapses a selected subgraph, or expands it, as its menu's H does: page-only.
+    h: () => {
+      if (connecting || selected?.kind !== 'subgraph') return false;
+      handlers[isBox(selected) ? 'expand-subgraph' : 'collapse-subgraph']();
+      return true;
+    },
     '/': () => { if (connecting) return false; openFind(); return true; },
     // Space: the selected edge counts as reached from its other end, whose edges the cross arrows then step.
     ' ': () => {
       const to = moves.other();
       if (!to) return false;
       markEnd();
-      const kind = drawn('g.cluster[data-page-subgraph]').some((g) => g.dataset.pageSubgraph === to.id) ? 'subgraph' : 'node';
+      const kind = drawn('[data-page-subgraph]').some((g) => g.dataset.pageSubgraph === to.id) ? 'subgraph' : 'node';
       ui.announce(`Reached from ${named(/** @type {Item} */ ({ kind, id: to.id }))}`);
       return true;
     },
@@ -752,7 +781,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     };
     const boxes = nest([
       ...drawn('g.node[data-page-node]').map((g) => box('node', /** @type {string} */ (g.dataset.pageNode), g)),
-      ...drawn('g.cluster[data-page-subgraph]').map((g) => box('subgraph', /** @type {string} */ (g.dataset.pageSubgraph),
+      ...drawn('[data-page-subgraph]').map((g) => box('subgraph', /** @type {string} */ (g.dataset.pageSubgraph),
         g.querySelector(':scope > rect') ?? g)),
     ]);
     /** @type {import('./navigate.mjs').Edge[]} */
@@ -774,7 +803,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         // already turned (40 px reads the early bend of a short edge as its heading).
         const along = Math.min(20, length / 2);
         lines.push({
-          id: e.svgId, from: e.from, to: e.to, mid,
+          id: e.svgId, from: drawnEnd(e.from), to: drawnEnd(e.to), mid,
           start: onScreen(0), startOut: onScreen(along), end: onScreen(length), endOut: onScreen(length - along),
         });
       }
@@ -874,9 +903,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (edgesOk) {
       for (const g of drawn('g.edgeLabel[data-page-edge]')) add({ kind: 'edge', id: /** @type {string} */ (g.dataset.pageEdge) }, g, g.textContent ?? '');
     }
-    for (const g of drawn('g.cluster[data-page-subgraph]')) {
+    for (const g of drawn('[data-page-subgraph]')) {
       const item = /** @type {Item} */ ({ kind: 'subgraph', id: g.dataset.pageSubgraph });
-      add(item, g.querySelector('.cluster-label'), labelEl(item)?.innerText ?? g.querySelector('.cluster-label')?.textContent ?? '');
+      const title = g.querySelector(':scope > :is(.cluster-label, g.label)');
+      add(item, title, labelEl(item)?.innerText ?? title?.textContent ?? '');
     }
     add(TITLE, titleEl(), titleEl()?.textContent ?? '');
     return out;
@@ -1091,7 +1121,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** What the label box covers: the node, the subgraph's title, the edge's label, or the middle of the edge's line. */
   function labelBoxRect(/** @type {Item} */ target) {
     if (target.kind === 'node') return nodeEl(target.id)?.getBoundingClientRect();
-    if (target.kind === 'subgraph') return clusterEl(target.id)?.querySelector('.cluster-label')?.getBoundingClientRect();
+    if (target.kind === 'subgraph') return clusterEl(target.id)?.querySelector(':scope > :is(.cluster-label, g.label)')?.getBoundingClientRect();
     if (target.kind === 'title') return titleEl()?.getBoundingClientRect();
     const parts = edgeEls(target.id);
     const label = parts.find((e) => e.matches('g.edgeLabel'));
@@ -1394,7 +1424,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // too. Nodes are drawn after edges, so a click near a node still picks the node.
   function tagEdges(/** @type {string} */ text) {
     const lines = drawn('path[data-edge="true"]');
-    const ids = edges(text).map((e) => e.svgId);
+    const ids = drawnEdges(edges(text), collapse.subs, collapse.overrides).map((e) => e.svgId);
     edgesOk = ids.length === lines.length && lines.every((p, k) => p.dataset.id === ids[k]);
     if (!edgesOk) {
       ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
@@ -1567,7 +1597,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (labelling) sizeLabelBox();
       markEnd(false);
       const el = selectedEl();
-      if (selected && el) menus[selected.kind].reposition(el.getBoundingClientRect());
+      if (selected && el) menuOf(selected).reposition(el.getBoundingClientRect());
       if (spaceAt) {
         const { x, y } = viewer.toClient(spaceAt);
         menus.space.reposition({ left: x, top: y, right: x, bottom: y });
@@ -1594,7 +1624,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * there (an edge's, or an id-less subgraph's, only while the text is the same: their ids are renumbered when edges
      * or subgraphs come and go).
      */
-    rendered(/** @type {string} */ text) {
+    rendered(/** @type {string} */ text, view = collapse) {
+      collapse = view;
       drawnEditable = isFlowchart(text);
       setEditable();
       // Tagged while locked too, so unlocking finds the drawing ready.
@@ -1608,9 +1639,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       // A subgraph whose id merma cannot read (`subgraph a-b [X]`) is left unselectable, as such a node's edges are.
       const known = new Set(subgraphs(text).map((s) => s.id));
-      for (const g of drawn('g.cluster')) {
+      // A collapsed subgraph is drawn as a node-like box, `<render id>-<subgraph id>` with no `flowchart-`.
+      for (const g of drawn('g.cluster, g.node:has(> rect.collapsed-group)')) {
         const id = subgraphIdFromSvgId(g.id, renderId);
-        if (id && known.has(id)) g.dataset.pageSubgraph = id;
+        if (!id || !known.has(id)) continue;
+        g.dataset.pageSubgraph = id;
+        if (g.matches('g.node')) g.dataset.pageCollapsed = '';
       }
       tagEdges(text);
       // A new drawing while finding: find again in it, so no mark is left on what has gone.
@@ -1637,7 +1671,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       const kept = sel && elsOf(sel).length
         && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
-      if (kept) select(sel, { keepMode: sel.kind !== 'edge', menu });
+      if (kept) { select(sel, { keepMode: sel.kind !== 'edge', menu }); return; }
+      // A node or subgraph now hidden in a collapsed one: the box it is drawn as, with the trail started afresh.
+      const box = sel && (sel.kind === 'node' || sel.kind === 'subgraph') ? drawnEnd(sel.id) : null;
+      if (sel && box && box !== sel.id && clusterEl(box)) { moves.forget(); select({ kind: 'subgraph', id: box }, { menu }); }
       else if (sel) deselect();
     },
 

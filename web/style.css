@@ -58,8 +58,8 @@ header .status { color: #666; white-space: nowrap; }
 /* The pointer says what a click does: the pointing finger on whatever it would select, the hand (drag to move)
    everywhere else. */
 #stage, #stage * { cursor: inherit; }
-#stage.selectable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph], text.flowchartTitleText),
-#stage.selectable :is(g.node[data-page-node], [data-page-edge], g.cluster[data-page-subgraph]) * { cursor: pointer; }
+#stage.selectable :is(g.node[data-page-node], [data-page-edge], [data-page-subgraph], text.flowchartTitleText),
+#stage.selectable :is(g.node[data-page-node], [data-page-edge], [data-page-subgraph]) * { cursor: pointer; }
 /* The diagram has role="application", so screen readers pass its arrow keys through instead of reading on; on <main>
    that role would cost the landmark, so main holds it as one of its grid items. */
 #diagram:focus { outline: none; }
@@ -176,9 +176,9 @@ body.resizing { user-select: none; }
 #find button:hover { background: #f6f6f6; }
 /* What find finds: every match outlined, the one Enter picks filled. The current one blinks: while the stage has
    data-page-blink-off (editor.mjs), it shows as a plain match. */
-#stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
-#stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-current-bg) !important; }
 /* An edge is marked by its line alone, as the selection's (below) in blue; never its label: a border would cut into a
    short label's text, and a blinking fill distracts (the user). The current one shows by its line's near-black amber. */
@@ -203,17 +203,17 @@ body.resizing { user-select: none; }
    shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage
    leaves stray fragments around it. !important wins over the colors Mermaid writes inline from classDef and style. */
 #stage.selectable g.node[data-page-node], #stage.selectable g.node[data-page-node] *,
-#stage.selectable g.cluster[data-page-subgraph], #stage.selectable g.cluster[data-page-subgraph] *,
+#stage.selectable [data-page-subgraph], #stage.selectable [data-page-subgraph] *,
 #stage.selectable [data-page-edge], #stage.selectable [data-page-edge] * { cursor: pointer !important; }
-#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-selected] > rect { stroke: var(--select) !important; stroke-width: 3px !important; }
 /* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text color give way. */
-#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *) { fill: var(--select-bg) !important; }
+#stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator) { fill: var(--select-bg) !important; }
 #stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
 #stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: var(--select); text-decoration: underline 2px; }
 /* In Connect to…, the node or subgraph the arrows have reached: dashed, as it is not yet chosen. */
-#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *),
+#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-candidate] > rect { stroke: var(--select) !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
 /* In Connect to…, an edge the arrows have reached (Enter refuses it) is drawn as a selected one is. */

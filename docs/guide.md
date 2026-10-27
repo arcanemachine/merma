@@ -125,6 +125,11 @@ another click on it closes it.
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
   keeps the title as it was.
+- **Collapse subgraph** (H) draws it as one box with its title and "•••", and **Expand subgraph** (H) on the box
+  opens it again. Only this tab's view changes, never the file: other tabs, agents and the code panel still see the file
+  as written, and a reload of this tab keeps it (a new tab starts from the file). Edges to what it holds end at the box.
+  A subgraph collapsed in the file itself (`pay@{ view: collapsed }`, written in the code panel) starts as a box, and
+  can be expanded here the same way. On a box, Add node and Add subgraph are grayed: expand it first.
 
 Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
 
@@ -214,7 +219,8 @@ here does just what it does in the selected item's menu:
 | ` (the key left of 1, or whichever key types it) | Go to the code panel, opening it if it is closed; on the panel, back to the diagram (in any diagram) |
 | Space with an edge selected | Walk the other end's edges: the cross arrows step that end's fan (the tick moves there) |
 | O | Select the subgraph the selection is in |
-| I with a subgraph selected | Go into it: the item you last left it by, else its top-left one |
+| I with a subgraph selected | Go into it: the item you last left it by, else its top-left one; a collapsed one is expanded first |
+| H with a subgraph selected | Collapse it, or expand it: this tab's view only, never the file |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |

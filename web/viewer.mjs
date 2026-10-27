@@ -334,6 +334,23 @@ export function createViewer({ diagram, stage }, hooks = {}) {
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 
+    /**
+     * A flowchart's subgraphs as Mermaid reads `text`, without drawing it: each with its members (nodes and nested
+     * subgraphs, by Mermaid's own rule of which block a node belongs to) and its view in the file. [] for another type,
+     * or a text Mermaid cannot read.
+     * @returns {Promise<import('./collapse.mjs').SubgraphInfo[]>}
+     */
+    async subgraphs(/** @type {string} */ text) {
+      try {
+        const { db } = await mermaid.mermaidAPI.getDiagramFromText(text);
+        return (db.getSubGraphs?.() ?? []).map((s) => ({
+          id: s.id, title: s.title, members: [...s.nodes], view: s.metadata?.view === 'collapsed' ? 'collapsed' : 'expanded',
+        }));
+      } catch {
+        return [];
+      }
+    },
+
     /** Render `text` in place of the current diagram. On a syntax error the last good render stays. */
     async show(/** @type {string} */ text) {
       const id = 'd' + n++;

@@ -37,6 +37,8 @@ Mermaid syntax.
 | **subgraph** | A box around nodes (Mermaid's term): `subgraph id [Title]` … `end`. |
 | **box** | A node or a subgraph (drawn as its box): what an edge can join, and what the arrows land on besides edges. merma's own: Mermaid has no word for the two together. "A subgraph's box" is that subgraph as drawn. |
 | **self-loop** | An edge from a node or a subgraph back to itself: `A --> A`. |
+| **collapsed** | A subgraph drawn as one box, its contents hidden, by Mermaid's `id@{ view: collapsed }`; **expanded** is the usual way. In the page, collapsing is view state, never written (`docs/ux.md`). |
+| **default state** | Whether the file itself has a subgraph collapsed or expanded: where a new tab starts. |
 | **contents** | What a subgraph holds: its nodes and nested subgraphs, as Mermaid draws them. Never "children": parent and child are words for edges. |
 | **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |

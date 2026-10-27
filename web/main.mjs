@@ -6,6 +6,8 @@ import { createMenu } from './menu.mjs';
 import { EXPORT_MENU } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
+import { prune, setView, viewText } from './collapse.mjs';
+import { subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
 // Every id the page asks for is in index.html.
@@ -41,6 +43,21 @@ function restoreView() {
     const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? 'null');
     if (saved) viewer.setView(saved);
   } catch { /* nothing kept, or unreadable */ }
+}
+
+// Collapsed subgraphs (collapse.mjs): the page's own views, never the file's, kept for this tab per file in
+// sessionStorage, so the page's reload for a new build keeps them.
+const collapseKey = 'merma:collapse:' + file;
+/** @type {import('./collapse.mjs').Overrides} */
+let overrides = new Map();
+/** @type {import('./collapse.mjs').SubgraphInfo[]} the subgraphs of the text last drawn, when merma reads them too */
+let shownSubs = [];
+try { overrides = new Map(JSON.parse(sessionStorage.getItem(collapseKey) ?? '[]')); } catch { /* nothing kept */ }
+function keepOverrides() {
+  try {
+    if (overrides.size) sessionStorage.setItem(collapseKey, JSON.stringify([...overrides]));
+    else sessionStorage.removeItem(collapseKey);
+  } catch { /* storage unavailable: the views just are not kept */ }
 }
 
 // A short status message that fades out. Short messages ("Copied!") start fading after 1 s; longer ones stay up
@@ -108,6 +125,13 @@ const ui = {
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
     return shown;
   },
+  /** Show subgraph `id` collapsed or expanded, in this page only, and draw the file again. */
+  async setView(/** @type {string} */ id, /** @type {'collapsed' | 'expanded'} */ view) {
+    overrides = setView(overrides, shownSubs, id, view);
+    keepOverrides();
+    const { text } = source.snapshot();
+    if (text !== null) await display(text);
+  },
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -147,10 +171,38 @@ const codePanel = createCodePanel({
 el('code-file').textContent = /** @type {string} */ (file.split('/').pop());
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved. The code panel shows
-// it whether or not it parses, so a broken file can be read there.
-async function display(/** @type {string} */ text) {
+// it whether or not it parses, so a broken file can be read there. One at a time, in the order asked, so an older
+// version never lands over a newer one.
+let drawing = Promise.resolve();
+function display(/** @type {string} */ text) {
+  const done = drawing.then(() => draw(text));
+  drawing = done.catch(() => {});
+  return done;
+}
+async function draw(/** @type {string} */ text) {
   codePanel.show(text);
-  const shown = await viewer.show(text);
+  // The page's collapses are drawn only when Mermaid's subgraphs are the ones merma reads in the text: an id they
+  // disagree on would collapse, or tag, the wrong one.
+  let subs = await viewer.subgraphs(text);
+  const scanned = new Set(scannedSubgraphs(text).map((s) => s.id));
+  const agree = subs.length === scanned.size && subs.every((s) => scanned.has(s.id));
+  let warning = '';
+  if (!agree) {
+    if (overrides.size || subs.some((s) => s.view === 'collapsed')) {
+      warning = "merma can't match this diagram's subgraphs to its text, so they can't be collapsed or expanded here.";
+    }
+    subs = [];
+  } else {
+    overrides = prune(overrides, subs);
+    keepOverrides();
+  }
+  const drawn = agree ? viewText(text, overrides, subs) : text;
+  let shown = await viewer.show(drawn);
+  if (!shown.ok && drawn !== text && (shown = await viewer.show(text)).ok) {
+    overrides = new Map();
+    keepOverrides();
+    warning = "Couldn't collapse: showing the file as written.";
+  }
   if (!shown.ok) {
     showError('Syntax error; showing the last good render.\n' + shown.error);
     editor?.failed();
@@ -160,7 +212,9 @@ async function display(/** @type {string} */ text) {
   showError('');
   if (!shownOnce) { shownOnce = true; restoreView(); }
   el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
-  editor?.rendered(text);
+  shownSubs = subs;
+  editor?.rendered(text, { subs, overrides: agree ? overrides : new Map() });
+  if (warning) ui.notice(warning, 'warning');
 }
 
 const source = createSource(file, { onText: display, onError: showError, onBuild: noteBuild });

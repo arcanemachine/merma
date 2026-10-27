@@ -8,6 +8,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - Every action is one small text edit to the `.mmd` file, and one undo step. Nothing the page adds (positions,
   selection, view) is written into the file. The file is shared with editors and agents; the page is a view of it.
+- Collapsing a subgraph is view state, the page's by design (the user: a collapse in the page never affects the file):
+  the page draws the file with Mermaid's own `id@{ view: collapsed }` (or `expanded`) lines after its last byte, so no
+  offset moves, and keeps them for the tab (sessionStorage), not for the file. It is no undo step. The default state is
+  the file's, changed by editing the file (the code panel). The code panel, Copy and the `.mmd` export show the file;
+  the SVG export what you see. H toggles it, separate from O and I, which move: I on a collapsed subgraph expands it to
+  go in, and O never collapses (moving out would hide where you were). Escape never expands.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others.
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.

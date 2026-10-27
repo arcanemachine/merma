@@ -5,7 +5,8 @@
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Find', 'Fit', 'Center', 'Copy', 'Download'];
+export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Find', 'Fit', 'Center', 'Copy', 'Download',
+  'Collapse', 'Expand'];
 
 /**
  * Keys the page answers outside menus, and the menu actions each one runs. A key is named by KeyboardEvent.key,
@@ -36,6 +37,7 @@ export const GLOBAL_KEYS = {
   o: [],
   i: [],
   '/': ['find'],
+  h: ['collapse-subgraph', 'expand-subgraph'],
   ' ': [],
   '+': [],
   '=': [],
@@ -82,7 +84,13 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [separated] set apart from the items above it
  */
 
-/** @type {Record<'node' | 'edge' | 'subgraph' | 'title' | 'space', MenuItem[]>} */
+/** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
+const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to it.';
+
+/**
+ * Each kind's menu. `box` is a subgraph drawn collapsed: the subgraph's menu, with Expand in place of Collapse.
+ * @type {Record<'node' | 'edge' | 'subgraph' | 'box' | 'title' | 'space', MenuItem[]>}
+ */
 export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
@@ -103,7 +111,16 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, separated: true, view: true },
+    { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
+  ],
+  box: [
+    { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 's', applies: () => false, why: () => EXPAND_FIRST },
+    { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true },
+    { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
   ],
   title: [
     { action: 'edit-title', label: 'Edit title', key: 't' },
