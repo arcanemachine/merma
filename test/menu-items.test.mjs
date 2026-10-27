@@ -9,7 +9,7 @@ import { NODE_SHAPES } from '../web/shapes.mjs';
 
 const STATES = [
   { edgesOk: true, selfLoop: true, nameWhy: null },
-  { edgesOk: false, selfLoop: false, nameWhy: 'This subgraph has no id in the file…' },
+  { edgesOk: false, selfLoop: false, nameWhy: 'This subgraph has no id in the file…', collapseWhy: 'No subgraph match' },
 ];
 const ALL_MENUS = { ...MENUS, export: EXPORT_MENU };
 const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));

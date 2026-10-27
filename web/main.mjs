@@ -3,7 +3,7 @@
 
 import { createEditor } from './editor.mjs';
 import { createMenu } from './menu.mjs';
-import { EXPORT_MENU } from './menu-items.mjs';
+import { EXPORT_MENU, NO_SUBGRAPH_MATCH } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
 import { prune, setView, viewText } from './collapse.mjs';
@@ -189,7 +189,7 @@ async function draw(/** @type {string} */ text) {
   let warning = '';
   if (!agree) {
     if (overrides.size || subs.some((s) => s.view === 'collapsed')) {
-      warning = "merma can't match this diagram's subgraphs to its text, so they can't be collapsed or expanded here.";
+      warning = NO_SUBGRAPH_MATCH;
     }
     subs = [];
   } else {

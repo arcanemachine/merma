@@ -49,6 +49,10 @@ export const GLOBAL_KEYS = {
 export const NO_EDGE_MATCH = "The drawn edges don't match the file's text (no edge match), so deleting could change the wrong "
   + 'edge. Delete it in the file.';
 
+/** Why a subgraph cannot be collapsed or expanded: Mermaid's subgraphs are not the ones merma reads in the text. */
+export const NO_SUBGRAPH_MATCH = "merma can't match this diagram's subgraphs to its text, so they can't be collapsed or "
+  + 'expanded here.';
+
 /** Why an edit does nothing while the code panel's draft holds the lock: the warning, and a grayed item's reason. */
 export const LOCKED = 'The code is being edited: save or cancel it to edit the diagram.';
 
@@ -59,6 +63,7 @@ export const LOCKED = 'The code is being edited: save or cancel it to edit the d
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
+ * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -111,7 +116,8 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true },
+    { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
+      applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
   ],
   box: [
@@ -119,7 +125,8 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 's', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true },
+    { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
+      applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     { action: 'center-view', label: 'Center in window', key: 'f', aside: true, view: true },
   ],
   title: [

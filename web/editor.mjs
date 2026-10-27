@@ -10,7 +10,7 @@ import { drawnAs, drawnEdges } from './collapse.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
-import { applies, GLOBAL_KEYS, LOCKED, MENUS, NO_EDGE_MATCH, whyNot } from './menu-items.mjs';
+import { applies, GLOBAL_KEYS, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, whyNot } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
@@ -319,6 +319,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       edgesOk,
       selfLoop: selected?.kind === 'edge' && shownEdge(selected.id)?.from === shownEdge(selected.id)?.to,
       nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
+      collapseWhy: selected?.kind === 'subgraph' && !collapse.subs.some((s) => s.id === selected?.id) ? NO_SUBGRAPH_MATCH : null,
       locked,
     };
   }
@@ -699,6 +700,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         selectByKey(cleared, undefined, Boolean(clearedCursor));
         return true;
       }
+      // Hidden since in a collapsed subgraph: its box.
+      const box = cleared && (cleared.kind === 'node' || cleared.kind === 'subgraph') ? drawnEnd(cleared.id) : null;
+      if (box && clusterEl(box)) { selectByKey({ kind: 'subgraph', id: box }); return true; }
       const r = els.diagram.getBoundingClientRect();
       const id = nearest(layout().boxes.filter((b) => b.kind === 'node'), r.left + r.width / 2, r.top + r.height / 2);
       if (id) selectByKey({ kind: 'node', id });
@@ -735,7 +739,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // H collapses a selected subgraph, or expands it, as its menu's H does: page-only.
     h: () => {
       if (connecting || selected?.kind !== 'subgraph') return false;
-      handlers[isBox(selected) ? 'expand-subgraph' : 'collapse-subgraph']();
+      const box = isBox(selected);
+      const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[box ? 'box' : 'subgraph']
+        .find((i) => i.action === (box ? 'expand-subgraph' : 'collapse-subgraph')));
+      const state = menuState();
+      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+      handlers[item.action]();
       return true;
     },
     '/': () => { if (connecting) return false; openFind(); return true; },
