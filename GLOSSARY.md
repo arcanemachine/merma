@@ -77,7 +77,8 @@ note where merma had to make one up.
 | **shape picker** | The picker laid under a node's label box: click a shape, or Down from the label goes into it. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |
 | **notice** | The bar above the diagram, of three kinds: **info** (blue: what to do next, or nothing to do), **warning** (amber: something you asked for refused or kept back, or a risk to the file), **error** (red: something you tried that did not happen). `docs/ux.md` says which is which. |
-| **color words** | **info**, **success**, **warning**, **error**: each a background and a text color that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. Warning also has a line color (`--warning-line`), the frame round a diagram locked by a draft. |
+| **color words** | **info**, **success**, **warning**, **error**: each a background and a text color that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
+| **muted** | Gray: shown, but not to be acted on now: the read-only code, and the diagram while the code is being edited (`--muted-bg`). |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
 | **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |

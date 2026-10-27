@@ -4,8 +4,11 @@ html, body { height: 100%; }
 :root {
   --info-bg: #ddf4ff; --info-fg: #0a3069;
   --success-bg: #dafbe1; --success-fg: #1a7f37;
-  --warning-bg: #fff4d6; --warning-fg: #5c4400; --warning-line: #9a6700;
+  --warning-bg: #fff4d6; --warning-fg: #5c4400;
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
+  /* Muted: shown, but not to be acted on now. Whichever of the code and the diagram is read-only has this
+     background. */
+  --muted-bg: #f3f4f6;
   /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
 }
@@ -60,12 +63,9 @@ header .status { color: #666; white-space: nowrap; }
    lines would sit just inside them, cutting off a diagram moved past the edge. */
 #diagram:focus-visible::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
                                 border-block: 2px solid #0969da; }
-/* While the code is being edited the diagram can be looked through, not edited: a frame in the warning's color, a
-   second cue to the notice and the grayed menu items. */
-#diagram.locked::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
-                          box-shadow: inset 0 0 0 3px var(--warning-line); }
-/* The focus ring inside the frame, so each reads on its own. */
-#diagram.locked:focus-visible::after { inset: 3px 0; }
+/* While the code is being edited the diagram can be looked through, not edited: read-only, so muted as the read-only
+   code is, a second cue to the notice and the grayed menu items. */
+#diagram.locked { background: var(--muted-bg); }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #stage svg { display: block; max-width: none; }
 footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid #ddd; display: flex; justify-content: center;
@@ -132,10 +132,10 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #code-panel .code-status:empty { display: none; }
 #code-panel .code-status { white-space: nowrap; }
 #code-panel .code-status.changed { padding: 1px 6px; border-radius: 4px; background: var(--warning-bg); color: var(--warning-fg); }
-/* Editable: white, as a field is, against the read-only code's gray. */
+/* Editable: white, as a field is, against the read-only code's muted gray. */
 #code:not([readonly]) { background: #fff; }
 #code { flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; resize: none; font-family: ui-monospace, monospace;
-        font-size: 13px; line-height: 1.45; color: #222; background: #fafafa; white-space: pre; }
+        font-size: 13px; line-height: 1.45; color: #222; background: var(--muted-bg); white-space: pre; }
 #code:focus { outline: none; }
 #code:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
 /* The handle between the panel and the diagram: drag it, or focus it and use the arrows. */
