@@ -12,7 +12,9 @@ html, body { height: 100%; }
   /* The selection: an outline, and a node's fill; #diagram derives the faint stroke an invisible edge shows. */
   --select: #0969da; --select-bg: #ddf4ff;
   /* Find's marks: amber, apart from the selection's blue. */
-  --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
+  --find-bg: #fff1b8; --find-mark: #bf8700;
+  /* The current match: strong against the plain match mark, so its blink reads at a glance (the user). */
+  --find-current-bg: #ffd33d; --find-current: #4d2d00;
 }
 /* minmax(0, 1fr): the one column is the window's width, never the width of a long line in it (the header's path). */
 body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; grid-template-columns: minmax(0, 1fr);
@@ -177,22 +179,22 @@ body.resizing { user-select: none; }
 #stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *),
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *),
-#stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-bg) !important; }
+#stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-current-bg) !important; }
 /* An edge is marked by its line alone, as the selection's (below) in blue; never its label: a border would cut into a
-   short label's text, and a blinking fill distracts (the user). The current one shows by its line's darker amber. */
+   short label's text, and a blinking fill distracts (the user). The current one shows by its line's near-black amber. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 4.5px !important; }
 #stage path.edge-thickness-invisible[data-page-match] + path[data-page-only] { stroke: rgba(191, 135, 0, 0.3); }
 #stage:not([data-page-blink-off]) path.edge-thickness-invisible[data-page-current] + path[data-page-only] {
-  stroke: rgba(125, 78, 0, 0.3); }
-/* The current edge's line is the darker amber, a color change and not a wider line, which would jitter as it blinks.
+  stroke: rgba(77, 45, 0, 0.3); }
+/* The current edge's line is the near-black amber, a color change and not a wider line, which would jitter as it blinks.
    Its specificity equals the match rules' above: keep it after them. */
 #stage:not([data-page-blink-off]) path[data-page-edge][data-page-current]:not([data-page-only], .edge-thickness-invisible) {
-  stroke: var(--find-text) !important; }
+  stroke: var(--find-current) !important; }
 #stage text.flowchartTitleText[data-page-match] { text-decoration: underline 2px var(--find-mark); }
-#stage:not([data-page-blink-off]) text.flowchartTitleText[data-page-current] { fill: var(--find-text); }
+#stage:not([data-page-blink-off]) text.flowchartTitleText[data-page-current] { fill: var(--find-current); }
 #notice.info { background: var(--info-bg); color: var(--info-fg); }
 #notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
 #notice.error { background: var(--error-bg); color: var(--error-fg); }

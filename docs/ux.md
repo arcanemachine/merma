@@ -130,8 +130,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Find's current match blinks when it becomes current (typing, Tab, reopening; not a drag or a redraw that keeps it),
   a third of a second on and off, the user's rate, seven times, then stays on: WCAG 2.2.2 asks blinking with no
   control to stop it to end within 5 s, and a blink as the current match changes is when it helps. Off is the plain
-  match mark, so the current never leaves the set of matches. An edge blinks by its line's color (darker amber), not
+  match mark, so the current never leaves the set of matches. An edge blinks by its line's color (near-black amber), not
   its width, which would jitter, and not its label (the user: a blinking label distracts). None under reduced motion.
+  Its colors stay amber, never the selection's blue: a blue phase would read as the match being selected, and a
+  selected match would not blink at all.
 - Moving by keyboard, as one model (the user settled each rule in UAT, case by case, as "press X, get Y"):
   - The arrows are screen directions: Up is up, Right is right, wherever you are. Plain arrows walk the edges, two
     presses a step, node, edge, node, so the edge is where you choose (the user found jumping straight to "the next
