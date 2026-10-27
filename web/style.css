@@ -8,9 +8,8 @@ html, body { height: 100%; }
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
   /* Muted: shown, but not to be acted on now. Whichever of the code and the diagram is read-only has this
      background. */
-  --muted-bg: #f3f4f6; --muted-line: #6e7781; --muted-fill: #eaeef2;
-  /* The selection: an outline, a node's fill, and the faint stroke an invisible edge shows. Muted while the diagram is
-     locked (below): blue promises an action, gray says it is not to be had now. */
+  --muted-bg: #f3f4f6;
+  /* The selection: an outline, and a node's fill; #diagram derives the faint stroke an invisible edge shows. */
   --select: #0969da; --select-bg: #ddf4ff;
   /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700; --find-text: #7d4e00;
@@ -66,13 +65,12 @@ header .status { color: #666; white-space: nowrap; }
    lines would sit just inside them, cutting off a diagram moved past the edge. */
 #diagram:focus-visible::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 1;
                                 border-block: 2px solid #0969da; }
-/* Declared here, not on :root: a var() in a custom property is resolved where it is declared, so this follows the
-   locked gray below. */
+/* Declared here, not on :root: a var() in a custom property is resolved where it is declared, so this one follows a
+   --select set on the diagram or inside it. */
 #diagram { --select-faint: color-mix(in srgb, var(--select) 30%, transparent); }
 /* While the code is being edited the diagram can be looked through, not edited: read-only, so muted as the read-only
    code is, a second cue to the notice and the grayed menu items. */
-#diagram.locked { background: var(--muted-bg);
-                  --select: var(--muted-line); --select-bg: var(--muted-fill); }
+#diagram.locked { background: var(--muted-bg); }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 #stage svg { display: block; max-width: none; }
 footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid #ddd; display: flex; justify-content: center;

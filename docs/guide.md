@@ -29,8 +29,7 @@ them.
   back into a draft) and Escape closes it; Escape in the code goes out to the panel. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
-  or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is, and so does the
-  selection. You can still select, move about with the
+  or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
   keys and find (/); a menu still opens, its edits grayed with the reason, Center in window and Find… working. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
   Ctrl+Z there undoes typing, and Escape goes out to the panel, keeping the draft (Ctrl+Enter there saves too; in the
   draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, the
