@@ -248,7 +248,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
-  level, from the code to the panel, from a draft to the read-only code (Cancel, asking if it changed; the user: a
+  level, from the code or a control in the panel's bar to the panel (the panel is a Tab stop too, before the bar), from a draft to the read-only code (Cancel, asking if it changed; the user: a
   keyboard way to cancel without closing), from the panel to the diagram, the panel staying open, and from the
   diagram to closed, as its outermost level (the user): after Connect to…, the selection and a notice, Escape closes
   the panel. With a changed draft it asks first, "Save the code and close the panel? Cancel keeps editing.": the one

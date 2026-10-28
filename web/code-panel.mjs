@@ -154,9 +154,11 @@ export function createCodePanel(els, file, hooks) {
       if (e.target === handle) return false;
       if (plain(e)) scrollCode(e.key);
     } else if (e.key === 'Escape' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-      // A draft is cancelled first, the panel staying open (the user: a keyboard way to cancel without closing); then
-      // out to the diagram, the panel still open, where the next Escape closes it.
-      if (editing) cancelEdit();
+      // One level out a press (the user): from a control in the bar to the panel; on the panel, a draft is cancelled
+      // first, the panel staying open (a keyboard way to cancel without closing); then out to the diagram, the panel
+      // still open, where the next Escape closes it.
+      if (e.target !== panel) panel.focus({ preventScroll: true });
+      else if (editing) cancelEdit();
       else diagram.focus();
     } else if (plain(e) && isTick(e)) {
       diagram.focus();
@@ -174,7 +176,11 @@ export function createCodePanel(els, file, hooks) {
   }
   panel.addEventListener('keydown', (e) => {
     const target = /** @type {Element} */ (e.target);
-    if (target === dockSelect) return;
+    // The Dock select keeps its keys; Escape on it, its list closed (an open list takes the key), goes to the panel.
+    if (target === dockSelect) {
+      if (e.key === 'Escape' && plain(e) && !e.defaultPrevented) { e.preventDefault(); panel.focus({ preventScroll: true }); }
+      return;
+    }
     if (target !== code) { panelKey(e); return; }
     // In the code, a field: Escape goes out to the panel, Enter or F2 edits, ` leaves the read-only code for the
     // diagram (in a draft it types).
