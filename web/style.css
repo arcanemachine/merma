@@ -251,10 +251,10 @@ body.resizing { user-select: none; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
                background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
 .menu button:focus { background: #eef3fb; outline: none; }
-.menu button .more { margin-left: auto; color: #888; }
-.menu button .more + .key { margin-left: 6px; }
+.menu button > span:first-child { margin-right: auto; }
+.menu button .more { width: 1em; text-align: right; color: #888; }
 /* A column of keys, each centered in it, so a narrow letter lines up with a wide one. */
-.menu button .key { margin-left: auto; min-width: 1.5em; text-align: center; font: inherit; color: #57606a; }
+.menu button .key { min-width: 1.5em; text-align: center; font: inherit; color: #57606a; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
 .menu button.separated { margin-top: 5px; position: relative; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }

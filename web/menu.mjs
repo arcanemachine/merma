@@ -70,9 +70,10 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
       const key = item.key ? [Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() })] : [];
       for (const k of key) k.setAttribute('aria-hidden', 'true');
-      // ▸ belongs to the label, so it comes before the key, which keeps its column.
-      const more = item.submenu ? [Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' })] : [];
-      b.replaceChildren(text, ...more, ...key);
+      // A slot for ▸ after the key on every item, empty without a submenu, so the keys keep one column.
+      const more = Object.assign(document.createElement('span'), { className: 'more', textContent: item.submenu ? '▸' : '' });
+      more.setAttribute('aria-hidden', 'true');
+      b.replaceChildren(text, ...key, more);
       if (item.key) b.setAttribute('aria-keyshortcuts', item.key.toUpperCase()); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
