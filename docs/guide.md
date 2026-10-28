@@ -217,7 +217,7 @@ here does just what it does in the selected item's menu:
 | R with an edge selected | Reverse it |
 | C with a node or subgraph selected | Connect to… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
-| Enter with nothing selected | Select the node nearest the middle of the view |
+| Enter with nothing selected | Select again what Escape cleared, else the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
 | / (wherever it is on your keyboard) | Find in the whole diagram (below) |
@@ -229,8 +229,8 @@ here does just what it does in the selected item's menu:
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
-| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead |
-| Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl half of it, with Shift a fiftieth (in any diagram) |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead (the title fits) |
+| Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel (asking to save a changed draft first) |
@@ -288,8 +288,8 @@ edges. A click, a find, O, I, an edit or Escape starts the trail afresh.
 **Ctrl+Arrows skip the edge** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
 box at the far end of the edge the plain arrow would select, else the next thing straight that way. A far end
 inside subgraphs you are not in lands on the outermost of their boxes, so Ctrl goes in a level a press. From an edge,
-Ctrl+Arrow goes to the end that way. With nothing selected, Alt+Left and Alt+Right are the browser's (back and
-forward).
+Ctrl+Arrow goes to the end that way. With nothing selected, Alt+Arrows move the diagram as Ctrl+Arrows do, so Alt+Left and
+Alt+Right don't go back or forward.
 
 **O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
 item you last left it by with O or an arrow, else its top-left one. A click, a find or an edit forgets that. At the

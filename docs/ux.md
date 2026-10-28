@@ -11,9 +11,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Collapsing a subgraph is view state, the page's by design (the user: a collapse in the page never affects the file):
   the page draws the file with Mermaid's own `id@{ view: collapsed }` (or `expanded`) lines after its last byte, so no
   offset moves, and keeps them for the tab (sessionStorage), not for the file. It is no undo step. The default state is
-  the file's, changed by editing the file (the code panel). The code panel, Copy and the `.mmd` export show the file;
-  the SVG export what you see. H toggles it, separate from O and I, which move: I on a collapsed subgraph expands it to
-  go in, and O never collapses (moving out would hide where you were). Escape never expands.
+  the file's, changed by editing the file (the code panel). The code panel and Download Mermaid show the file;
+  Copy SVG and Download SVG show what you see, collapse included. H toggles it, separate from O and I, which move: I
+  on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
+  never expands.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others.
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
@@ -36,7 +37,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   |---|---|---|
   | Add | makes a new thing | Add node, Add connected node |
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
-  | Remove | clears a property; the thing stays | (none yet: emptying a label removes it) |
+  | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Reverse edge; Move (none yet) |
   | Find | looks through the diagram | Find… |
@@ -98,8 +99,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   add back too (the user): it cancels what was started, and what was started is the add. Undo takes a save back, which
   is what makes saving on a click away safe, and a touch screen has no other sure way to save. A press on Undo or Redo
   that started that save, as its click away, does not wait for it: it says the save is still going and to press again,
-  rather than doing nothing silently or two things at once. An emptied label or title (which cannot be saved) is kept
-  as it was, with a notice (the user), and the click goes on as after any save (the reviewer): a click away is not the
+  rather than doing nothing silently or two things at once. An emptied node label or title (which cannot be saved) is
+  kept as it was, with a notice (the user), and the click goes on as after any save (the reviewer): a click away is not the
   deliberate save Enter is, so it does not hold you in the box. Enter on one is refused with an error. What cannot be
   saved for any other reason (a shape the label cannot take, another edit still saving) keeps the box open with its
   error, and the click that left it does nothing. A click away onto another item selects that item once the save is
@@ -219,8 +220,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
     you away).
   - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, as
-    Center in window does in its menu. A fit is a true reset (the user): F, Fit to window and a double-click on empty
-    space always fit the whole diagram, whatever the view was. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
+    Center in window does in its menu. A fit is a true reset (the user): F with nothing selected, Fit to window and a double-click
+    on empty space always fit the whole diagram, whatever the view was. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
     a US keyboard.
   - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
     item itself, so Enter at once makes a self-loop.
@@ -231,7 +232,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. `
   (the code panel) is likewise the key left of 1, or whichever key types it (that place reports another key on ISO
-  keyboards on a Mac); where it is a dead key, it waits for no accent.
+  keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
+  for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
+  Alt+Left and Alt+Right move the diagram rather than go back or forward.
 
 ## The code panel
 
@@ -249,7 +252,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
-  level, from the code or a control in the panel's bar to the panel (the panel is a Tab stop too, before the bar), from a draft to the read-only code (Cancel, asking if it changed; the user: a
+  level, from the code or a control in the panel's bar to the panel (the panel is a Tab stop too, before the bar), from the panel with a draft open to the read-only code (Cancel, asking if it changed; the user: a
   keyboard way to cancel without closing), from the panel to the diagram, the panel staying open, and from the
   diagram to closed, as its outermost level (the user): after Connect to…, the selection and a notice, Escape closes
   the panel. With a changed draft it asks first, "Save the code and close the panel? Cancel keeps editing.": the one
@@ -284,7 +287,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - While editing, a new version of the file does not replace the draft, and the page does not reload itself for a new
   build of merma. Save and Cancel only: Ctrl+Z in the field takes back typing, and Cancel shows the file as it is now,
   so there is nothing for a Revert or a Reload to do. Cancel asks first only when the draft differs. Save and Cancel
-  leave nothing selected, and Undo of a saved draft selects nothing.
+  keep the selection while its item is still drawn, and Undo of a saved draft selects nothing.
 
 ## Grayed out or left out
 
@@ -315,8 +318,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
-- merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id in the file,
-  which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
+- merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
+  already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though
   Mermaid draws it as a frame round the box and may rearrange what is inside.
 - A notice is one of three kinds, by what it means for you; each fits one case only:

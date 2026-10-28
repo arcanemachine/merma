@@ -57,7 +57,7 @@ note where merma had to make one up.
 | **page** | merma in the browser, showing one file. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel, pinch, + and -), **move** (drag, arrows with nothing selected), **fit** (Fit to window, F, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
-| **item** | A node, an edge or a subgraph: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in merma's code means a DOM element. |
+| **item** | A node, an edge, a subgraph or the title: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in merma's code means a DOM element. |
 | **select**, **selection**, **deselect** | Clicking a node, an edge or a subgraph marks it: it is **outlined** in blue. One item at a time, for now. Deselect: let go of it (click empty space, or Escape). |
 | **fan** | The edges leaving a box one way (by their heading), left to right, or top to bottom: Down from a node selects the first of its down fan. merma's own. |
 | **step across** | What the cross arrows do on an edge: to the edge beside it in a fan, never onto a node. Not "page", which is merma in the browser. merma's own. |
@@ -67,8 +67,8 @@ note where merma had to make one up.
 | **place inside** | For each subgraph, the item you last left it by, which I goes back to; kept while keys select, forgotten on a click, a find or an edit. Not the trail. merma's own. |
 | **find** | The / box: every item in the diagram holding what you typed is marked, on screen or off, and Enter selects the current match. The browser's word for the same thing (Find in page); not "search". |
 | **blink** | The find's current match shown on and off a few times as it becomes current, then steady (`docs/ux.md` has the rule). merma's own: Mermaid has no word for it. |
-| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
-| **submenu** | A menu opened from a menu item marked ▸, by a click on it (never by hovering). |
+| **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, the **title menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
+| **submenu** | A menu opened from a menu item marked ▸, by a click on it, its key or Right (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** (Edit arrow type ▸) and the **shape picker**. Shows the current one. |
 | **grayed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
