@@ -711,6 +711,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // the diagram; + (or =) and - zoom; Escape backs out of whatever is open. The view keys (VIEW_KEYS) also work when
   // the diagram is not editable (a sequence diagram still fits and moves).
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
+  /** The edge menu's `action` by its key, on a selected edge: refused, saying why, where the menu grays it. */
+  function edgeKey(/** @type {string} */ action) {
+    if (picking || selected?.kind !== 'edge') return false;
+    const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === action));
+    const state = menuState();
+    if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+    handlers[action]();
+    return true;
+  }
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
     n: () => {
@@ -731,15 +740,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers.connect();
       return true;
     },
-    // R reverses a selected edge, as the edge menu's R does, and is refused as it is grayed there.
-    r: () => {
-      if (picking || selected?.kind !== 'edge') return false;
-      const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === 'reverse-edge'));
-      const state = menuState();
-      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
-      handlers['reverse-edge']();
-      return true;
-    },
+    // R reverses a selected edge, S and E move its start and end, as the edge menu's do, each refused as it is grayed
+    // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
+    r: () => edgeKey('reverse-edge'),
+    s: () => edgeKey('move-start'),
+    e: () => edgeKey('move-end'),
     enter: () => {
       if (picking && candidate?.kind === 'edge') {
         ui.notice(picking === 'connect' ? 'Pick a node or subgraph to connect to: an edge cannot be connected to.'

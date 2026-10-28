@@ -16,6 +16,8 @@ export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
   c: ['connect'],
   r: ['reverse-edge'],
+  s: ['move-start'],
+  e: ['move-end'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -114,7 +116,7 @@ export const MENUS = {
   ],
   subgraph: [
     { action: 'add-node', label: 'Add node', key: 'n' },
-    { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
@@ -123,7 +125,7 @@ export const MENUS = {
   ],
   box: [
     { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
-    { action: 'add-subgraph', label: 'Add subgraph', key: 's', applies: () => false, why: () => EXPAND_FIRST },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 'g', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
@@ -135,7 +137,7 @@ export const MENUS = {
   ],
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
-    { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
+    { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
   ],

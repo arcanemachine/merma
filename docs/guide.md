@@ -225,6 +225,7 @@ here does just what it does in the selected item's menu:
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | R with an edge selected | Reverse it |
+| S or E with an edge selected | Move start to…, or Move end to… |
 | C with a node or subgraph selected | Connect to… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select again what Escape cleared, else the node nearest the middle of the view |
