@@ -232,9 +232,31 @@ export function createCodePanel(els, file, hooks) {
     const base = hooks.snapshot();
     if (base.text === null || !base.version || !hooks.lock()) return;
     setEditing({ base: { text: base.text, version: base.version } });
+    // Setting the value puts the caret at the end, which scrolls there: keep the view, the caret on its first line.
+    const { scrollTop, scrollLeft } = code;
     code.value = base.text;
+    const at = lineStart(code.value, firstLineInView());
+    code.setSelectionRange(at, at);
+    code.scrollTop = scrollTop;
+    code.scrollLeft = scrollLeft;
     code.focus({ preventScroll: true });
   });
+  /** Where line `n` (from 0) of `text` starts; its end when it has fewer lines. */
+  const lineStart = (/** @type {string} */ text, /** @type {number} */ n) => {
+    let at = 0;
+    for (let k = 0; k < n && at < text.length; k++) { const nl = text.indexOf('\n', at); if (nl < 0) return text.length; at = nl + 1; }
+    return at;
+  };
+  /** The code's line height and top padding, px. */
+  function lineBox() {
+    const style = getComputedStyle(code);
+    return { height: parseFloat(style.lineHeight) || 19, top: parseFloat(style.paddingTop) || 0 };
+  }
+  /** The first line (from 0) wholly or partly in view. */
+  function firstLineInView() {
+    const { height, top } = lineBox();
+    return Math.max(0, Math.floor((code.scrollTop - top) / height));
+  }
   async function saveEdit() {
     if (!editing) return;
     if (await hooks.save(code.value, editing.base)) endEdit();
