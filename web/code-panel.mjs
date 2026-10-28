@@ -305,6 +305,8 @@ export function createCodePanel(els, file, hooks) {
         if (confirm('Save the code and close the panel? Cancel keeps editing.')) {
           closing = true;
           saveEdit().then(() => { if (!editing) { setOpen(false); diagram.focus(); } }).finally(() => { closing = false; });
+        } else {
+          code.focus({ preventScroll: true });   // to go on editing, where the cursor was
         }
         return true;
       }

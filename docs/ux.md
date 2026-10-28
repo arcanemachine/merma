@@ -252,8 +252,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   keyboard way to cancel without closing), from the panel to the diagram, the panel staying open, and from the
   diagram to closed, as its outermost level (the user): after Connect to…, the selection and a notice, Escape closes
   the panel. With a changed draft it asks first, "Save the code and close the panel? Cancel keeps editing.": the one
-  Escape in the page that saves (the user), worded so OK cannot read as discard; a reflexive Escape in the question
-  keeps the draft. The mouse reaches the same by Save, then Close;
+  Escape in the page that saves (the user), worded so OK cannot read as discard; Cancel, or a reflexive Escape in the
+  question, keeps the draft, with focus back in the code where the cursor was (the user). The mouse reaches the same by Save, then Close;
   Enter goes in, editing or back into the draft. Save and Cancel land on the panel, as Escape does. On the panel (its
   buttons too) the arrows, Page Up, Page Down, Home and End scroll the code (the user: the panel is where you read it,
   and ` is one key to the diagram); with a modifier they do nothing, so nothing on the panel pans. Every other key

@@ -36,7 +36,7 @@ them.
   draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, the
   panel staying open (the keyboard's Cancel); Escape again goes to the diagram. Escape on the diagram with a changed
   draft asks "Save the code and close the panel? Cancel keeps editing.": OK saves and closes (a draft that is not valid
-  stays open, with the error), Cancel or Escape keeps editing. After Save or Cancel focus is on the panel. Save checks the code is valid
+  stays open, with the error), Cancel or Escape keeps editing, back in the code. After Save or Cancel focus is on the panel. Save checks the code is valid
   Mermaid (any diagram type) and writes it over the file as it was when you pressed Edit: if it has changed since (an
   agent, your editor), the header says "file changed since", Save is refused, and your draft stays; Cancel then shows
   the file as it is now. Cancel, Close or Code ask before throwing away changes. A save is one step for Undo. Edit
