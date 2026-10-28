@@ -26,5 +26,11 @@
   "subGraph3",
   "subGraph6",
   "tight"
+ ],
+ "13-nested-moves.mmd": [
+  "back",
+  "shelf",
+  "shop",
+  "store"
  ]
 }

@@ -115,6 +115,14 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
+- **Move start to…** (S) and **Move end to…** (A), then a click on a node or a subgraph, move that end of the edge
+  there: `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id. A click anywhere
+  else, or Escape, cancels. By keyboard, a dashed outline starts on the end being moved (Enter at once changes
+  nothing); the arrows move it as in Connect to…, and Enter picks it. A self-loop or a second edge between the same
+  two nodes is allowed. The moved edge stays selected, its end tick at the end that moved. It keeps its place in the
+  file, except when it is written inside a subgraph and its new end is named outside it: an edge written in a
+  subgraph pulls both its nodes into it, so its line moves after the file's last edge, and its `linkStyle` number goes
+  with it.
 - **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.
 

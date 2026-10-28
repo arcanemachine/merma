@@ -20,7 +20,7 @@ const EDGE = '\0edge';
  * @param {(item: Item) => void} deps.markCandidate move Connect to…'s candidate
  * @param {(message: string, kind: 'warning') => void} deps.notice
  * @param {() => Element | undefined} deps.titleEl the diagram's title as drawn
- * @param {{ selected(): Item | null, connecting(): boolean, candidate(): Item | null, edgesOk(): boolean }} deps.state
+ * @param {{ selected(): Item | null, picking(): boolean, candidate(): Item | null, edgesOk(): boolean }} deps.state
  */
 export function createKeys({ layout, select, markCandidate, notice, titleEl, state }) {
   /** @type {Cursor} where the selection came from by arrow, since it last changed otherwise */
@@ -28,7 +28,7 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
   /** @type {Cursor} the same for Connect to…'s candidate */
   let candidateCursor = FRESH;
   /**
-   * subgraph → the item last selected inside it, for I; while connecting, where the candidate was. Kept only while
+   * subgraph → the item last selected inside it, for I; while picking, where the candidate was. Kept only while
    * keys select: a click, a find or an edit forgets it (the user). Never pruned: I checks an entry against what is
    * drawn inside now.
    * @type {Map<string, string>}
@@ -39,7 +39,7 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
   /** An arrow key, with Ctrl or not, on the selection or, in Connect to…, the candidate. */
   function arrow(/** @type {string} */ key, /** @type {boolean} */ ctrl) {
     const graph = layout();
-    if (state.connecting()) {
+    if (state.picking()) {
       // The candidate moves by the same rules as the selection, with a trail of its own; it may rest on an edge, which
       // Enter refuses, but never on the title.
       const went = step(graph, state.candidate() ?? selection(), candidateCursor, key, ctrl);
@@ -131,8 +131,8 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
 
   /** O: the subgraph the selection (or, in Connect to…, the candidate) is drawn in; at the top, nothing. */
   function out() {
-    const connecting = state.connecting();
-    const from = connecting ? state.candidate() ?? selection() : state.selected();
+    const picking = state.picking();
+    const from = picking ? state.candidate() ?? selection() : state.selected();
     if (!from || from.kind === 'title') return false;
     const { boxes, edges: lines } = layout();
     let parent = boxes.find((b) => b.id === from.id && b.kind === from.kind)?.parent;
@@ -143,13 +143,13 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     if (!parent) return true;
     const sub = /** @type {Item} */ ({ kind: 'subgraph', id: parent });
     if (from.kind !== 'edge') inside.set(parent, from.id);
-    if (connecting) { markCandidate(sub); candidateCursor = FRESH; } else byKey(sub);
+    if (picking) { markCandidate(sub); candidateCursor = FRESH; } else byKey(sub);
     return true;
   }
   /** I: into the selected subgraph (or candidate), to the item last selected there, else its top-left one. */
   function into() {
-    const connecting = state.connecting();
-    const from = connecting ? state.candidate() : state.selected();
+    const picking = state.picking();
+    const from = picking ? state.candidate() : state.selected();
     if (from?.kind !== 'subgraph') return Boolean(from);
     const { boxes } = layout();
     const children = boxes.filter((b) => b.parent === from.id);
@@ -157,7 +157,7 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     const first = last ?? children.sort((p, q) => p.y - q.y || p.x - q.x)[0];
     if (!first) return true;
     const item = /** @type {Item} */ ({ kind: first.kind, id: first.id });
-    if (connecting) { markCandidate(item); candidateCursor = FRESH; } else byKey(item);
+    if (picking) { markCandidate(item); candidateCursor = FRESH; } else byKey(item);
     return true;
   }
   /** O and I select by key, keeping I's place inside, but start the trail afresh: they are not arrow moves. */
@@ -174,7 +174,7 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
    */
   function other() {
     const sel = state.selected();
-    if (state.connecting() || sel?.kind !== 'edge') return null;
+    if (state.picking() || sel?.kind !== 'edge') return null;
     const to = otherEnd(layout(), sel.id, cursor.came);
     if (!to) return null;
     cursor = { trail: cursor.trail.filter((m) => !(m.to.kind === 'edge' && m.to.id === sel.id)), came: to };

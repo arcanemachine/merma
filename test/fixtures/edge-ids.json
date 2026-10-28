@@ -102,5 +102,15 @@
   "L_charge_record_0",
   "L_record_Shipping_0",
   "L_Shipping_log_0"
+ ],
+ "13-nested-moves.mmd": [
+  "L_start_order_0",
+  "L_order_pick_0",
+  "L_pick_pack_0",
+  "L_scan_shelve_0",
+  "L_pack_ship_0",
+  "L_ship_scan_0",
+  "L_bill_file_0",
+  "L_ship_bill_0"
  ]
 }

@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
-  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines,
+  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -519,6 +519,88 @@ test('reversing pairs of an & product keeps every edge in its place', () => {
 
 test('an edge id stays on its pair when the pair is reversed', () => {
   assert.equal(reverseEdge('flowchart LR\n  A & B e1@--> C\n', 'e1').text, 'flowchart LR\n  A --> C\n  C e1@--> B\n');
+});
+
+for (const [name, ids] of Object.entries(EDGE_IDS)) {
+  const src = fixture(name);
+  const nodes = NODE_IDS[name];
+  for (const svgId of ids) {
+    test(`${name} ${svgId}: retarget moves that end only, in place or after the last edge, and keeps every node`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const before = edges(src), at = before.findIndex((e) => e.svgId === svgId);
+      for (const [end, side] of [['start', 'from'], ['end', 'to']]) {
+        const to = nodes.find((n) => n !== before[at][side]);
+        const { text, index } = retarget(src, svgId, end, to);
+        const moved = sig({ ...before[at], [side]: to });
+        const others = before.filter((_, k) => k !== at).map(sig);
+        const after = edges(text).map(sig);
+        assert.equal(after[index], moved, `${end} to ${to}`);
+        assert.deepEqual(after.filter((_, k) => k !== index), others, `${end} to ${to}`);
+        assert.ok(index === at || index === after.length - 1, `${end} to ${to}: in place or last`);
+        for (const node of nodes) assert.match(text, new RegExp(`(?<![\\p{L}\\p{N}_])${node}(?![\\p{L}\\p{N}_])`, 'u'), node);
+      }
+    });
+  }
+}
+
+test('retarget rewrites a top-level edge in place, its old end keeping its shape', () => {
+  const src = 'flowchart TD\n  A[Start] --> B\n  B --> C\n  linkStyle 0 stroke:red\n';
+  assert.deepEqual(retarget(src, 'L_A_B_0', 'start', 'C'),
+    { text: 'flowchart TD\n  A[Start]\n  C --> B\n  B --> C\n  linkStyle 0 stroke:red\n', index: 0 });
+  // B is still named by the next line, so it needs no line of its own.
+  assert.deepEqual(retarget(src, 'L_A_B_0', 'end', 'C'),
+    { text: 'flowchart TD\n  A[Start] --> C\n  B --> C\n  linkStyle 0 stroke:red\n', index: 0 });
+});
+
+test('retarget keeps a label, a long arrow and an edge id as written', () => {
+  assert.equal(retarget('flowchart TD\n  A -- yes ----> B\n  C\n', 'L_A_B_0', 'end', 'C').text,
+    'flowchart TD\n  A -- yes ----> C\n  B\n  C\n');
+  assert.equal(retarget('flowchart TD\n  A e1@==>|go| B\n  e1@{ animate: true }\n  C\n', 'e1', 'start', 'C').text,
+    'flowchart TD\n  A\n  C e1@==>|go| B\n  e1@{ animate: true }\n  C\n');
+});
+
+test('retarget splits a top-level chain and an & group in place, every edge keeping its number', () => {
+  assert.deepEqual(retarget('flowchart TD\n  A --> B --> C\n  D\n', 'L_B_C_0', 'end', 'D'),
+    { text: 'flowchart TD\n  A --> B\n  B --> D\n  C\n  D\n', index: 1 });
+  assert.deepEqual(retarget('flowchart TD\n  A & B --> C\n  D\n', 'L_A_C_0', 'start', 'D'),
+    { text: 'flowchart TD\n  A\n  D --> C\n  B --> C\n  D\n', index: 0 });
+});
+
+test('retarget keeps an edge in its subgraph when the new end is only ever named there', () => {
+  const src = 'flowchart TD\n  subgraph g\n    A --> B\n    C\n  end\n  D --> A\n';
+  assert.deepEqual(retarget(src, 'L_A_B_0', 'end', 'C'),
+    { text: 'flowchart TD\n  subgraph g\n    A --> C\n    B\n    C\n  end\n  D --> A\n', index: 0 });
+});
+
+test('retarget moves an edge out of its subgraph, after the last edge, when the new end is named outside it', () => {
+  const src = 'flowchart TD\n  subgraph g\n    A --> B\n  end\n  C --> D\n  D --> C\n  linkStyle 0 stroke:red\n  linkStyle 1,2 stroke:blue\n';
+  // Both ends were declared by that line only: they stay in g. linkStyle follows the moved edge to the last place.
+  assert.deepEqual(retarget(src, 'L_A_B_0', 'end', 'C'), {
+    text: 'flowchart TD\n  subgraph g\n    A\n    B\n  end\n  C --> D\n  D --> C\n  A --> C\n  linkStyle 2 stroke:red\n  linkStyle 0,1 stroke:blue\n',
+    index: 2,
+  });
+});
+
+test('retarget out of a subgraph splits a chain there, and carries an edge id with its settings after it', () => {
+  assert.equal(retarget('flowchart TD\n  subgraph g\n    A --> B --> C\n  end\n  D\n', 'L_B_C_0', 'end', 'D').text,
+    'flowchart TD\n  subgraph g\n    A --> B\n    C\n  end\n  B --> D\n  D\n');
+  assert.equal(retarget('flowchart TD\n  subgraph g\n    A e1@--> B\n  end\n  e1@{ animate: true }\n  C --> D\n  D\n', 'e1', 'end', 'C').text,
+    'flowchart TD\n  subgraph g\n    A\n    B\n  end\n  C --> D\n  A e1@--> C\n  e1@{ animate: true }\n  D\n');
+  // With no other edge left, it goes at the end.
+  assert.equal(retarget('flowchart TD\n  subgraph g\n    A e1@--> B\n  end\n  e1@{ animate: true }\n  C\n', 'e1', 'end', 'C').text,
+    'flowchart TD\n  subgraph g\n    A\n    B\n  end\n  C\n  A e1@--> C\n  e1@{ animate: true }\n');
+});
+
+test('retarget onto a subgraph names one with no id, and onto its own end writes nothing', () => {
+  const src = 'flowchart TD\n  A --> B\n  subgraph "Order log"\n    C\n  end\n';
+  assert.equal(retarget(src, 'L_A_B_0', 'end', 'subGraph0').text,
+    'flowchart TD\n  A --> s1\n  B\n  subgraph s1 ["Order log"]\n    C\n  end\n');
+  assert.deepEqual(retarget(src, 'L_A_B_0', 'end', 'B'), { text: src, index: 0 });
+});
+
+test('retarget makes a self-loop or a duplicate edge', () => {
+  assert.equal(retarget('flowchart TD\n  A --> B\n', 'L_A_B_0', 'end', 'A').text, 'flowchart TD\n  A --> A\n  B\n');
+  assert.equal(retarget('flowchart TD\n  A --> B\n  C --> B\n', 'L_C_B_0', 'start', 'A').text, 'flowchart TD\n  A --> B\n  C\n  A --> B\n');
 });
 
 test('setShape between bracket shapes swaps the brackets and keeps the label\'s bytes', () => {

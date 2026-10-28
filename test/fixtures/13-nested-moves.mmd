@@ -1,0 +1,19 @@
+flowchart TD
+  start[Start] --> order
+  subgraph shop [Shop]
+    order[Take order] --> pick
+    subgraph store [Store]
+      pick[Pick items] --> pack[Pack]
+      subgraph shelf [Shelf]
+        scan[Scan] --> shelve[Shelve]
+      end
+    end
+    pack --> ship[Ship]
+    ship --> scan
+  end
+  subgraph back [Back office]
+    bill[Bill] --> file[(File)]
+  end
+  ship --> bill
+  linkStyle 1 stroke:#c00
+  linkStyle 3,6 stroke:#090

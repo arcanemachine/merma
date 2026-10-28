@@ -4,12 +4,14 @@
 // as Mermaid names an arrow, { label } a label as written, or { sameLabel } the label it had. `renamed`: a subgraph
 // given an id, { from, to }; `into`: { id, subgraph } a node or subgraph added inside another; `title`: { id, text }
 // the subgraph retitled, and its new title as written. `shape`: { id, refs } the node given a shape, and that shape
-// written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it.
+// written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it. `move`: { side, to, index } an edge
+// (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphs,
+  relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 // Mermaid's db names for each arrow type: [type, stroke].
@@ -76,6 +78,18 @@ for (const [name, list, src] of sources) {
       const [type, stroke] = DRAWN[arrow];
       const want = { type, stroke, sameLabel: Boolean(e.label) };
       cases.push({ name: `${name} arrow ${arrow} ${e.svgId}`, kind: 'change', src, out: setEdgeArrow(src, e.svgId, arrow).text, at, want });
+    }
+    // Each end moved to every node, and to every subgraph that can be named.
+    const sgs = subgraphs(src).filter((s) => s.end !== null && !subgraphRefusal(src, s.id));
+    for (const [end, side] of [['start', 'from'], ['end', 'to']]) {
+      for (const to of [...list, ...sgs.map((s) => s.id)]) {
+        if (to === e[side]) continue;
+        const sg = sgs.find((s) => s.id === to);
+        const renamed = sg && !sg.written ? { from: sg.id, to: freeId(src, 's') } : null;
+        const { text: out, index } = retarget(src, e.svgId, end, to);
+        cases.push({ name: `${name} move ${end} of ${e.svgId} to ${to}`, kind: 'move', src, out, at, renamed,
+          move: { side, to: renamed?.to ?? to, index } });
+      }
     }
   }
 }

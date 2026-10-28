@@ -15,7 +15,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Copy SVG and Download SVG show what you see, collapse included. H toggles it, separate from O and I, which move: I
   on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
   never expands.
-- No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others.
+- No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one
+  exception is Move start to… or Move end to… on an edge written inside a subgraph block when its new end is named
+  outside that block: an edge line pulls both its ends into its block, so the line moves out, after the last edge,
+  and its `linkStyle` number goes with it (the others after it move down one).
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
 
@@ -39,7 +42,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge; Move (none yet) |
+  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move start to…, Move end to… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |

@@ -107,6 +107,9 @@ export const MENUS = {
     { action: 'edit-label', label: 'Edit label', key: 'e' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
+    { action: 'move-start', label: 'Move start to…', key: 's', mode: true },
+    // No letter of "end" is free (e, n and d are taken), so the key beside S.
+    { action: 'move-end', label: 'Move end to…', key: 'a', mode: true },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],

@@ -89,5 +89,16 @@
   "step",
   "t1",
   "w1"
+ ],
+ "13-nested-moves.mmd": [
+  "bill",
+  "file",
+  "order",
+  "pack",
+  "pick",
+  "scan",
+  "shelve",
+  "ship",
+  "start"
  ]
 }

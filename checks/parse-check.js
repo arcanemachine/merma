@@ -66,11 +66,27 @@
           }
           continue;
         }
-        if (c.kind !== 'delete' && c.kind !== 'change') continue;
+        if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move') continue;
         /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
         const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));
         for (const node of before.getVertices().keys()) if (node !== c.gone && !blocks.has(node) && !vertices.has(node)) fails.push(`${c.name}: ${node} lost`);
         const old = before.getEdges(), left = after.getEdges();
+        if (c.kind === 'move') {
+          /* The moved edge at its new place with its new end, its type, label and linkStyle style; the others in order as they were. */
+          const { side, to, index } = c.move;
+          const want = old.map((a, n) => (n === c.at ? { ...a, [side === 'from' ? 'start' : 'end']: to } : a));
+          const order = [...want.keys()].filter((n) => n !== c.at);
+          order.splice(index, 0, c.at);
+          if (left.length !== old.length) fails.push(`${c.name}: ${left.length} edges, expected ${old.length}`);
+          order.forEach((n, m) => {
+            const a = want[n], b = left[m];
+            if (!b || b.start !== a.start || b.end !== a.end || b.type !== a.type || b.stroke !== a.stroke || b.text !== a.text
+              || JSON.stringify(a.style) !== JSON.stringify(b.style)) {
+              fails.push(`${c.name}: edge ${m} is ${b?.start}->${b?.end} ${JSON.stringify(b?.style)}, expected ${a.start}->${a.end} ${JSON.stringify(a.style)}`);
+            }
+          });
+          continue;
+        }
         if (c.kind === 'change') {
           /* Every edge in its place with its linkStyle style; the changed one turned around if asked, the others as they were. */
           if (left.length !== old.length) fails.push(`${c.name}: ${left.length} edges, expected ${old.length}`);

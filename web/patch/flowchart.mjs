@@ -32,7 +32,10 @@
  * @property {Span & { form: 'bracket' | 'bare' }} title
  */
 /** @typedef {{ from: string, to: string, arrow: string, label: { text: string } | null }} EdgeSig what an edge reads as */
-/** @typedef {{ drop?: boolean, body?: string, reverse?: boolean }} PairChange what to do to one pair of a statement */
+/**
+ * @typedef {{ drop?: boolean, body?: string, reverse?: boolean, from?: string, to?: string }} PairChange what to do to
+ *   one pair of a statement: drop it, give it a new connector, turn it around, or give it another node at one end
+ */
 /** @typedef {{ text: string, ids?: string[] }} Part a statement written in place of another, and the nodes it names */
 /** @typedef {{ s: Statement, parts: Part[] }} Change a statement and what replaces it (nothing: it goes) */
 
@@ -840,18 +843,77 @@ export function reverseEdge(/** @type {string} */ text, /** @type {string} */ sv
 }
 
 /**
+ * Move one end (`start` or `end`) of the edge Mermaid drew as `svgId` to node or subgraph `to`, keeping its connector:
+ * arrow, length, label and edge id. It is rewritten where it is (a pair of its own in a chain or an `&` group), its
+ * old end still declared where that was its only place, so its number and every `linkStyle` stay. But an edge line
+ * pulls both its ends into the subgraph block it is in, so when its block is not where `to` already is, the edge moves
+ * out after the last edge, at the top level, and `linkStyle` numbers follow it. Returns { text, index }: where the edge
+ * is in edges() after.
+ */
+export function retarget(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {'start' | 'end'} */ end, /** @type {string} */ to) {
+  const side = end === 'start' ? 'from' : 'to';
+  const was = locate(text, svgId).e;
+  if (was[side] === to) return { text, index: was.index };
+  // Naming an id-less subgraph moves no edge, so the edge keeps its id.
+  const named = endpoint(text, to);
+  text = named.text;
+  to = named.id;
+  const { e, s, key } = locate(text, svgId);
+  const sgs = subgraphs(text);
+  const block = subgraphsAt(text, s.line, sgs).at(-1);
+  const within = (/** @type {number} */ n) => Boolean(block && block.end !== null && n > block.start && n < block.end);
+  const target = sgs.find((g) => g.id === to && g.end !== null);
+  const stays = !block || (target ? within(target.start) && within(/** @type {number} */ (target.end))
+    : mentions(text, to).every(({ line }) => within(line)));
+  if (stays) {
+    const expect = (/** @type {Edge} */ x) => (x.index === e.index ? { ...x, [side]: to } : x);
+    return { text: transform(text, { at: s.start, pairs: new Map([[key, { [side]: to }]]), expect }), index: e.index };
+  }
+  const link = s.links[e.step];
+  const connector = text.slice(link.start, link.end).slice(link.userId ? link.userId.length + 1 : 0);
+  const userId = e.userId && e.svgId === e.userId ? e.userId : null;
+  // Its settings (`e1@{ animate: true }`) go after it: before it, Mermaid would read them as a node's.
+  const settings = userId ? statements(text).filter((x) => !x.keyword && !x.links.length && x.groups.length === 1
+    && x.groups[0].length === 1 && x.groups[0][0].id === userId && text.startsWith(userId + '@{', x.groups[0][0].start))
+    .map((x) => text.slice(x.start, x.end)) : [];
+  const moved = { from: side === 'from' ? to : e.from, to: side === 'to' ? to : e.to, arrow: e.arrow, label: e.label };
+  const dropped = transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), moved: e,
+    expect: (x) => (x.index === e.index ? null : x) });
+  const line = `${moved.from} ${userId ? userId + '@' : ''}${connector} ${moved.to}`;
+  const out = afterLastEdge(dropped, [line, ...settings]);
+  const skip = new Set([...(userId ? [userId] : []), ...sgs.filter((g) => g.written).map((g) => /** @type {string} */ (g.id))]);
+  check(text, out, (x) => (x.index === e.index ? null : x), null, skip, [moved]);
+  return { text: out, index: edges(out).length - 1 };
+}
+
+/**
+ * Lines inserted at the top level just after the last edge, so that whatever follows the edges (`linkStyle`, an edge's
+ * `@{ … }`) still does: after its line, or after the `end` of the outermost subgraph it is in.
+ */
+function afterLastEdge(/** @type {string} */ text, /** @type {string[]} */ body) {
+  const lastEdge = statements(text).filter((s) => s.links.length).at(-1);
+  const outer = lastEdge && subgraphsAt(text, lastEdge.line).at(0);
+  const n = !lastEdge ? lastContentLine(text) : outer ? outer.end ?? lastContentLine(text) : lastEdge.line;
+  const indent = statementIndent(text);
+  return [...body].reverse().reduce((t, b) => insertAfter(t, n, b, indent), text);
+}
+
+/**
  * The text with the statement at `at` rewritten by `pairs` (per `"step i j"`: { drop }, { body } a new connector, or
- * { reverse }), or with node `gone` taken out of every statement. `removed`: the edges this deletes, whose `linkStyle`
- * numbers go and whose `e1@{ … }` lines go. `expect(edge)`: each old edge as it should read after, or null.
+ * { reverse }, or { from } / { to }: another node at that end), or with node `gone` taken out of every statement.
+ * `removed`: the edges this deletes, whose `linkStyle` numbers go and whose `e1@{ … }` lines go. `moved`: an edge taken
+ * out to be written again after the last edge, whose `linkStyle` number becomes the last and whose `e1@{ … }` lines
+ * go (the caller writes them again after it). `expect(edge)`: each old edge as it should read after, or null.
  * @param {string} text
  * @param {object} options
  * @param {number} [options.at]
  * @param {Map<string, PairChange>} [options.pairs]
  * @param {string | null} [options.gone]
  * @param {Edge[]} [options.removed]
+ * @param {Edge | null} [options.moved]
  * @param {((e: Edge) => EdgeSig | null) | null} [options.expect]
  */
-function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], expect = null }) {
+function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], moved = null, expect = null }) {
   const all = statements(text);
   /** @type {Change[]} */
   const changes = [];
@@ -877,14 +939,18 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
   }
 
   const indexes = new Set(removed.map((e) => e.index));
-  const userIds = new Set(removed.filter((e) => e.userId && e.svgId === e.userId).map((e) => e.userId));
+  const userIds = new Set([...removed, ...(moved ? [moved] : [])].filter((e) => e.userId && e.svgId === e.userId).map((e) => e.userId));
+  const last = moved ? edges(text).length - 1 : -1;
+  // The number an edge has after: one removed has none (filtered out first); one moved is last, the ones after it one less.
+  const renumber = (/** @type {number} */ n) => (moved && n === moved.index ? last
+    : n - [...indexes].filter((r) => r < n).length - (moved && n > moved.index ? 1 : 0));
   for (const s of all) {
     const body = text.slice(s.start, s.end);
     if (s.keyword === 'linkStyle') {
       const m = body.match(/^(linkStyle\s+)(\d+(?:\s*,\s*\d+)*)/);
       if (!m) continue;
       const nums = m[2].split(/\s*,\s*/).map(Number);
-      const left = nums.filter((n) => !indexes.has(n)).map((n) => n - [...indexes].filter((r) => r < n).length);
+      const left = nums.filter((n) => !indexes.has(n)).map(renumber);
       if (left.join() === nums.join()) continue;
       changes.push({ s, parts: left.length ? [{ text: m[1] + left.join(',') + body.slice(m[0].length) }] : [] });
     } else if (gone && (s.keyword === 'style' || s.keyword === 'click')) {
@@ -908,14 +974,14 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
 }
 
 /**
- * Throw unless `out`'s edges are `expect` applied to `text`'s, in order, and every node of `text` (but `gone`, and
- * the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still named. No
- * test reaches the throw: it catches a bug in the rewriting, not an input.
+ * Throw unless `out`'s edges are `expect` applied to `text`'s, in order, then `added`, and every node of `text` (but
+ * `gone`, and the ids in `skip`: edge ids, whose `e1@{ … }` lines read as node statements, and subgraph ids) is still
+ * named. No test reaches the throw: it catches a bug in the rewriting, not an input.
  */
 function check(/** @type {string} */ text, /** @type {string} */ out, /** @type {(e: Edge) => EdgeSig | null} */ expect, /** @type {string | null} */ gone = null,
-  skip = new Set()) {
+  skip = new Set(), /** @type {EdgeSig[]} */ added = []) {
   const sig = (/** @type {EdgeSig} */ e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
-  const want = edges(text).map(expect).filter((e) => e !== null).map(sig);
+  const want = [...edges(text).map(expect).filter((e) => e !== null), ...added].map(sig);
   const nodes = (/** @type {string} */ t) => new Set(statements(t).flatMap((s) => s.groups.flat().map((r) => r.id)));
   const after = nodes(out);
   const lost = [...nodes(text)].some((n) => n !== gone && !skip.has(n) && !after.has(n));
@@ -948,20 +1014,25 @@ function rewrite(text, s, { pairs, gone, stays }) {
     /** @type {PairChange} */
     const c = pairs.get(`${step} ${i} ${j}`) ?? {};
     if (!alive(step, i) || !alive(step + 1, j) || c.drop) return null;
-    return { body: c.body ?? bodyOf(step), reverse: Boolean(c.reverse) };
+    return { body: c.body ?? bodyOf(step), reverse: Boolean(c.reverse), from: c.from, to: c.to };
   };
 
   const blocks = L.map((_, step) => {
     const S = indexes(step), E = indexes(step + 1);
     const every = S.flatMap((i) => E.map((j) => pair(step, i, j)));
     const first = every[0];
-    if (first && every.every((p) => p && !p.reverse && p.body === first.body)) {
+    if (first && every.every((p) => p && !p.reverse && !p.from && !p.to && p.body === first.body)) {
       return { whole: true, rows: [{ starts: S, segs: [{ ends: E, body: first.body, reverse: false }] }] };
     }
-    /** @typedef {{ ends: number[], body: string, reverse: boolean }} Seg a connector from one start to some ends */
+    /**
+     * A connector from one start to some ends. `from`, `to`: a node written in place of the start or the end, a pair
+     * of its own.
+     * @typedef {{ ends: number[], body: string, reverse: boolean, from?: string, to?: string }} Seg
+     */
     /** @type {{ starts: number[], segs: Seg[] }[]} */
     const rows = [];
-    const plain = (/** @type {Seg[]} */ segs) => segs.length === 1 && !segs[0].reverse;
+    const own = (/** @type {{ reverse: boolean, from?: string, to?: string }} */ p) => p.reverse || Boolean(p.from || p.to);
+    const plain = (/** @type {Seg[]} */ segs) => segs.length === 1 && !own(segs[0]);
     for (const i of S) {
       /** @type {Seg[]} */
       const segs = [];
@@ -969,8 +1040,8 @@ function rewrite(text, s, { pairs, gone, stays }) {
         const p = pair(step, i, j);
         if (!p) continue;
         const last = segs.at(-1);
-        if (last && !last.reverse && !p.reverse && last.body === p.body) last.ends.push(j);
-        else segs.push({ ends: [j], body: p.body, reverse: p.reverse });
+        if (last && !own(last) && !own(p) && last.body === p.body) last.ends.push(j);
+        else segs.push({ ends: [j], body: p.body, reverse: p.reverse, from: p.from, to: p.to });
       }
       if (!segs.length) continue;
       const prev = rows.at(-1);
@@ -983,9 +1054,12 @@ function rewrite(text, s, { pairs, gone, stays }) {
 
   /** @type {Set<string>} */
   const covered = new Set();
+  // A ref a retargeted pair no longer writes is not covered by it.
   blocks.forEach((b, step) => b.rows.forEach((r) => {
-    for (const i of r.starts) covered.add(`${step} ${i}`);
-    for (const seg of r.segs) for (const j of seg.ends) covered.add(`${step + 1} ${j}`);
+    for (const seg of r.segs) {
+      if (!seg.from) for (const i of r.starts) covered.add(`${step} ${i}`);
+      if (!seg.to) for (const j of seg.ends) covered.add(`${step + 1} ${j}`);
+    }
   }));
   const ref = (/** @type {number} */ g, /** @type {number} */ i) => text.slice(G[g][i].start, G[g][i].end);
   const loose = G.map((_, g) => indexes(g).filter((i) => !covered.has(`${g} ${i}`))
@@ -1001,6 +1075,7 @@ function rewrite(text, s, { pairs, gone, stays }) {
     written.add(`${g} ${i}`);
     return ref(g, i);
   }).join(' & ');
+  const node = (/** @type {string} */ id) => { ids.push(id); return id; };
   // The edge id (`e1@`) names the last start × first end of its step; it stays on that pair only.
   const link = (/** @type {number} */ step, /** @type {number[]} */ starts, /** @type {{ ends: number[], body: string }} */ seg) => {
     const named = L[step].userId && starts.at(-1) === G[step].length - 1 && seg.ends[0] === 0;
@@ -1024,9 +1099,9 @@ function rewrite(text, s, { pairs, gone, stays }) {
       flush();
       for (const { starts, segs } of b.rows) {
         for (const seg of segs) {
-          parts.push(seg.reverse
-            ? `${group(g + 1, seg.ends)} ${link(g, starts, seg)} ${group(g, starts)}`
-            : `${group(g, starts)} ${link(g, starts, seg)} ${group(g + 1, seg.ends)}`);
+          const a = seg.from ? node(seg.from) : group(g, starts);
+          const b = seg.to ? node(seg.to) : group(g + 1, seg.ends);
+          parts.push(seg.reverse ? `${b} ${link(g, starts, seg)} ${a}` : `${a} ${link(g, starts, seg)} ${b}`);
         }
       }
     }

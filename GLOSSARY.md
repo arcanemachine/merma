@@ -25,6 +25,7 @@ Mermaid syntax.
 | **label** | The text shown on a node or an edge. |
 | **shape** | How a node is drawn: `[box]`, `(rounded)`, `{decision}`, `((circle))`… or `@{ shape: … }`. Each has a name and a **meaning**, Mermaid's "Shape Name" and "Semantic Name": Diamond (Decision). |
 | **edge** | A line between two nodes (Mermaid's term in its ids and current docs; its older docs say "link"). |
+| **start**, **end** | Of an edge: the node or subgraph it is written from, and the one it goes to (Mermaid's words in its edge data; "source" and "target" mean the same). Move start to… and Move end to… move them. |
 | **heading** | Of an edge at one of its ends: up, down, left or right, the way it goes as it leaves that end (`docs/ux.md` says how it is measured). merma's own: Mermaid has no word for it, and the arrow keys need one. |
 | **arrow** | An edge's connector syntax without its label: `-->`, `---`, `-.->`, `==>`, `--o`, `--x`, `<-->`, `~~~`… |
 | **arrow type** | Which of those an arrow is, at any length (`---->` is a long `-->`): Arrow, Line, Dotted arrow, Dotted line, Thick arrow, Thick line, Circle, Cross, Two-way arrow (Mermaid: "multi directional"), Invisible. |

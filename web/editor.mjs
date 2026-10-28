@@ -15,7 +15,7 @@ import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, nodeIdFromSvgId,
-  relabel, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
+  relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { createPicker } from './picker.mjs';
@@ -44,7 +44,8 @@ const END_GAP = 4;
  * @typedef {object} EditOptions
  * @property {(result: any, entry: import('./history.mjs').Entry) => void} [afterSave]
  * @property {import('./history.mjs').Entry | null} [into]
- * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean, others?: Item[], reveal?: boolean } | null)} [after]
+ * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean, others?: Item[], reveal?: boolean, far?: boolean } | null)} [after]
+ *   `far`: an edge selected counts from its target
  * @property {boolean} [keep]
  */
 
@@ -78,8 +79,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** @type {{ subs: import('./collapse.mjs').SubgraphInfo[], overrides: import('./collapse.mjs').Overrides }} */
   let collapse = { subs: [], overrides: new Map() };   // how the shown drawing's subgraphs are collapsed
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
-  let connecting = false;     // after "Connect to…": the next node or subgraph clicked is the edge's target
-  /** @type {Item | null} while connecting by keys: the node or subgraph the arrows have reached, which Enter connects to */
+  /**
+   * The wait for a node or subgraph to be picked (clicked, or Enter on the dashed outline), and what the pick does:
+   * Connect to… makes an edge to it; Move start to… and Move end to… move that end of the selected edge there.
+   * @type {null | 'connect' | 'start' | 'end'}
+   */
+  let picking = null;
+  /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
   let candidate = null;
   /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
   let cleared = null;
@@ -93,7 +99,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * whose menu opens even though the edit closed every menu. `others`: where to go instead, in order, when `item` is
    * not drawn; `reveal`: brought into view and read out, as a key's selection is, after `say` (what was done) in one
    * line.
-   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string } | null}
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string, far?: boolean } | null}
    */
   let pending = null;
   const history = createHistory();
@@ -225,17 +231,31 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
+  /** Move start to… or Move end to… on the selected edge: the dashed outline starts on the end being moved. */
+  function startMove(/** @type {'start' | 'end'} */ end) {
+    const shown = shownEdge(selection().id);
+    if (!shown) return;
+    picking = end;
+    moves.forgetCandidate();
+    const id = end === 'start' ? shown.from : shown.to;
+    markCandidate({ kind: subgraphs(shownText).some((g) => g.id === id) ? 'subgraph' : 'node', id }, { quiet: true });
+    ui.notice(`Click the node or subgraph the edge should ${end === 'start' ? 'start from' : 'end at'}, or move the `
+      + 'dashed outline to it with the arrows and press Enter. Click away or press Escape to cancel.', 'info');
+  }
+
   /** @type {Record<string, () => void>} */
   const handlers = {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => {
-      connecting = true;
+      picking = 'connect';
       moves.forgetCandidate();
       // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
       markCandidate(selection(), { quiet: true });
       ui.notice('Click the node or subgraph the edge goes to, or move the dashed outline to it with the arrows and press '
         + 'Enter (on this one, a self-loop). Click away or press Escape to cancel.', 'info');
     },
+    'move-start': () => startMove('start'),
+    'move-end': () => startMove('end'),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -370,8 +390,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     ui.selected(sel);
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
-    if (!keepMode) connecting = false;
-    if (!menu || connecting) return;
+    if (!keepMode) picking = null;
+    if (!menu || picking) return;
     if (sel.kind === 'edge') {
       const arrow = shownEdge(sel.id)?.arrow ?? '';
       arrowPicker.current(arrowType(arrow), arrow);
@@ -502,7 +522,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     unmark();
     selected = null;
     ui.selected(null);
-    connecting = false;
+    picking = null;
     closeMenus();
   }
 
@@ -565,22 +585,49 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (ended()) return;
     const item = itemAt(target);
     clickedDuringEdit(item);
-    if (connecting) { connectTo(item?.kind === 'edge' ? null : item); return; }
+    if (picking) { pick(item?.kind === 'edge' ? null : item); return; }
     if (item) { select(item); if (!Number.isNaN(x)) countFromClick(target, x, y); } else { deselect(); cleared = null; clearedCursor = null; if (!keptClick) ui.hideNotice(); }
     keptClick = false;
   }
 
-  /** Leave Connect to… with nothing connected: by Escape or a click away. */
-  function cancelConnect() {
-    connecting = false;
+  /** Leave Connect to… or a move with nothing done: by Escape or a click away. */
+  function cancelPick() {
+    picking = null;
     ui.hideNotice();
     select(selection());
   }
 
-  /** End Connect to… on `to`, a click's or Enter's: an edge from the selection to it, or nothing for null. */
+  /** End the wait on `to`, a click's or Enter's (null: a click on empty space). */
+  function pick(/** @type {Item | null} */ to) {
+    if (picking === 'connect') connectTo(to);
+    else moveTo(to);
+  }
+
+  /** End Move start to… or Move end to… on `to`: that end of the selected edge moved there, or nothing for null. */
+  function moveTo(/** @type {Item | null} */ to) {
+    const edge = selection();   // the wait starts on the selected edge
+    const end = /** @type {'start' | 'end'} */ (picking);
+    picking = null;
+    ui.hideNotice();
+    if (!to) { deselect(); return; }
+    if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(edge); return; }
+    // Onto the end it has: nothing changed, so nothing is written (the outline starts there).
+    if (shownEdge(edge.id)?.[end === 'start' ? 'from' : 'to'] === to.id) { select(edge); return; }
+    const name = named(to);
+    editDrawn((text) => retarget(text, edge.id, end, to.id), {
+      afterSave: () => ui.announce(`Moved the edge's ${end} to ${name}`),
+      // Found by its place, which retarget returns; its counted end is the one moved, so the tick shows where it went.
+      after: (result) => {
+        const e = edges(result.text)[result.index];
+        return e ? { item: { kind: 'edge', id: e.svgId }, far: end === 'end' } : null;
+      },
+    });
+  }
+
+  /** End Connect to… on `to`: an edge from the selection to it, or nothing for null. */
   function connectTo(/** @type {Item | null} */ to) {
     const from = selection();   // Connect to… starts from the selection
-    connecting = false;
+    picking = null;
     ui.hideNotice();
     if (!to) { deselect(); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
@@ -604,7 +651,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, byKey = false) {
     if (!selectable) return false;
     if (byKey) { keys.m(); return true; }
-    if (connecting) return true;
+    if (picking) return true;
     if (ended()) return true;
     const item = itemAt(target);
     clickedDuringEdit(item, true);
@@ -662,16 +709,16 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
     n: () => {
-      if (connecting) return false;
+      if (picking) return false;
       const from = selectedNode();
       if (from) addAndName((text) => addConnected(text, from));
       else handlers['add-node']();
       return true;
     },
     // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is grayed there. While
-    // connecting it does nothing: Escape or a click away is the way out of every wait (the user), as the notice says.
+    // a pick is waited for it does nothing: Escape or a click away is the way out of every wait (the user), as the notice says.
     c: () => {
-      if (connecting) return true;
+      if (picking) return true;
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[selected.kind].find((i) => i.action === 'connect'));
       const state = menuState();
@@ -681,7 +728,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
     // R reverses a selected edge, as the edge menu's R does, and is refused as it is grayed there.
     r: () => {
-      if (connecting || selected?.kind !== 'edge') return false;
+      if (picking || selected?.kind !== 'edge') return false;
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === 'reverse-edge'));
       const state = menuState();
       if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
@@ -689,11 +736,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     enter: () => {
-      if (connecting && candidate?.kind === 'edge') {
-        ui.notice('Pick a node or subgraph to connect to: an edge cannot be connected to.', 'warning');
+      if (picking && candidate?.kind === 'edge') {
+        ui.notice(picking === 'connect' ? 'Pick a node or subgraph to connect to: an edge cannot be connected to.'
+          : `Pick a node or subgraph to move the edge's ${picking} to: an edge cannot be one.`, 'warning');
         return true;
       }
-      if (connecting) { if (candidate) connectTo(candidate); return Boolean(candidate); }
+      if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
       if (selected) { editLabelOrTitle(selected); return true; }
       // What Escape cleared comes back, while it is still drawn; else the middle node.
       if (cleared && elsOf(cleared).length) {
@@ -710,11 +758,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (id) selectByKey({ kind: 'node', id });
       return Boolean(id);
     },
-    f2: () => selected && !connecting && (editLabelOrTitle(selected), true),
-    delete: () => selected && !connecting && (deleteSelected(), true),
-    backspace: () => selected && !connecting && (deleteSelected(), true),
+    f2: () => selected && !picking && (editLabelOrTitle(selected), true),
+    delete: () => selected && !picking && (deleteSelected(), true),
+    backspace: () => selected && !picking && (deleteSelected(), true),
     m: () => {
-      if (connecting) return false;
+      if (picking) return false;
       if (selected) { select(selected, { menu: true }); return true; }
       const r = els.diagram.getBoundingClientRect();
       openSpaceMenu(r.left + r.width / 2, r.top + r.height / 2);
@@ -733,14 +781,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     o: () => moves.out(),
     // I on a collapsed subgraph expands it first: what it holds must be drawn to go into.
     i: () => {
-      const at = connecting ? candidate : selected;
+      const at = picking ? candidate : selected;
       if (!at || !isBox(at)) return moves.into();
       ui.setView(at.id, 'expanded').then(() => moves.into());
       return true;
     },
     // H collapses a selected subgraph, or expands it, as its menu's H does: page-only.
     h: () => {
-      if (connecting || selected?.kind !== 'subgraph') return false;
+      if (picking || selected?.kind !== 'subgraph') return false;
       const box = isBox(selected);
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[box ? 'box' : 'subgraph']
         .find((i) => i.action === (box ? 'expand-subgraph' : 'collapse-subgraph')));
@@ -749,7 +797,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers[item.action]();
       return true;
     },
-    '/': () => { if (connecting) return false; openFind(); return true; },
+    '/': () => { if (picking) return false; openFind(); return true; },
     // Space: the selected edge counts as reached from its other end, whose edges the cross arrows then step.
     ' ': () => {
       const to = moves.other();
@@ -768,7 +816,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // diagram (ui.escape: the code panel). It is claimed only when it let go of something, so that otherwise the
     // browser's own use of it goes ahead.
     escape: () => {
-      if (connecting) { cancelConnect(); return true; }
+      if (picking) { cancelPick(); return true; }
       const had = Boolean(selected);
       if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
       deselect();
@@ -843,7 +891,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     markCandidate: (item) => markCandidate(item),
     notice: (message, kind) => ui.notice(message, kind),
     titleEl,
-    state: { selected: () => selected, connecting: () => connecting, candidate: () => candidate, edgesOk: () => edgesOk },
+    state: { selected: () => selected, picking: () => picking !== null, candidate: () => candidate, edgesOk: () => edgesOk },
   });
   /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
   function markCandidate(/** @type {Item} */ item, { quiet = false } = {}) {
@@ -1050,7 +1098,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // As for /: find selects, and nothing is selected in a diagram that cannot be.
     if (!selectable) return;
     if (finding) { closeFind(null); return; }
-    if (connecting) cancelConnect();
+    if (picking) cancelPick();
     openFind();
   });
   // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and
@@ -1074,7 +1122,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const at = /** @type {Node} */ (e.target);
     if (els.diagram.contains(at) || els.find.contains(at)) return;
     if (finding && !els.findToggle.contains(at)) closeFind(null);
-    if (connecting) cancelConnect();
+    if (picking) cancelPick();
     closeMenus();
   });
   /**
@@ -1677,6 +1725,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         // meanwhile, with its menu.
         if (next.reveal) selectByKey(item, next.say);
         else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
+        if (next.far && item.kind === 'edge') { moves.countFrom(otherEnd(layout(), item.id, null)); markEnd(); }
         if (next.label) { openLabelBox(item); revealLabelBox(item); }
         return;
       }
@@ -1697,7 +1746,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * edit here is under way.
      */
     lockForCode() {
-      if (labelling || connecting) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
+      if (labelling || picking) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
       // A press that started a save as its click away (the label box's) does not wait for it, as for Undo.
       if (busy) { ui.notice('Not started: another edit is still saving; try again.', 'error'); return false; }
       locked = true;
@@ -1739,7 +1788,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
     state: () => ({
       selected: selectedNode(), selectedEdge: selected?.kind === 'edge' ? selected.id : null,
-      selectedSubgraph: selectedSubgraph(), connecting, editable, edgesOk,
+      selectedSubgraph: selectedSubgraph(), picking, editable, edgesOk,
     }),
 
     /**
@@ -1750,6 +1799,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     redo: () => (busy ? ui.notice('Not redone: another edit is still saving; try again.', 'error') : redo()),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
-    idle: () => !busy && !labelling && !connecting && !locked,
+    idle: () => !busy && !labelling && !picking && !locked,
   };
 }
