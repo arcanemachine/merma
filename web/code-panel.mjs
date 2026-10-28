@@ -324,10 +324,10 @@ export function createCodePanel(els, file, hooks) {
     const style = getComputedStyle(code);
     return { height: parseFloat(style.lineHeight) || 19, top: parseFloat(style.paddingTop) || 0 };
   }
-  /** The first line (from 0) wholly or partly in view. */
+  /** The first line (from 0) wholly in view: one cut off at the top would put the caret out of sight. */
   function firstLineInView() {
     const { height, top } = lineBox();
-    return Math.max(0, Math.floor((code.scrollTop - top) / height));
+    return Math.max(0, Math.ceil((code.scrollTop - top) / height));
   }
   async function saveEdit() {
     if (!editing) return;
