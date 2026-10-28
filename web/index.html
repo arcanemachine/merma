@@ -24,6 +24,7 @@
         <span class="code-file" id="code-file"></span>
         <span class="code-status" id="code-status" role="status"></span>
         <span class="code-actions">
+          <label class="code-follow" title="Scroll the code to the selected item's line"><input type="checkbox" id="code-follow"> Follow selection</label>
           <label class="code-dock">Dock <select id="code-dock">
             <option value="default">Default</option>
             <option value="left">Left</option>
@@ -36,7 +37,7 @@
           <button type="button" id="code-close">Close</button>
         </span>
       </div>
-      <textarea id="code" readonly wrap="off" spellcheck="false" aria-label="Mermaid code"></textarea>
+      <div class="code-wrap"><div id="code-band" hidden></div><textarea id="code" readonly wrap="off" spellcheck="false" aria-label="Mermaid code"></textarea></div>
     </section>
     <div id="code-handle" role="separator" tabindex="0" aria-label="Resize code panel" aria-controls="code-panel" hidden></div>
     <div id="notice"></div>

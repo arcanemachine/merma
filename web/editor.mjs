@@ -60,7 +60,7 @@ const END_GAP = 4;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -367,6 +367,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!again && !moving) moves.forget();
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
+    ui.selected(sel);
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
     if (!keepMode) connecting = false;
@@ -500,6 +501,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function deselect() {
     unmark();
     selected = null;
+    ui.selected(null);
     connecting = false;
     closeMenus();
   }

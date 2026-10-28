@@ -261,6 +261,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   first. ` into the panel is a click into it, and opening it the footer's Code pressed: each ends find and Connect
   to… as the mouse's click does. Close puts focus back on the footer's Code.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
+- Follow selection (the user: a box, checked by default, the browser's for every file): checked, it always follows,
+  reading or editing, so there is one rule to keep in mind; unchecked, never. Each new selection (click, tap, keys,
+  find's Enter, undo's) bands the item's lines in the selection's pale blue behind the text, puts the caret at their
+  start and scrolls them to the middle of the view, smoothly (at once under reduced motion), unless they are in view
+  already, so walking neighbors does not shake the code. A new version of the file moves the band to the item's new
+  lines but never scrolls: someone else's save does not move what you read. The band goes when the code gets focus,
+  whose own caret then marks the place, and nothing moves while it has focus. Find's matches are not a selection: Tab
+  leaves the code alone, Enter on a match follows. The lines: a node's first statement giving it a shape or label, an
+  edge's statement, a subgraph's `subgraph` line, the title's `title:` line. Edit starts on them; with nothing to
+  follow, on the first line in view.
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
   diagram can be looked through, not edited (the user: "just because I am editing doesn't mean I don't want to
   navigate it"). Selecting, the keys that move about, and find work; every edit, Undo and Redo included, is refused

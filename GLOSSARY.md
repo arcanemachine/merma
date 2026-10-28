@@ -75,6 +75,7 @@ note where merma had to make one up.
 | **node panel** | A node's label box with the shape picker under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
 | **code panel** | The file's code beside the diagram, following the file as the diagram does; Code in the footer opens it, and its Edit edits the code. merma's own: Mermaid has no word for it. |
 | **draft** | The code panel's code while it is being edited, not yet saved. The page says "Editing"; the word is the docs'. |
+| **follow** | The code panel's Follow selection: the code scrolls to the selected item's statement, banded in pale blue. merma's own. |
 | **dock** | Where the code panel sits: left of the diagram, above it or below it. Default is left on a window wider than tall, else below. |
 | **shape picker** | The picker laid under a node's label box: click a shape, or Down from the label goes into it. |
 | **toast** | A short message at the top right that fades on its own, for a result not visible on screen: "Copied!", "SVG downloaded". Never an error. |

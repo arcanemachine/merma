@@ -7,7 +7,7 @@ import { EXPORT_MENU, NO_SUBGRAPH_MATCH } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
 import { prune, setView, viewText } from './collapse.mjs';
-import { subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
+import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
 // Every id the page asks for is in index.html.
@@ -50,6 +50,8 @@ function restoreView() {
 const collapseKey = 'merma:collapse:' + file;
 /** @type {import('./collapse.mjs').Overrides} */
 let overrides = new Map();
+/** @type {{ kind: string, id: string } | null} the item the code panel follows */
+let followed = null;
 /** @type {import('./collapse.mjs').SubgraphInfo[]} the subgraphs of the text last drawn, when merma reads them too */
 let shownSubs = [];
 try { overrides = new Map(JSON.parse(sessionStorage.getItem(collapseKey) ?? '[]')); } catch { /* nothing kept */ }
@@ -132,6 +134,12 @@ const ui = {
     const { text } = source.snapshot();
     if (text !== null) await display(text);
   },
+  /** The selection changed (or was drawn again): the code panel follows it, when its box is checked. */
+  selected(/** @type {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string } | null} */ item) {
+    if (item?.kind === followed?.kind && item?.id === followed?.id) return;
+    followed = item;
+    codePanel.follow(item && ((text) => itemLines(text, item)));
+  },
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -161,7 +169,8 @@ const codePanel = createCodePanel({
   main: el('main'), panel: el('code-panel'), code: /** @type {HTMLTextAreaElement} */ (el('code')),
   dock: /** @type {HTMLSelectElement} */ (el('code-dock')), handle: el('code-handle'), close: el('code-close'),
   toggle: el('code-toggle'), diagram: el('diagram'), edit: el('code-edit'), save: el('code-save'),
-  cancel: el('code-cancel'), status: el('code-status'),
+  cancel: el('code-cancel'), status: el('code-status'), follow: /** @type {HTMLInputElement} */ (el('code-follow')),
+  band: el('code-band'),
 }, file, {
   snapshot: () => source.snapshot(),
   lock: () => editor?.lockForCode() ?? false,

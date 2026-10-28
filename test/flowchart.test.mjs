@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
-  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle,
+  setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -674,4 +674,24 @@ test('setTitle refuses a file with no frontmatter title, or one over several lin
   assert.throws(() => setTitle('---\ntitle: >\n  long\n---\nflowchart TD\n', 'x'), /several lines/);
   // A `title:` line after the frontmatter is not the title.
   assert.throws(() => setTitle('---\nconfig: {}\n---\ntitle: no\nflowchart TD\n', 'x'), /no title/);
+});
+
+test('itemLines: the statement the code panel shows for each kind of item', () => {
+  const text = [
+    '---', 'title: Orders', '---', 'flowchart TD',
+    '  start --> ok & x', '  ok{Paid?} -->|yes| ship', '  x:::hot@{ shape: doc, label: "X" }',
+    '  subgraph pay [Payment]', '    ok --> x', '  end', '  ship ~~~ x',
+  ].join('\n');
+  const at = (/** @type {Parameters<typeof itemLines>[1]} */ item) => itemLines(text, item)?.from ?? null;
+  assert.equal(at({ kind: 'node', id: 'ok' }), 5, 'the mention that shapes it, not the first');
+  assert.equal(at({ kind: 'node', id: 'x' }), 6, 'an @{ } after a class counts');
+  assert.equal(at({ kind: 'node', id: 'start' }), 4, 'never shaped: its first mention');
+  assert.equal(at({ kind: 'edge', id: 'L_ok_x_0' }), 8);
+  assert.equal(at({ kind: 'edge', id: 'L_ship_x_0' }), 10);
+  assert.equal(at({ kind: 'subgraph', id: 'pay' }), 7);
+  assert.equal(at({ kind: 'title', id: 'title' }), 1);
+  assert.equal(itemLines(text, { kind: 'node', id: 'gone' }), null);
+  assert.equal(itemLines(text, { kind: 'edge', id: 'L_gone_x_0' }), null);
+  assert.deepEqual(itemLines(text, { kind: 'edge', id: 'L_start_ok_0' }), { from: 4, to: 4 });
+  assert.equal(itemLines('flowchart TD\ntitle:::hot --> b', { kind: 'title', id: 'title' }), null, 'only the frontmatter\'s');
 });

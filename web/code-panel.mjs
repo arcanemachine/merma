@@ -39,6 +39,8 @@ function store(/** @type {() => Storage} */ get) {
  * @param {HTMLElement} els.status what the code shows: being edited, and whether the file changed since
  * @param {HTMLElement} els.toggle the footer button
  * @param {HTMLElement} els.diagram where Escape in the code sends focus
+ * @param {HTMLInputElement} els.follow the Follow selection checkbox
+ * @param {HTMLElement} els.band the band behind the selected item's lines
  * @param {string} file
  * @param {object} hooks
  * @param {() => { text: string | null, version: string | null }} hooks.snapshot the file as the page has it
@@ -48,7 +50,7 @@ function store(/** @type {() => Storage} */ get) {
  *   whether it saved (the lock ends then)
  */
 export function createCodePanel(els, file, hooks) {
-  const { main, panel, code, dock: dockSelect, handle, close, toggle, diagram, edit, save, cancel, status } = els;
+  const { main, panel, code, dock: dockSelect, handle, close, toggle, diagram, edit, save, cancel, status, follow, band } = els;
   const local = store(() => localStorage);
   const session = store(() => sessionStorage);
   const openKey = 'merma:code:' + file;
@@ -65,6 +67,11 @@ export function createCodePanel(els, file, hooks) {
   let size = 0;       // the panel's size as drawn
   // Read back from the element only while it is shown: a hidden textarea can report 0.
   let scroll = { top: 0, left: 0 };
+  /** @type {((text: string) => { from: number, to: number } | null) | null} finds the selected item's lines in a text */
+  let finder = null;
+  /** @type {{ from: number, to: number } | null} */
+  let range = null;
+  let banded = false;   // from a selection until the code gets focus
 
   const storedSize = (/** @type {'x' | 'y'} */ a) => {
     const n = Number(local.get(sizeKey(a)));
@@ -100,6 +107,7 @@ export function createCodePanel(els, file, hooks) {
     toggle.setAttribute('aria-expanded', String(on));
     layout();
     if (on) { code.scrollTop = scroll.top; code.scrollLeft = scroll.left; }
+    refollow(on);
   }
 
   dockSelect.value = choice;
@@ -195,7 +203,63 @@ export function createCodePanel(els, file, hooks) {
     local.set(dockKey, choice === 'default' ? null : choice);
     layout();
   });
-  code.addEventListener('scroll', () => { scroll = { top: code.scrollTop, left: code.scrollLeft }; });
+  code.addEventListener('scroll', () => { scroll = { top: code.scrollTop, left: code.scrollLeft }; placeBand(); });
+
+  // Follow selection (the user: on by default, the browser's for every file): the selected item's lines, banded, the
+  // caret at their start and scrolled into view when the selection changes. Never while the code has focus: the
+  // caret there is the user's, and marks the place itself.
+  const followKey = 'merma:code-follow';
+  follow.checked = local.get(followKey) !== 'off';
+  follow.addEventListener('change', () => { local.set(followKey, follow.checked ? null : 'off'); refollow(true); });
+  function placeBand() {
+    band.hidden = !(range && banded && open);
+    if (!range || band.hidden) return;
+    const { height, top } = lineBox();
+    band.style.top = `${top + range.from * height - code.scrollTop}px`;
+    band.style.height = `${(range.to - range.from + 1) * height}px`;
+  }
+  /** Find the selected item's lines again in the code as it is now; `moved`: the selection changed, so go there. */
+  function refollow(/** @type {boolean} */ moved) {
+    range = follow.checked && finder ? finder(code.value) : null;
+    if (document.activeElement !== code && moved) {
+      banded = Boolean(range);
+      if (range && open) goTo(range);
+    }
+    placeBand();
+  }
+  /** The caret to the start of `lines`, which are scrolled to the middle of the view unless already in it. */
+  function goTo(/** @type {{ from: number, to: number }} */ lines) {
+    const { scrollTop, scrollLeft } = code;
+    const at = lineStart(code.value, lines.from);
+    code.setSelectionRange(at, at);
+    code.scrollTop = scrollTop;   // setting the caret may scroll to it at once, ahead of the smooth scroll
+    code.scrollLeft = scrollLeft;
+    caretPending = true;
+    const { height, top } = lineBox();
+    const y = top + lines.from * height, h = (lines.to - lines.from + 1) * height;
+    if (y >= code.scrollTop && y + h <= code.scrollTop + code.clientHeight) return;
+    const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    code.scrollTo({ top: y + h / 2 - code.clientHeight / 2, left: 0, behavior: smooth ? 'smooth' : 'auto' });
+  }
+  // Chrome puts a draft's caret back where it was as the draft loses focus, after the caret was set: so it is set
+  // again as the code gets focus by key (Enter, F2, Edit), never by a press, which places the caret itself.
+  let caretPending = false;
+  let pressed = false;
+  code.addEventListener('pointerdown', () => { pressed = true; });
+  for (const ev of ['pointerup', 'pointercancel']) code.addEventListener(ev, () => { pressed = false; });
+  code.addEventListener('focus', () => {
+    if (caretPending && range && !pressed) {
+      const { scrollTop, scrollLeft } = code;
+      const at = lineStart(code.value, range.from);
+      code.setSelectionRange(at, at);
+      code.scrollTop = scrollTop;
+      code.scrollLeft = scrollLeft;
+    }
+    caretPending = false;
+    pressed = false;
+    banded = false;
+    placeBand();
+  });
   // --- editing ---
 
   /** @type {{ base: { text: string, version: string } } | null} */
@@ -225,6 +289,7 @@ export function createCodePanel(els, file, hooks) {
     code.value = shown;
     code.scrollTop = scroll.top;
     code.scrollLeft = scroll.left;
+    refollow(false);
     panel.focus({ preventScroll: true });
   }
 
@@ -232,10 +297,11 @@ export function createCodePanel(els, file, hooks) {
     const base = hooks.snapshot();
     if (base.text === null || !base.version || !hooks.lock()) return;
     setEditing({ base: { text: base.text, version: base.version } });
-    // Setting the value puts the caret at the end, which scrolls there: keep the view, the caret on its first line.
+    // Setting the value puts the caret at the end, which scrolls there: keep the view, the caret on the followed
+    // item's line, else the first line in view.
     const { scrollTop, scrollLeft } = code;
     code.value = base.text;
-    const at = lineStart(code.value, firstLineInView());
+    const at = lineStart(code.value, range ? range.from : firstLineInView());
     code.setSelectionRange(at, at);
     code.scrollTop = scrollTop;
     code.scrollLeft = scrollLeft;
@@ -347,6 +413,12 @@ export function createCodePanel(els, file, hooks) {
       if (editing) { markChanged(); return; }
       code.value = next;
       if (open) { code.scrollTop = scroll.top; code.scrollLeft = scroll.left; }
+      refollow(false);
+    },
+    /** The selection changed: `find` gives its lines in a text, or there is none (null). */
+    follow(/** @type {((text: string) => { from: number, to: number } | null) | null} */ find) {
+      finder = find;
+      refollow(true);
     },
   };
 }

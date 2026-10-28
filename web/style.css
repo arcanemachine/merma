@@ -136,10 +136,17 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #code-panel .code-status:empty { display: none; }
 #code-panel .code-status { white-space: nowrap; }
 #code-panel .code-status.changed { padding: 1px 6px; border-radius: 4px; background: var(--warning-bg); color: var(--warning-fg); }
-/* Editable: white, as a field is, against the read-only code's muted gray. */
-#code:not([readonly]) { background: #fff; }
-#code { flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; resize: none; font-family: ui-monospace, monospace;
-        font-size: 13px; line-height: 1.45; color: #222; background: var(--muted-bg); white-space: pre; }
+/* The code over its background, with Follow selection's band between them, so the text stays crisp. Editable: white,
+   as a field is, against the read-only code's muted gray. */
+#code-panel .code-wrap { position: relative; flex: 1; min-height: 0; display: flex; overflow: hidden; background: var(--muted-bg); }
+#code-panel .code-wrap:has(> #code:not([readonly])) { background: #fff; }
+#code-band { position: absolute; left: 0; right: 0; background: var(--select-bg); pointer-events: none; }
+#code-band[hidden] { display: none; }
+#code { position: relative; flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; resize: none;
+        font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.45; color: #222; background: transparent;
+        white-space: pre; }
+#code-panel .code-actions label { white-space: nowrap; }
+#code-panel .code-follow { display: flex; align-items: center; gap: 4px; }
 #code:focus { outline: none; }
 #code:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
 /* The handle between the panel and the diagram: drag it, or focus it and use the arrows. */

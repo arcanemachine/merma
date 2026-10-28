@@ -1119,6 +1119,36 @@ function connector(/** @type {string} */ line, /** @type {string} */ m, /** @typ
   return null;
 }
 
+/**
+ * The lines (from 0, both ends included) of the statement where the code panel shows an item: a node's first mention
+ * that gives it a shape or label (`ok{Paid?}`, `x@{ … }`), else its first mention; an edge's statement; a subgraph's
+ * `subgraph` line; the title's `title:` line. Null when it is not found, as for a statement written over several lines.
+ * @param {string} text
+ * @param {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string }} item
+ * @returns {{ from: number, to: number } | null}
+ */
+export function itemLines(text, item) {
+  const ls = lines(text);
+  const one = (/** @type {number} */ n) => (n >= 0 ? { from: n, to: n } : null);
+  const lineAt = (/** @type {number} */ offset) => text.slice(0, offset).split('\n').length - 1;
+  if (item.kind === 'title') {
+    const end = ls[0]?.trim() === '---' ? ls.findIndex((l, i) => i > 0 && l.trim() === '---') : -1;
+    return one(ls.findIndex((l, i) => i > 0 && i < end && /^title:/.test(l)));
+  }
+  if (item.kind === 'subgraph') return one(subgraphs(text).find((s) => s.id === item.id)?.start ?? -1);
+  if (item.kind === 'edge') {
+    const e = edgeBySvgId(text, item.id);
+    return e ? { from: lineAt(e.statement.start), to: lineAt(e.statement.end) } : null;
+  }
+  if (!isFlowchart(text)) return null;
+  const all = mentions(text, item.id);
+  const shaped = all.find(({ line, col }) => {
+    const s = ls[line], at = col + item.id.length + (CLASS_AT.exec(s.slice(col + item.id.length))?.[0].length ?? 0);
+    return s.startsWith('@{', at) || SHAPES.some(([open]) => s.startsWith(open, at));
+  });
+  return one((shaped ?? all[0])?.line ?? -1);
+}
+
 /** The subgraph id behind an SVG cluster element's id: `<render id>-<subgraph id>`. */
 export function subgraphIdFromSvgId(/** @type {string} */ svgId, /** @type {string} */ renderId) {
   return svgId.startsWith(renderId + '-') ? svgId.slice(renderId.length + 1) : null;

@@ -29,6 +29,9 @@ them.
   back into a draft) and Escape goes back to the diagram, the panel staying open; Escape in the code goes out to the
   panel. Escape on the diagram closes the panel, once nothing is selected and no notice shows. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
+- **Follow selection**, a box in the code panel's bar (checked at first, remembered in the browser): selecting a
+  node, an edge, a subgraph or the title scrolls the code to its line, marked in pale blue, so Edit, or `` ` `` and
+  Enter, starts there. With it unchecked, Edit starts at the first line in view.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
   or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
   keys and find (/); a menu still opens, its edits grayed with the reason, Center in window and Find… working. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
