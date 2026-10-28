@@ -52,9 +52,9 @@ them.
 
 In a flowchart, click a node, an edge's line or label, a subgraph (anywhere on its box that is not a node or an
 edge), or the diagram's title, to select it: it is outlined in blue (the title is underlined). After an edit, what it acted on stays selected (a new node or edge
-included), so you can go on from it: N adds the next node, Enter edits it, M opens its menu. A delete, undo and
-redo leave nothing selected. Click empty space to deselect. Right-click it (or long-press on a touch screen) for its
-menu. Other diagram types are view-only.
+included), so you can go on from it: N adds the next node, Enter edits it, M opens its menu. What a delete, an undo
+and a redo select is under Undo and redo, below. Click empty space to deselect. Right-click it (or long-press on a
+touch screen) for its menu. Other diagram types are view-only.
 
 A subgraph written with no id (`subgraph "Order log"`, or a title with spaces) is known only by the name Mermaid gives
 it, which changes as subgraphs come and go: such a subgraph stays selected only while the file is unchanged. An edit
@@ -246,8 +246,9 @@ A double-click on a node or an edge edits its label too, and one on a subgraph i
 
 The diagram is one stop for Tab. Each item reached is read out to screen readers, and brought into view when it is off
 screen; one already in view moves nothing. One too big for the window (a long edge, a large subgraph) is shown whole,
-zoomed out just enough. The arrows are the diagram's wherever the keyboard is, except in the label
-box, a menu or Help; while Help is open, no key acts on the diagram. A key with nowhere to go does nothing.
+zoomed out just enough. The arrows are the diagram's wherever the keyboard is, except in a text field (the
+label box, find, the code), a menu, the code panel (they scroll the code) or Help; while Help is open, no key acts on
+the diagram. A key with nowhere to go does nothing.
 
 **Plain arrows walk the edges**, two presses a step (node, edge, node), and always mean their direction on screen.
 

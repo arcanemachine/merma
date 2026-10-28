@@ -134,3 +134,64 @@ test('unlocked, an item applies and says why by its own rule', () => {
   assert.equal(applies(del, unlocked), false);
   assert.notEqual(whyNot(del, unlocked), LOCKED);
 });
+
+// Help's key rows, read as GLOBAL_KEYS names them. A key the page answers outside the editor's key map is not in
+// GLOBAL_KEYS (editor.mjs checks only that each GLOBAL_KEYS key has a handler there): when a new Help key fails here,
+// look in editor.mjs's key map and in HELP_ONLY below.
+const HELP_ONLY = {
+  '`': 'code-panel.mjs answers it',
+  'ctrl+z': 'undo, handled before the key map',
+  'ctrl+shift+z': 'redo, handled before the key map',
+  'ctrl+y': 'redo, handled before the key map',
+  'shift+f10': "the browser's contextmenu event",
+};
+// '=' is + unshifted on a US keyboard (docs/ux.md): the guide lists it, Help shows +.
+const NOT_IN_HELP = ['='];
+// Rows under a Keys section that name no key of their own.
+const KEYLESS_ROWS = ['The opposite arrow'];
+const ARROW_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+const NAMES = { esc: 'escape', space: ' ', up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
+
+/** Each row under one of Help's Keys sections: its text, and the keys it names. */
+const helpKeyRows = () => {
+  const html = readFileSync(join(import.meta.dirname, '..', 'web', 'index.html'), 'utf8');
+  const help = html.slice(html.indexOf('<div id="help"'), html.indexOf('</table>'));
+  const rows = [];
+  let inKeys = false;
+  for (const [, tr] of help.matchAll(/<tr>(.*?)<\/tr>/g)) {
+    const section = tr.match(/class="section">([^<]*)/);
+    if (section) { inKeys = section[1].startsWith('Keys'); continue; }
+    const th = tr.match(/<th scope="row"[^>]*>(.*)<\/th><td>/);
+    if (!inKeys || !th) continue;
+    const pc = th[1].replace(/<span data-os="mac"[^>]*>.*?<\/span>/g, '').replace(/<\/?span[^>]*>/g, '');
+    const text = pc.replace(/<[^>]+>/g, '');
+    const keys = [];
+    if (text === 'Arrows, with Ctrl or Shift') keys.push(...ARROW_KEYS, ...ARROW_KEYS.map((a) => 'ctrl+' + a), ...ARROW_KEYS.map((a) => 'shift+' + a));
+    else if (text.startsWith('Ctrl+Arrows')) keys.push(...ARROW_KEYS.map((a) => 'ctrl+' + a));
+    else {
+      if (/\bArrows\b/.test(text)) keys.push(...ARROW_KEYS);
+      for (const [run] of pc.matchAll(/<kbd>[^<]*<\/kbd>(?:\+<kbd>[^<]*<\/kbd>)*/g)) {
+        keys.push([...run.matchAll(/<kbd>([^<]*)<\/kbd>/g)].map(([, k]) => NAMES[k.toLowerCase()] ?? k.toLowerCase()).join('+'));
+      }
+    }
+    rows.push({ text, keys });
+  }
+  return rows;
+};
+
+test("every row under Help's Keys sections names a key, and each is one the page answers outside menus", () => {
+  const rows = helpKeyRows();
+  assert.ok(rows.length > 20, 'Help read');
+  for (const { text, keys } of rows) {
+    if (KEYLESS_ROWS.includes(text)) continue;
+    assert.ok(keys.length, `${text}: no key read`);
+    for (const k of keys) assert.ok(k in GLOBAL_KEYS || k in HELP_ONLY, `${text}: ${k} is not in GLOBAL_KEYS`);
+  }
+});
+
+test('every key the page answers outside menus is in Help', () => {
+  const inHelp = new Set(helpKeyRows().flatMap((r) => r.keys));
+  for (const k of Object.keys(GLOBAL_KEYS)) {
+    if (!NOT_IN_HELP.includes(k)) assert.ok(inHelp.has(k), `${JSON.stringify(k)} is not in Help`);
+  }
+});

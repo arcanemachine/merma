@@ -38,12 +38,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying a label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move edge… |
+  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge; Move (none yet) |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
+  | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
   | Copy, Download | take the diagram out of the page | Copy SVG, Download SVG, Download Mermaid |
 
-- An ellipsis (…) means "then you do something" (click a node, drag a handle, type), nothing else. ▸ opens a submenu. ▴ on
+- An ellipsis (…) means "then you do something" (click a node, type), nothing else. ▸ opens a submenu. ▴ on
   a button opens a menu above it (Export ▴): the footer's other buttons act at once.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
 
@@ -301,10 +302,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - An edit leaves what it acted on selected, its menu closed, so the next action can follow at once: the node or
   subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
   just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
-  does the same: it looks no different. A delete selects nothing, since the item is gone.
+  does the same: it looks no different. What a delete selects is under Moving by keyboard.
 - A pick in the arrow type picker is the one edit that keeps its menu open, on the new current entry, so
   the next pick can follow; a click away or Escape closes it. Picking the current entry writes nothing.
-- Undo and redo select nothing: an undo can take back an add, and what it selects would depend on the edit it undid.
+- What undo and redo select is under Moving by keyboard.
 
 ## Messages
 
