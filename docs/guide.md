@@ -70,7 +70,8 @@ are left to the file.
 ## Menus
 
 A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
-with nothing selected the empty-space menu. Each item's key is shown at its right: press it to run the item.
+with nothing selected the empty-space menu. Each item's key is shown at its right: press it to run the item. The Edit items have none: Enter or F2 edits the
+selection without the menu.
 Up and Down move between items, Enter runs one. An item that does not apply right now is grayed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Escape, its key again or
 another click on it closes it.
@@ -115,7 +116,7 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
-- **Move start to…** (S) and **Move end to…** (A), then a click on a node or a subgraph, move that end of the edge
+- **Move start to…** (S) and **Move end to…** (E), then a click on a node or a subgraph, move that end of the edge
   there: `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id. A click anywhere
   else, or Escape, cancels. By keyboard, a dashed outline starts on the end being moved (Enter at once changes
   nothing); the arrows move it as in Connect to…, and Enter picks it. A self-loop or a second edge between the same

@@ -25,10 +25,14 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
 
 test('keys are unique within a menu, each one key', () => {
   for (const [menu, list] of Object.entries(ALL_MENUS)) {
-    const keys = list.map((i) => i.key);
+    const keys = list.map((i) => i.key).filter((k) => k !== undefined);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
-    for (const item of list) assert.match(item.key, /^[a-z/]$/);
+    for (const k of keys) assert.match(k, /^[a-z/]$/);
   }
+});
+
+test('an item with no key is one that Enter runs outside menus, so a quicker key does its job', () => {
+  for (const { item } of items) if (item.key === undefined) assert.ok(GLOBAL_KEYS.enter.includes(item.action), item.action);
 });
 
 // The letter rule is about the selected item's menu; Export's menu, opened from the footer, is not one.
@@ -36,7 +40,7 @@ const itemMenus = items.filter(({ menu }) => menu !== 'export');
 
 test('a menu key that the page also answers outside menus runs the same action there', () => {
   for (const { item } of itemMenus) {
-    const global = GLOBAL_KEYS[item.key];
+    const global = item.key === undefined ? undefined : GLOBAL_KEYS[item.key];
     if (global) assert.ok(global.includes(item.action), `${item.action} uses ${item.key}, which outside menus is ${global}`);
   }
 });

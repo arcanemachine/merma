@@ -58,8 +58,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Enter and F2 edit, Delete deletes, so E and D stay in menus; R, C and N have no
-  other key. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
+  other key does the job (the user): Delete deletes, so D stays in menus; R, C and N have no other key. The Edit
+  items have no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and
+  in an open menu Enter runs the item in focus. So E is free for Move end to…, a letter of its label. Escape, or a click away, is the one way out of every wait; C while connecting does nothing.
 - The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
   other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
   on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that

@@ -68,12 +68,12 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       const b = buttons[i];
       const text = Object.assign(document.createElement('span'), { textContent: item.label });
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
-      const key = Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() });
-      key.setAttribute('aria-hidden', 'true');
+      const key = item.key ? [Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() })] : [];
+      for (const k of key) k.setAttribute('aria-hidden', 'true');
       // ▸ belongs to the label, so it comes before the key, which keeps its column.
       const more = item.submenu ? [Object.assign(document.createElement('span'), { className: 'more', textContent: '▸' })] : [];
-      b.replaceChildren(text, ...more, key);
-      b.setAttribute('aria-keyshortcuts', item.key.toUpperCase());
+      b.replaceChildren(text, ...more, ...key);
+      if (item.key) b.setAttribute('aria-keyshortcuts', item.key.toUpperCase()); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
       if (off) b.title = why(item); else b.removeAttribute('title');
@@ -157,7 +157,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     const item = items[at];
     const key = e.key.toLowerCase();
-    const byKey = items.find((i) => i.key === key);
+    const byKey = items.find((i) => i.key && i.key === key);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       buttons[(at + (e.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus();

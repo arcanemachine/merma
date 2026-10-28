@@ -79,7 +79,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @typedef {object} MenuItem
  * @property {string} action what the editor runs
  * @property {string} label
- * @property {string} key its shortcut letter
+ * @property {string} [key] its shortcut letter; none for an item a quicker key outside menus already runs (Enter edits)
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
@@ -99,17 +99,16 @@ export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
-    { action: 'edit-node', label: 'Edit node', key: 'e' },
+    { action: 'edit-node', label: 'Edit node' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
   edge: [
-    { action: 'edit-label', label: 'Edit label', key: 'e' },
+    { action: 'edit-label', label: 'Edit label' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'move-start', label: 'Move start to…', key: 's', mode: true },
-    // No letter of "end" is free (e, n and d are taken), so the key beside S.
-    { action: 'move-end', label: 'Move end to…', key: 'a', mode: true },
+    { action: 'move-end', label: 'Move end to…', key: 'e', mode: true },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
@@ -117,7 +116,7 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
@@ -126,13 +125,13 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'add-subgraph', label: 'Add subgraph', key: 's', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'edit-title', label: 'Edit title', key: 't', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
   ],
   title: [
-    { action: 'edit-title', label: 'Edit title', key: 't' },
+    { action: 'edit-title', label: 'Edit title' },
   ],
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
