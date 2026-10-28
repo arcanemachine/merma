@@ -70,7 +70,7 @@ there is no login.
 | `web/place.mjs` | Where a menu goes so that it stays on screen |
 | `web/frame.mjs` | The view that shows find's matches all at once |
 | `web/collapse.mjs` | Collapsed subgraphs, page-side: the text the page draws, and what a hidden item is drawn as |
-| `web/code-panel.mjs` | The code panel: the file's code, its dock and its handle |
+| `web/code-panel.mjs` | The code panel: the file's code, its dock, its handle and Follow selection |
 | `web/dock.mjs` | Where the code panel docks, and how big it may be |
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
