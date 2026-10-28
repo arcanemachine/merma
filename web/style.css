@@ -252,7 +252,9 @@ body.resizing { user-select: none; }
                background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
 .menu button:focus { background: #eef3fb; outline: none; }
 .menu button > span:first-child { margin-right: auto; }
-.menu button .more { width: 1em; text-align: right; color: #888; }
+.menu button .more { width: 1em; text-align: center; color: #888; }
+/* The key and its ▸ sit close, each in its own slot: less than the gap that keeps the label apart. */
+.menu button .key + .more { margin-left: -12px; }
 /* A column of keys, each centered in it, so a narrow letter lines up with a wide one. */
 .menu button .key { min-width: 1.5em; text-align: center; font: inherit; color: #57606a; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }

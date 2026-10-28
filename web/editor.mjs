@@ -748,7 +748,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     enter: () => {
       if (picking && candidate?.kind === 'edge') {
         ui.notice(picking === 'connect' ? 'Pick a node or subgraph to connect to: an edge cannot be connected to.'
-          : `Pick a node or subgraph to move the edge's ${picking} to: an edge cannot be one.`, 'warning');
+          : 'An edge cannot be connected to another edge.', 'warning');
         return true;
       }
       if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
@@ -908,7 +908,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clearMarks('data-page-candidate');
     candidate = item;
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
-    const what = item.kind === 'edge' ? 'an edge, cannot be picked'
+    const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : picking !== 'connect' ? `press Enter to move the edge's ${picking} here`
         : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.
