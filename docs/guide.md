@@ -85,7 +85,8 @@ another click on it closes it.
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click on the node itself adds a
   self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. By keyboard, a dashed outline starts on the
   node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
-  keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused.
+  keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused. Or find it with /:
+  Enter in the find puts the outline on the current match without connecting, and Enter again connects.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
@@ -119,7 +120,7 @@ another click on it closes it.
 - **Move start to…** (S) and **Move end to…** (E), then a click on a node or a subgraph, move that end of the edge
   there: `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id. A click anywhere
   else, or Escape, cancels. By keyboard, a dashed outline starts on the end being moved (Enter at once changes
-  nothing); the arrows move it as in Connect to…, and Enter picks it. A self-loop or a second edge between the same
+  nothing); the arrows or a find (/) move it as in Connect to…, and Enter picks it. A self-loop or a second edge between the same
   two nodes is allowed. The moved edge stays selected, its end tick at the end that moved. It keeps its place in the
   file, except when it is written inside a subgraph and its new end is named outside it: an edge written in a
   subgraph pulls both its nodes into it, so its line moves after the file's last edge, and its `linkStyle` number goes
@@ -326,8 +327,11 @@ word starting with it, then any; higher first. Tab stays in the find box, and Es
 shows what you last looked for, selected, so typing replaces it. The bar's **Previous**, **Next** and **Cancel** do
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
-In Connect to…, the dashed outline starts on the node or subgraph the edge comes from and moves by the same rules as
-the selection, through edges (Enter on one is refused), with I and O; Enter connects to the outlined one.
+In Connect to…, the dashed outline starts on the node or subgraph the edge comes from (in Move start to… and Move end
+to…, on the end being moved) and moves by the same rules as the selection, through edges (Enter on one is refused),
+with I and O; Enter picks the outlined one. / opens the find inside them, as it looks anywhere else: Enter there puts
+the outline on the current match (on the title it is refused, and the find stays) and Escape puts it back where it
+was; either way the wait goes on, for Enter to pick. A click on a node or subgraph picks it at once.
 
 ## Undo and redo
 

@@ -239,8 +239,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     moves.forgetCandidate();
     const id = end === 'start' ? shown.from : shown.to;
     markCandidate({ kind: subgraphs(shownText).some((g) => g.id === id) ? 'subgraph' : 'node', id }, { quiet: true });
-    ui.notice(`Click the node or subgraph the edge should ${end === 'start' ? 'start from' : 'end at'}, or move the `
-      + 'dashed outline to it with the arrows and press Enter. Click away or press Escape to cancel.', 'info');
+    pickNotice();
+  }
+
+  /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
+  function pickNotice() {
+    const what = picking === 'connect' ? 'the edge goes to' : `the edge should ${picking === 'start' ? 'start from' : 'end at'}`;
+    ui.notice(`Click the node or subgraph ${what}, or move the dashed outline to it with the arrows or find it (/), and `
+      + `press Enter${picking === 'connect' ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
   }
 
   /** @type {Record<string, () => void>} */
@@ -251,8 +257,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       moves.forgetCandidate();
       // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
       markCandidate(selection(), { quiet: true });
-      ui.notice('Click the node or subgraph the edge goes to, or move the dashed outline to it with the arrows and press '
-        + 'Enter (on this one, a self-loop). Click away or press Escape to cancel.', 'info');
+      pickNotice();
     },
     'move-start': () => startMove('start'),
     'move-end': () => startMove('end'),
@@ -797,7 +802,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers[item.action]();
       return true;
     },
-    '/': () => { if (picking) return false; openFind(); return true; },
+    '/': () => { openFind(); return true; },
     // Space: the selected edge counts as reached from its other end, whose edges the cross arrows then step.
     ' ': () => {
       const to = moves.other();
@@ -898,8 +903,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clearMarks('data-page-candidate');
     candidate = item;
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
-    const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
-      : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
+    const what = item.kind === 'edge' ? 'an edge, cannot be picked'
+      : picking !== 'connect' ? `press Enter to move the edge's ${picking} here`
+        : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.
     if (quiet) return;
     ui.announce(`${named(item)}: ${what}`);
@@ -932,8 +938,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // the view (docs/ux.md).
   const findBox = /** @type {HTMLInputElement} */ (els.findBox);
   /**
-   * `view`: the view before the find, put back on Escape unless the user has `moved` it since.
-   * @type {{ before: Item | null, matches: import('./find.mjs').Findable[], at: number, view: ReturnType<typeof viewer.getView>, moved: boolean } | null}
+   * `view`: the view before the find, put back on Escape unless the user has `moved` it since. Inside a wait for a
+   * pick, `candidate`: where the dashed outline was, put back unless Enter moves it to the current match.
+   * @type {{ before: Item | null, candidate: Item | null, matches: import('./find.mjs').Findable[], at: number, view: ReturnType<typeof viewer.getView>, moved: boolean } | null}
    */
   let finding = null;
   /** What the last find looked for, shown again by the next. */
@@ -1026,8 +1033,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   function openFind() {
     if (finding) { findBox.focus(); return; }
-    finding = { before: selected, matches: [], at: 0, view: viewer.getView(), moved: false };
-    deselect();
+    finding = { before: selected, candidate, matches: [], at: 0, view: viewer.getView(), moved: false };
+    // Inside a wait the selection stays: it is what the pick acts on.
+    if (!picking) deselect();
     ui.hideNotice();
     findBox.value = lastQuery;
     els.find.hidden = false;
@@ -1037,7 +1045,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /**
    * Close the box: select `pick`, or put back what was selected before; `restore` (Escape) puts
-   * back the view as well, unless the user has moved it since.
+   * back the view as well, unless the user has moved it since. Inside a wait, `pick` takes the dashed outline instead
+   * (the user: Enter in find points, a second Enter picks), and without one the outline goes back where it was.
    */
   function closeFind(/** @type {Item | null} */ pick, restore = false) {
     const was = finding;
@@ -1050,8 +1059,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // A view never touched followed the window: fitting it again puts it back and keeps it following.
       if (was.view.touched) viewer.setView(was.view); else viewer.fit();
     }
+    if (picking) {
+      const to = pick ?? was.candidate;
+      moves.forgetCandidate();
+      if (to && elsOf(to).length) markCandidate(to, { quiet: !pick });
+      pickNotice();
     // No reveal for a pick: Enter has centered one off screen, and one on screen stays put (an edge's line may not be).
-    if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
+    } else if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
     if (findBox === document.activeElement) els.diagram.focus();
   }
   findBox.addEventListener('input', () => { if (finding) matchTyped(); });
@@ -1062,8 +1076,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.preventDefault();
       const at = finding.matches[finding.at];
       if (!at) return;
-      // A jump to a match is to its middle (the user), so it is not left at the edge; one on screen stays put.
-      if (!at.on) viewer.center((at.box.left + at.box.right) / 2, (at.box.top + at.box.bottom) / 2);
+      // The dashed outline never rests on the title: the find stays open.
+      if (picking && at.kind === 'title') { ui.notice('Pick a node or subgraph: the title cannot be one.', 'warning'); return; }
+      // A jump to a match is to its middle (the user), so it is not left at the edge; one on screen stays put. The
+      // dashed outline brings its own into view.
+      if (!at.on && !picking) viewer.center((at.box.left + at.box.right) / 2, (at.box.top + at.box.bottom) / 2);
       closeFind(at);
       return;
     }
@@ -1098,7 +1115,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // As for /: find selects, and nothing is selected in a diagram that cannot be.
     if (!selectable) return;
     if (finding) { closeFind(null); return; }
-    if (picking) cancelPick();
     openFind();
   });
   // A drag is never a cancel (the user): a press in the diagram may become a pan or a pinch, so it ends nothing, and
@@ -1121,7 +1137,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   document.addEventListener('click', (e) => {
     const at = /** @type {Node} */ (e.target);
     if (els.diagram.contains(at) || els.find.contains(at)) return;
-    if (finding && !els.findToggle.contains(at)) closeFind(null);
+    // The footer's Find works inside a wait: it opens or closes the find, and the wait goes on.
+    if (els.findToggle.contains(at)) { closeMenus(); return; }
+    if (finding) closeFind(null);
     if (picking) cancelPick();
     closeMenus();
   });
