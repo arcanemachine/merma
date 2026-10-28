@@ -332,16 +332,39 @@ document.addEventListener('click', (e) => {
   if (!el('diagram').contains(at)) clickedAway(at);
 });
 
-// Help is a manual popover, so a drag (a pan of the diagram behind it) leaves it open: it closes on its button, on
-// Escape and on a click away, focus going back to its button as a dialog's does.
+// Help is a manual popover, so a drag (a pan of the diagram behind it) leaves it open: it closes on its button, on ?,
+// on Escape and on a click away. It takes focus as it opens, so its arrows scroll it, and ? and Escape give focus back
+// to what had it (the diagram, or the button), as a dialog does.
 const help = el('help');
 const helpButton = /** @type {HTMLElement} */ (document.querySelector('[popovertarget="help"]'));
+let helpOpener = helpButton;
+help.addEventListener('toggle', (e) => {
+  if (/** @type {ToggleEvent} */ (e).newState !== 'open') return;
+  const was = document.activeElement;
+  // A button a click does not focus (Safari) leaves the body active.
+  helpOpener = was instanceof HTMLElement && was !== document.body ? was : helpButton;
+  help.scrollTop = 0;
+  help.focus({ preventScroll: true });
+});
+function closeHelp() {
+  help.hidePopover();
+  helpOpener.focus({ preventScroll: true });
+}
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !help.matches(':popover-open')) return;
   e.preventDefault();
   e.stopImmediatePropagation();
-  help.hidePopover();
-  helpButton.focus();
+  closeHelp();
+}, true);
+// ? opens and closes Help, read by what it types, as / is; not in a field, where it types, nor over a menu or picker.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '?' || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (/** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]')) return;
+  if (document.querySelector('[data-overlay]:popover-open')) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (help.matches(':popover-open')) closeHelp();
+  else help.showPopover();
 }, true);
 
 

@@ -228,6 +228,7 @@ here does just what it does in the selected item's menu:
 | H with a subgraph selected | Collapse it, or expand it: this tab's view only, never the file |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
+| ? (wherever it is on your keyboard) | Open Help, or close it |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead (the title fits) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |
