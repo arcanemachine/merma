@@ -70,8 +70,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
   on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that
   inference rather than a ring; the user chose it over a ring shown only with nothing selected, so an accessibility
-  sweep should not reopen it without them. Help is the other exception: it takes focus as it opens, so its arrows
-  scroll it, and the open panel itself shows where focus is.
+  sweep should not reopen it without them (asked again, they kept it: a ring shown on Tab only, and not on a click,
+  confused more than it helped). So the diagram comes first in Tab order, whatever the dock (the user): the diagram,
+  the code panel's handle, the panel, its bar, the code, then the footer, and round to the diagram; the one stop
+  without a ring is where focus starts and rests, and the cycle never seems to stall on it. Help is the other
+  exception: it takes focus as it opens, so its arrows scroll it, and the open panel itself shows where focus is.
 - No hidden affordances. A shortcut is shown where its item is: a menu item's key at its right, as most apps show
   them (the user: one system, no underlined letters), and a digit in a picker. A key is a letter of its label where
   one fits, for the memory, but need not be (Center in window, F: F is the view key everywhere; Find…, /). Names
