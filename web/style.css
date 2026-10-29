@@ -226,7 +226,7 @@ body.resizing { user-select: none; }
 #stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
 /* …and each edge that will move haloed: a wide pale line under it, not a dash, which would read as a dotted edge. */
-#stage path[data-page-halo] { fill: none; stroke: var(--select-faint); stroke-width: 12px; stroke-linecap: round;
+#stage path[data-page-halo][data-page-only] { fill: none; stroke: var(--select-faint); stroke-width: 12px; stroke-linecap: round;
   pointer-events: none; }
 /* …while the node or subgraph the arrows have reached, which Enter picks and which is selected after, looks
    selected: solid. */

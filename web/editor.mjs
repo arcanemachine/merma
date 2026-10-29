@@ -436,6 +436,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const halo = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       halo.setAttribute('d', path.getAttribute('d') ?? '');
       halo.setAttribute('data-page-halo', '');
+      halo.setAttribute('data-page-only', '');   // the SVG export leaves it out
       path.before(halo);
     }
   }
