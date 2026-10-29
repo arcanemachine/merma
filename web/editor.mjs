@@ -84,7 +84,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * Connect to… makes an edge to it; Move start to… and Move end to… move that end of the selected edge there; Move
    * edges starting here to…, Move edges ending here to… and Move all edges to… move those ends of the selected node's
    * or subgraph's.
-   * @type {null | 'connect' | 'start' | 'end' | 'starts' | 'ends' | 'all'}
+   * Connect from… makes one from it to the selection.
+   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'starts' | 'ends' | 'all'}
    */
   let picking = null;
   /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
@@ -252,28 +253,34 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     pickNotice();
   }
 
+  /** Connect to… or Connect from…: the candidate starts on the item itself (the user): Enter at once makes a self-loop. */
+  function startConnect(/** @type {'connect' | 'connect-from'} */ way) {
+    picking = way;
+    moves.forgetCandidate();
+    markCandidate(selection(), { quiet: true });
+    pickNotice();
+  }
+  /** Whether the wait makes an edge: Connect to… or Connect from…. */
+  const connecting = () => picking === 'connect' || picking === 'connect-from';
+
   /** @type {Record<string, string>} what each wait asks for: what is picked */
   const PICKED = {
-    connect: 'the edge goes to', start: 'the edge should start from', end: 'the edge should end at',
+    connect: 'the edge goes to', 'connect-from': 'the edge comes from',
+    start: 'the edge should start from', end: 'the edge should end at',
     starts: 'these edges should start from', ends: 'these edges should end at', all: 'these edges should go to',
   };
   /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
   function pickNotice() {
     const what = PICKED[picking ?? 'connect'];
     ui.notice(`Click the node or subgraph ${what}, or move to it with the arrows or find it (/), and `
-      + `press Enter${picking === 'connect' ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
+      + `press Enter${connecting() ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
   }
 
   /** @type {Record<string, () => void>} */
   const handlers = {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
-    'connect': () => {
-      picking = 'connect';
-      moves.forgetCandidate();
-      // The candidate starts on the item itself (the user): Enter at once connects it to itself.
-      markCandidate(selection(), { quiet: true });
-      pickNotice();
-    },
+    'connect': () => startConnect('connect'),
+    'connect-from': () => startConnect('connect-from'),
     'move-start': () => startMove('start'),
     'move-end': () => startMove('end'),
     'move-starts': () => startMoveEdges('starts'),
@@ -420,7 +427,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!picking || !selected) return;
     const sel = selected, which = picking;
     for (const e of elsOf(sel)) { e.removeAttribute('data-page-selected'); mark(e, 'data-page-source'); }
-    const moving = sel.kind === 'edge' ? [sel.id] : which === 'connect' ? []
+    const moving = sel.kind === 'edge' ? [sel.id] : which === 'connect' || which === 'connect-from' ? []
       : drawnEdges(edges(shownText), collapse.subs, collapse.overrides)
         .filter((e) => (which !== 'ends' && e.from === sel.id) || (which !== 'starts' && e.to === sel.id)).map((e) => e.svgId);
     for (const id of moving) {
@@ -663,7 +670,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** End the wait on `to`, a click's or Enter's (null: a click on empty space). */
   function pick(/** @type {Item | null} */ to) {
-    if (picking === 'connect') connectTo(to);
+    if (connecting()) connectTo(to);
     else if (picking === 'start' || picking === 'end') moveTo(to);
     else moveEdgesTo(to);
   }
@@ -717,16 +724,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     });
   }
 
-  /** End Connect to… on `to`: an edge from the selection to it, or nothing for null. */
+  /** End Connect to… on `to`: an edge from the selection to it (Connect from…: from it to the selection), or nothing for null. */
   function connectTo(/** @type {Item | null} */ to) {
-    const from = selection();   // Connect to… starts from the selection
+    const sel = selection();   // the wait starts on the selection
+    const back = picking === 'connect-from';
     picking = null;
     ui.hideNotice();
     if (!to) { deselect(); return; }
-    if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
+    if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(sel); return; }
     deselect();
-    const names = [named(from), named(to)];
-    const change = (/** @type {string} */ text) => connect(text, from.id, to.id);
+    const [from, end] = back ? [to, sel] : [sel, to];
+    const names = [named(from), named(end)];
+    const change = (/** @type {string} */ text) => connect(text, from.id, end.id);
     /** @type {EditOptions} */
     const options = {
       afterSave: () => ui.announce(`Connected ${names[0]} to ${names[1]}`),
@@ -736,7 +745,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         return e ? { item: { kind: 'edge', id: e.svgId } } : null;
       },
     };
-    const drawn = [from, to].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
+    const drawn = [from, end].some((x) => x.kind === 'subgraph' && drawnOnly(x.id));
     if (drawn) editDrawn(change, options); else edit(change, options);
   }
 
@@ -838,6 +847,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers.connect();
       return true;
     },
+    // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a wait.
+    'shift+c': () => (picking ? true : itemKey('connect-from')),
     // R reverses a selected edge, S and E move its start and end, as the edge menu's do, each refused as it is grayed
     // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
     r: () => edgeKey('reverse-edge'),
@@ -846,7 +857,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     a: () => itemKey('move-all'),
     enter: () => {
       if (picking && candidate?.kind === 'edge') {
-        ui.notice(picking === 'connect' ? 'Pick a node or subgraph to connect to: an edge cannot be connected to.'
+        ui.notice(connecting() ? 'Pick a node or subgraph to connect: an edge cannot be connected to.'
           : 'An edge cannot be connected to another edge.', 'warning');
         return true;
       }
@@ -1010,7 +1021,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : picking === 'start' || picking === 'end' ? `press Enter to move the edge's ${picking} here`
-        : picking !== 'connect' ? (same(item, selection()) ? 'its own edges: press Enter to leave them' : 'press Enter to move the edges here')
+        : !connecting() ? (same(item, selection()) ? 'its own edges: press Enter to leave them' : 'press Enter to move the edges here')
         : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.
     if (quiet) return;

@@ -23,11 +23,14 @@ test('every menu label starts with one of the verbs, in sentence case', () => {
   }
 });
 
-test('keys are unique within a menu, each one key', () => {
+test('keys are unique within a menu, each one key, Shift only with a letter the menu has (that item the other way round)', () => {
   for (const [menu, list] of Object.entries(ALL_MENUS)) {
     const keys = list.map((i) => i.key).filter((k) => k !== undefined);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
-    for (const k of keys) assert.match(k, /^[a-z/]$/);
+    for (const k of keys) {
+      assert.match(k, /^(shift\+)?[a-z/]$/);
+      if (k.startsWith('shift+')) assert.ok(keys.includes(k.slice(6)), `${menu}: ${k} with no ${k.slice(6)}`);
+    }
   }
 });
 

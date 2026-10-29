@@ -68,7 +68,9 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       const b = buttons[i];
       const text = Object.assign(document.createElement('span'), { textContent: item.label });
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
-      const key = item.key ? [Object.assign(document.createElement('kbd'), { className: 'key', textContent: item.key.toUpperCase() })] : [];
+      // `shift+c` shows as ⇧C, as the shape picker shows Shift with a digit.
+      const shown = item.key?.replace(/^shift\+/, '⇧').toUpperCase();
+      const key = shown ? [Object.assign(document.createElement('kbd'), { className: 'key', textContent: shown })] : [];
       for (const k of key) k.setAttribute('aria-hidden', 'true');
       // A slot for ▸ after the key on every item of a menu with a submenu, empty on the others, so the keys keep one
       // column; a menu with none has no slot.
@@ -76,7 +78,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
         ? [Object.assign(document.createElement('span'), { className: 'more', textContent: item.submenu ? '▸' : '' })] : [];
       for (const s of more) s.setAttribute('aria-hidden', 'true');
       b.replaceChildren(text, ...key, ...more);
-      if (item.key) b.setAttribute('aria-keyshortcuts', item.key.toUpperCase()); else b.removeAttribute('aria-keyshortcuts');
+      if (item.key) b.setAttribute('aria-keyshortcuts', item.key.startsWith('shift+') ? `Shift+${item.key.slice(6).toUpperCase()}` : item.key.toUpperCase()); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
       if (off) b.title = why(item); else b.removeAttribute('title');
@@ -160,7 +162,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
     const item = items[at];
     const key = e.key.toLowerCase();
-    const byKey = items.find((i) => i.key && i.key === key);
+    // Shift with a letter is its own key only where an item has it (Connect from…), so Caps Lock never counts.
+    const byKey = (e.shiftKey && items.find((i) => i.key === `shift+${key}`)) || items.find((i) => i.key && i.key === key);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       buttons[(at + (e.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus();

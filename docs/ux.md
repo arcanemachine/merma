@@ -44,7 +44,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move start to…, Move edges starting here to… |
+  | Connect, Reverse, Move | what they say | Connect to…, Connect from…, Reverse edge, Move start to… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
@@ -73,6 +73,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
   first and the wait after, so the candidate stays the one thing Enter picks.
+- Shift with an item's letter does that item the other way round (the user): Shift+C is Connect from…, C's edge the
+  other way; Shift+R will flip the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
+  menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
+  never from the letter's case, so Caps Lock does not count.
 - In a wait, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
   move, Enter picks and which is selected after, is drawn as the selection is. What the wait will change is marked
   instead: the node or subgraph it starts from outlined dashed, and each edge that will move haloed, a wide pale

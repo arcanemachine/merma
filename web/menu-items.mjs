@@ -15,6 +15,7 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
   c: ['connect'],
+  'shift+c': ['connect-from'],
   r: ['reverse-edge'],
   s: ['move-start', 'move-starts'],
   e: ['move-end', 'move-ends'],
@@ -89,7 +90,8 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @typedef {object} MenuItem
  * @property {string} action what the editor runs
  * @property {string} label
- * @property {string} [key] its shortcut letter; none for an item a quicker key outside menus already runs (Enter edits)
+ * @property {string} [key] its shortcut letter, or `shift+` and a letter (that letter's item the other way round); none
+ *   for an item a quicker key outside menus already runs (Enter edits)
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
@@ -125,6 +127,7 @@ export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
+    { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
     ...MOVE_EDGES,
     { action: 'edit-node', label: 'Edit node' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
@@ -143,6 +146,7 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     ...MOVE_EDGES,
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
@@ -153,6 +157,7 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     ...MOVE_EDGES,
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
