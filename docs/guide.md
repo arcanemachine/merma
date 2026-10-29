@@ -83,16 +83,16 @@ another click on it closes it.
   so it joins the same subgraph. (`class`, `style` and `click` lines don't count: they usually sit at the bottom.)
 - **Connect to…**, then a click on a node or a subgraph, adds `<a> --> <b>` at the end of the file, outside any
   subgraph, so neither node moves. Mermaid draws an edge to a subgraph to its box. A click on the node itself adds a
-  self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. By keyboard, a dashed outline starts on the
-  node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
+  self-loop, `<a> --> <a>`. A click anywhere else, or Escape, cancels. While you pick, the node is outlined dashed, and
+  by keyboard the blue outline starts on the node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
   keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused. Or find it with /:
   Enter in the find puts the outline on the current match without connecting, and Enter again connects.
 - **Move edges starting here to…** (S), **Move edges ending here to…** (E) and **Move all edges to…** (A), then a
-  click on a node or a subgraph, move the node's edges there: the start of each edge starting at it, the end of each edge ending at it, or
-  both (a self-loop then moves both its ends). Each edge moves as Move start to… and Move end to… move one (below),
-  keeping its arrow, label and edge id; all in one edit, one undo. The node stays, and the one picked is selected
-  after. By keyboard, the dashed outline starts on the node (Enter at once changes nothing), and moves as in Connect
-  to…. Grayed when no edge starts or ends there. Edges that join the node to the one picked become self-loops, and
+  click on a node or a subgraph, move the node's edges there: the start of each edge starting at it, the end of each
+  edge ending at it, or both (a self-loop then moves both its ends). Each edge moves as Move start to… and Move end
+  to… move one (below), keeping its arrow, label and edge id; all in one edit, one undo. The node stays, and the one
+  picked is selected after. While you pick, the node is outlined dashed and the edges that will move glow pale blue;
+  by keyboard, the blue outline starts on the node (Enter at once changes nothing), and moves as in Connect to…. Grayed when no edge starts or ends there. Edges that join the node to the one picked become self-loops, and
   two edges from the same node become a pair: both allowed, as a single move allows them.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
@@ -126,12 +126,12 @@ another click on it closes it.
   to itself), which has no direction to reverse.
 - **Move start to…** (S) and **Move end to…** (E), then a click on a node or a subgraph, move that end of the edge
   there: `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id. A click anywhere
-  else, or Escape, cancels. By keyboard, a dashed outline starts on the end being moved (Enter at once changes
-  nothing); the arrows or a find (/) move it as in Connect to…, and Enter picks it. A self-loop or a second edge between the same
-  two nodes is allowed. The moved edge stays selected, its end tick at the end that moved. It keeps its place in the
-  file, except when it is written inside a subgraph and its new end is named outside it: an edge written in a
-  subgraph pulls both its nodes into it, so its line moves after the file's last edge, and its `linkStyle` number goes
-  with it.
+  else, or Escape, cancels. While you pick, the edge glows pale blue; by keyboard, the blue outline starts on the end
+  being moved (Enter at once changes nothing); the arrows or a find (/) move it as in Connect to…, and Enter picks it.
+  A self-loop or a second edge between the same two nodes is allowed. The moved edge stays selected, its end tick at the
+  end that moved. It keeps its place in the file, except when it is written inside a subgraph and its new end is named
+  outside it: an edge written in a subgraph pulls both its nodes into it, so its line moves after the file's last edge,
+  and its `linkStyle` number goes with it.
 - **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.
 
@@ -340,9 +340,11 @@ word starting with it, then any; higher first. Tab stays in the find box, and Es
 shows what you last looked for, selected, so typing replaces it. The bar's **Previous**, **Next** and **Cancel** do
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
-In Connect to…, the dashed outline starts on the node or subgraph the edge comes from (in Move start to… and Move end
-to…, on the end being moved; in the Move edges … items, on the node or subgraph whose edges move) and moves by the same rules as the selection, through edges (Enter on one is refused),
-with I and O; Enter picks the outlined one. / opens the find inside them, as it looks anywhere else: Enter there puts
+In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Move start to… and Move end
+to…, on the end being moved; in the Move edges … items, on the node or subgraph whose edges move) and moves by the
+same rules as the selection, through edges (Enter on one is refused), with I and O; Enter picks the outlined one.
+What the pick will change is marked meanwhile: the node or subgraph it starts from dashed, the edges that will move
+glowing pale blue. / opens the find inside them, as it looks anywhere else: Enter there puts
 the outline on the current match (on the title it is refused, and the find stays) and Escape puts it back where it
 was; either way the wait goes on, for Enter to pick. A click on a node or subgraph picks it at once.
 

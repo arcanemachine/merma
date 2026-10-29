@@ -80,7 +80,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let collapse = { subs: [], overrides: new Map() };   // how the shown drawing's subgraphs are collapsed
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   /**
-   * The wait for a node or subgraph to be picked (clicked, or Enter on the dashed outline), and what the pick does:
+   * The wait for a node or subgraph to be picked (clicked, or Enter on the candidate), and what the pick does:
    * Connect to… makes an edge to it; Move start to… and Move end to… move that end of the selected edge there; Move
    * edges starting here to…, Move edges ending here to… and Move all edges to… move those ends of the selected node's
    * or subgraph's.
@@ -233,7 +233,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
-  /** Move start to… or Move end to… on the selected edge: the dashed outline starts on the end being moved. */
+  /** Move start to… or Move end to… on the selected edge: the candidate starts on the end being moved. */
   function startMove(/** @type {'start' | 'end'} */ end) {
     const shown = shownEdge(selection().id);
     if (!shown) return;
@@ -244,7 +244,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     pickNotice();
   }
 
-  /** Move edges starting here to…, Move edges ending here to… or Move all edges to…: the dashed outline starts on the selection. */
+  /** Move edges starting here to…, Move edges ending here to… or Move all edges to…: the candidate starts on the selection. */
   function startMoveEdges(/** @type {'starts' | 'ends' | 'all'} */ which) {
     picking = which;
     moves.forgetCandidate();
@@ -260,7 +260,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
   function pickNotice() {
     const what = PICKED[picking ?? 'connect'];
-    ui.notice(`Click the node or subgraph ${what}, or move the dashed outline to it with the arrows or find it (/), and `
+    ui.notice(`Click the node or subgraph ${what}, or move to it with the arrows or find it (/), and `
       + `press Enter${picking === 'connect' ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
   }
 
@@ -270,7 +270,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'connect': () => {
       picking = 'connect';
       moves.forgetCandidate();
-      // The dashed outline starts on the item itself (the user): Enter at once connects it to itself.
+      // The candidate starts on the item itself (the user): Enter at once connects it to itself.
       markCandidate(selection(), { quiet: true });
       pickNotice();
     },
@@ -383,7 +383,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // The page's marks: the selection, Connect to…'s candidate, find's matches and its current one. Mermaid writes
   // classDef, style and linkStyle colors inline with !important, which no stylesheet rule beats: while an item is
   // marked, its inline colors lose the !important (the original kept in data-page-style), so the mark's colors show.
-  const MARKED = '[data-page-selected], [data-page-candidate], [data-page-match], [data-page-current]';
+  const MARKED = '[data-page-selected], [data-page-candidate], [data-page-source], [data-page-match], [data-page-current]';
   /** Give `el` the mark `attr`, loosening its inline colors. */
   const mark = (/** @type {Element} */ el, /** @type {string} */ attr) => {
     el.setAttribute(attr, '');
@@ -404,13 +404,38 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     }
   };
   const unmark = () => {
-    clearMarks('data-page-selected', 'data-page-candidate');
-    for (const e of drawn('[data-page-end]')) e.remove();
+    clearMarks('data-page-selected', 'data-page-candidate', 'data-page-source');
+    for (const e of drawn('[data-page-end], [data-page-halo]')) e.remove();
     candidate = null;
   };
+  /**
+   * While a pick is waited for, what it will change (the user: solid is where the keys are, marked is what changes):
+   * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move haloed, a
+   * wide pale line under it, so its own dashes and arrowheads still read. A collapsed box's halo is only on its own
+   * edges, the ones that move.
+   */
+  function markSource() {
+    clearMarks('data-page-source');
+    for (const e of drawn('[data-page-end], [data-page-halo]')) e.remove();
+    if (!picking || !selected) return;
+    const sel = selected, which = picking;
+    for (const e of elsOf(sel)) { e.removeAttribute('data-page-selected'); mark(e, 'data-page-source'); }
+    const moving = sel.kind === 'edge' ? [sel.id] : which === 'connect' ? []
+      : drawnEdges(edges(shownText), collapse.subs, collapse.overrides)
+        .filter((e) => (which !== 'ends' && e.from === sel.id) || (which !== 'starts' && e.to === sel.id)).map((e) => e.svgId);
+    for (const id of moving) {
+      const path = edgeEls(id).find((x) => x.matches('path:not([data-page-only])'));
+      if (!path) continue;
+      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      halo.setAttribute('d', path.getAttribute('d') ?? '');
+      halo.setAttribute('data-page-halo', '');
+      path.before(halo);
+    }
+  }
 
   /** Select a node, an edge or a subgraph (it is outlined); with `menu`, also open its menu beside it. */
   function select(/** @type {Item} */ sel, /** @type {{ keepMode?: boolean, menu?: boolean, moving?: boolean }} */ { keepMode = false, menu = false, moving = false } = {}) {
+    const was = candidate;
     unmark();
     // An item no longer drawn (the file changed under an open label box) cannot be selected.
     if (!elsOf(sel).length) { deselect(); return; }
@@ -425,6 +450,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
     if (!keepMode) picking = null;
+    // A wait kept through a new drawing: its marks again, the outline where it was if that is still drawn.
+    if (picking) {
+      markSource();
+      if (was && elsOf(was).length) markCandidate(was, { quiet: true });
+    }
     if (!menu || picking) return;
     if (sel.kind === 'edge') {
       const arrow = shownEdge(sel.id)?.arrow ?? '';
@@ -972,10 +1002,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     titleEl,
     state: { selected: () => selected, picking: () => picking !== null, candidate: () => candidate, edgesOk: () => edgesOk },
   });
-  /** In Connect to…, the node or subgraph Enter would connect to: outlined dashed, said aloud and brought into view. */
+  /** In Connect to…, the node or subgraph Enter would pick: outlined as the selection is, said aloud and brought into view. */
   function markCandidate(/** @type {Item} */ item, { quiet = false } = {}) {
     clearMarks('data-page-candidate');
     candidate = item;
+    markSource();
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : picking === 'start' || picking === 'end' ? `press Enter to move the edge's ${picking} here`
@@ -1014,7 +1045,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const findBox = /** @type {HTMLInputElement} */ (els.findBox);
   /**
    * `view`: the view before the find, put back on Escape unless the user has `moved` it since. Inside a wait for a
-   * pick, `candidate`: where the dashed outline was, put back unless Enter moves it to the current match.
+   * pick, `candidate`: where the candidate was, put back unless Enter moves it to the current match.
    * @type {{ before: Item | null, candidate: Item | null, matches: import('./find.mjs').Findable[], at: number, view: ReturnType<typeof viewer.getView>, moved: boolean } | null}
    */
   let finding = null;
@@ -1120,7 +1151,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /**
    * Close the box: select `pick`, or put back what was selected before; `restore` (Escape) puts
-   * back the view as well, unless the user has moved it since. Inside a wait, `pick` takes the dashed outline instead
+   * back the view as well, unless the user has moved it since. Inside a wait, `pick` takes the candidate instead
    * (the user: Enter in find points, a second Enter picks), and without one the outline goes back where it was.
    */
   function closeFind(/** @type {Item | null} */ pick, restore = false) {
@@ -1151,10 +1182,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       e.preventDefault();
       const at = finding.matches[finding.at];
       if (!at) return;
-      // The dashed outline never rests on the title: the find stays open.
+      // The candidate never rests on the title: the find stays open.
       if (picking && at.kind === 'title') { ui.notice('Pick a node or subgraph: the title cannot be one.', 'warning'); return; }
       // A jump to a match is to its middle (the user), so it is not left at the edge; one on screen stays put. The
-      // dashed outline brings its own into view.
+      // candidate brings its own into view.
       if (!at.on && !picking) viewer.center((at.box.left + at.box.right) / 2, (at.box.top + at.box.bottom) / 2);
       closeFind(at);
       return;

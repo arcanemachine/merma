@@ -71,8 +71,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   subgraph's box also shows its hidden contents' edges, which stay theirs (what a node does is the same, hidden or
   not), so its Move edges … items are grayed when only those reach it, saying to expand it. Escape, or a
   click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
-  to…, a move) is a step of it (the user): Enter in the find only moves the dashed outline, Escape closes the find
-  first and the wait after, so the outline stays the one thing Enter picks.
+  to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
+  first and the wait after, so the candidate stays the one thing Enter picks.
+- In a wait, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
+  move, Enter picks and which is selected after, is drawn as the selection is. What the wait will change is marked
+  instead: the node or subgraph it starts from outlined dashed, and each edge that will move haloed, a wide pale
+  line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one). On a collapsed box,
+  only its own edges are haloed, the ones that move.
 - The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
   other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
   on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that

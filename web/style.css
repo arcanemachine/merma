@@ -221,10 +221,21 @@ body.resizing { user-select: none; }
 #stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
 #stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: var(--select); text-decoration: underline 2px; }
-/* In Connect to…, the node or subgraph the arrows have reached: dashed, as it is not yet chosen. */
-#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
-#stage g.cluster[data-page-candidate] > rect { stroke: var(--select) !important;
+/* In a wait (Connect to…, a move), what it will change: the node or subgraph dashed (the user)… */
+#stage g.node[data-page-source] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
+#stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
+/* …and each edge that will move haloed: a wide pale line under it, not a dash, which would read as a dotted edge. */
+#stage path[data-page-halo] { fill: none; stroke: var(--select-faint); stroke-width: 12px; stroke-linecap: round;
+  pointer-events: none; }
+/* …while the node or subgraph the arrows have reached, which Enter picks and which is selected after, looks
+   selected: solid. */
+#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
+#stage g.cluster[data-page-candidate] > rect { stroke: var(--select) !important; stroke-width: 3px !important;
+  stroke-dasharray: none !important; }
+#stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator) { fill: var(--select-bg) !important; }
+#stage g.node[data-page-candidate] .label :is(span, p, div) { color: #1f2328 !important; }
+#stage g.node[data-page-candidate] .label text { fill: #1f2328 !important; }
 /* In Connect to…, an edge the arrows have reached (Enter refuses it) is drawn as a selected one is. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-candidate]:not([data-page-only]) { stroke: var(--select) !important;
   stroke-width: 3px !important; }
