@@ -87,8 +87,8 @@ another click on it closes it.
   node itself (Enter at once makes a self-loop); the arrows move it by the same rules as the selection (Moving by
   keyboard, below), read out as it goes, and Enter connects to it; on an edge, Enter is refused. Or find it with /:
   Enter in the find puts the outline on the current match without connecting, and Enter again connects.
-- **Move edge starts to…** (S), **Move edge ends to…** (E) and **Move all edges to…** (A), then a click on a node or a
-  subgraph, move the node's edges there: the start of each edge starting at it, the end of each edge ending at it, or
+- **Move edges starting here to…** (S), **Move edges ending here to…** (E) and **Move all edges to…** (A), then a
+  click on a node or a subgraph, move the node's edges there: the start of each edge starting at it, the end of each edge ending at it, or
   both (a self-loop then moves both its ends). Each edge moves as Move start to… and Move end to… move one (below),
   keeping its arrow, label and edge id; all in one edit, one undo. The node stays, and the one picked is selected
   after. By keyboard, the dashed outline starts on the node (Enter at once changes nothing), and moves as in Connect
@@ -143,8 +143,8 @@ another click on it closes it.
   title alone, until it has nodes.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node, and by
   keyboard the same way.
-- **Move edge starts to…** (S), **Move edge ends to…** (E) and **Move all edges to…** (A) move the subgraph's own
-  edges, as a node's. On a collapsed box, the edges drawn to it from nodes inside stay theirs: when only those reach
+- **Move edges starting here to…** (S), **Move edges ending here to…** (E) and **Move all edges to…** (A) move the
+  subgraph's own edges, as a node's. On a collapsed box, the edges drawn to it from nodes inside stay theirs: when only those reach
   it, the items are grayed, saying to expand it to move them.
 - **Edit title** edits the title in place, in the label box, saved as an edge label is: `subgraph pay [Payment]` becomes
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
@@ -236,7 +236,7 @@ here does just what it does in the selected item's menu:
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | R with an edge selected | Reverse it |
 | S or E with an edge selected | Move start to…, or Move end to… |
-| S, E or A with a node or subgraph selected | Move edge starts to…, Move edge ends to…, or Move all edges to… |
+| S, E or A with a node or subgraph selected | Move edges starting here to…, Move edges ending here to…, or Move all edges to… |
 | C with a node or subgraph selected | Connect to… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select again what Escape cleared, else the node nearest the middle of the view |
@@ -341,7 +341,7 @@ shows what you last looked for, selected, so typing replaces it. The bar's **Pre
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
 In Connect to…, the dashed outline starts on the node or subgraph the edge comes from (in Move start to… and Move end
-to…, on the end being moved; in the Move edge … items, on the node or subgraph whose edges move) and moves by the same rules as the selection, through edges (Enter on one is refused),
+to…, on the end being moved; in the Move edges … items, on the node or subgraph whose edges move) and moves by the same rules as the selection, through edges (Enter on one is refused),
 with I and O; Enter picks the outlined one. / opens the find inside them, as it looks anywhere else: Enter there puts
 the outline on the current match (on the title it is refused, and the find stays) and Escape puts it back where it
 was; either way the wait goes on, for Enter to pick. A click on a node or subgraph picks it at once.

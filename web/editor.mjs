@@ -82,7 +82,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * The wait for a node or subgraph to be picked (clicked, or Enter on the dashed outline), and what the pick does:
    * Connect to… makes an edge to it; Move start to… and Move end to… move that end of the selected edge there; Move
-   * edge starts to…, Move edge ends to… and Move all edges to… move those ends of the selected node's or subgraph's.
+   * edges starting here to…, Move edges ending here to… and Move all edges to… move those ends of the selected node's
+   * or subgraph's.
    * @type {null | 'connect' | 'start' | 'end' | 'starts' | 'ends' | 'all'}
    */
   let picking = null;
@@ -243,7 +244,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     pickNotice();
   }
 
-  /** Move edge starts to…, Move edge ends to… or Move all edges to…: the dashed outline starts on the selection. */
+  /** Move edges starting here to…, Move edges ending here to… or Move all edges to…: the dashed outline starts on the selection. */
   function startMoveEdges(/** @type {'starts' | 'ends' | 'all'} */ which) {
     picking = which;
     moves.forgetCandidate();
@@ -367,7 +368,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     };
   }
 
-  /** A node's or subgraph's edges, as its Move edge … items count them (menu-items.mjs EdgeSides). */
+  /** A node's or subgraph's edges, as its Move edges … items count them (menu-items.mjs EdgeSides). */
   function edgeSides(/** @type {Item} */ sel) {
     const all = edges(shownText);
     return {
@@ -637,7 +638,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     else moveEdgesTo(to);
   }
 
-  /** End a Move edge … wait on `to`: those ends of the selection's edges moved there, or nothing for null. */
+  /** End a Move edges … wait on `to`: those ends of the selection's edges moved there, or nothing for null. */
   function moveEdgesTo(/** @type {Item | null} */ to) {
     const from = selection();   // the wait starts on the selected node or subgraph
     const which = /** @type {'starts' | 'ends' | 'all'} */ (picking);
@@ -650,7 +651,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const name = named(to);
     let count = 0;
     editDrawn((text) => { const r = moveEdges(text, from.id, which, to.id); count = r.count; return r; }, {
-      afterSave: () => ui.announce(`Moved ${count} edge${count === 1 ? '' : 's'} to ${name}`),
+      // What changed, as it shows on screen: "2 edges now start at "Wait for stock"".
+      afterSave: () => {
+        const edgesN = `${count} edge${count === 1 ? '' : 's'}`;
+        const verb = which === 'all' ? 'moved to' : `now ${which === 'starts' ? 'start' : 'end'}${count === 1 ? 's' : ''} at`;
+        ui.announce(`${edgesN} ${verb} ${name}`);
+      },
       // The pick is selected after; a subgraph with no id was given one by the move, the id it did not have before.
       after: (result) => {
         const before = new Set(subgraphs(shownText).map((s) => s.id));

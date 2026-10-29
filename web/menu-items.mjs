@@ -105,13 +105,13 @@ const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to 
 const noEdges = (/** @type {MenuState} */ s, /** @type {string} */ none) => (s.sides?.inside
   ? 'These edges belong to nodes inside this subgraph: expand it (H) to move them.' : none);
 /**
- * The node's, subgraph's and box's Move edge … items: one end of each of its edges, or both.
+ * The node's, subgraph's and box's Move edges … items: one end of each of its edges, or both.
  * @type {MenuItem[]}
  */
 const MOVE_EDGES = [
-  { action: 'move-starts', label: 'Move edge starts to…', key: 's', mode: true,
+  { action: 'move-starts', label: 'Move edges starting here to…', key: 's', mode: true,
     applies: (s) => Boolean(s.sides?.starts), why: (s) => noEdges(s, 'No edge starts here.') },
-  { action: 'move-ends', label: 'Move edge ends to…', key: 'e', mode: true,
+  { action: 'move-ends', label: 'Move edges ending here to…', key: 'e', mode: true,
     applies: (s) => Boolean(s.sides?.ends), why: (s) => noEdges(s, 'No edge ends here.') },
   { action: 'move-all', label: 'Move all edges to…', key: 'a', mode: true,
     applies: (s) => Boolean(s.sides?.starts || s.sides?.ends), why: (s) => noEdges(s, 'No edges here.') },
