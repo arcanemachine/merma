@@ -8,9 +8,9 @@ html, body { height: 100%; }
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
   /* Muted: shown, but not to be acted on now. Whichever of the code and the diagram is read-only has this
      background. */
-  --muted-bg: #f3f4f6;
+  --muted-bg: #f6f8fa;
   /* The selection: an outline, and a node's fill; #diagram derives the faint stroke an invisible edge shows. */
-  --select: #0969da; --select-bg: #ddf4ff;
+  --select: #0969da; --select-bg: #b6e3ff;
   /* Find's marks: amber, apart from the selection's blue. */
   --find-bg: #fff1b8; --find-mark: #bf8700;
   /* The current match: strong against the plain match mark, so its blink reads at a glance (the user). */
