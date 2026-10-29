@@ -66,7 +66,7 @@
           }
           continue;
         }
-        if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move') continue;
+        if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move' && c.kind !== 'moves') continue;
         /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
         const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));
         for (const node of before.getVertices().keys()) if (node !== c.gone && !blocks.has(node) && !vertices.has(node)) fails.push(`${c.name}: ${node} lost`);
@@ -85,6 +85,16 @@
               fails.push(`${c.name}: edge ${m} is ${b?.start}->${b?.end} ${JSON.stringify(b?.style)}, expected ${a.start}->${a.end} ${JSON.stringify(a.style)}`);
             }
           });
+          continue;
+        }
+        if (c.kind === 'moves') {
+          /* The same edges, those at `id` given `to` at that side, each with its type, label and linkStyle style. */
+          const { id, which, to } = c.moves;
+          const sig = (a) => JSON.stringify([a.start, a.end, a.type, a.stroke, a.text, a.style]);
+          const want = old.map((a) => sig({ ...a, start: which !== 'ends' && a.start === id ? to : a.start,
+            end: which !== 'starts' && a.end === id ? to : a.end })).sort();
+          const got = left.map(sig).sort();
+          if (want.join('\n') !== got.join('\n')) fails.push(`${c.name}: edges ${got.filter((g) => !want.includes(g)).join(' ')}, expected ${want.filter((w) => !got.includes(w)).join(' ')}`);
           continue;
         }
         if (c.kind === 'change') {

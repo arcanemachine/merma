@@ -10,6 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
+  moveEdges,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -589,6 +590,87 @@ test('retarget out of a subgraph splits a chain there, and carries an edge id wi
   // With no other edge left, it goes at the end.
   assert.equal(retarget('flowchart TD\n  subgraph g\n    A e1@--> B\n  end\n  e1@{ animate: true }\n  C\n', 'e1', 'end', 'C').text,
     'flowchart TD\n  subgraph g\n    A\n    B\n  end\n  C\n  A e1@--> C\n  e1@{ animate: true }\n');
+});
+
+for (const [name, nodes] of Object.entries(NODE_IDS)) {
+  const src = fixture(name);
+  for (const id of [...nodes, ...(SUBGRAPH_IDS[name] ?? [])]) {
+    test(`${name} ${id}: moveEdges moves that side of each of its edges, every other edge kept in order`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const before = edges(src);
+      const to = nodes.find((n) => n !== id);
+      for (const which of ['starts', 'ends', 'all']) {
+        const moves = (e) => (which !== 'ends' && e.from === id) || (which !== 'starts' && e.to === id);
+        const { text, count } = moveEdges(src, id, which, to);
+        const after = edges(text).map(sig);
+        assert.equal(count, before.filter(moves).length, which);
+        const want = before.map((e) => sig({
+          ...e,
+          from: which !== 'ends' && e.from === id ? to : e.from,
+          to: which !== 'starts' && e.to === id ? to : e.to,
+        }));
+        assert.deepEqual([...after].sort(), [...want].sort(), `${which}: the same edges, those ends moved`);
+        // The edges not moved read in the same order (a moved edge may read like one of them: a subsequence).
+        const kept = before.filter((e) => !moves(e)).map(sig);
+        let k = 0;
+        for (const x of after) if (x === kept[k]) k++;
+        assert.equal(k, kept.length, `${which}: the others in their order`);
+        for (const node of nodes) assert.match(text, new RegExp(`(?<![\\p{L}\\p{N}_])${node}(?![\\p{L}\\p{N}_])`, 'u'), node);
+      }
+    });
+  }
+}
+
+test('moveEdges moves the starts, the ends or both of a node in a chain, splitting it in place', () => {
+  const src = 'flowchart TD\n  A --> X --> B\n  C\n';
+  assert.deepEqual(moveEdges(src, 'X', 'starts', 'C'), { text: 'flowchart TD\n  A --> X\n  C --> B\n  C\n', count: 1 });
+  assert.deepEqual(moveEdges(src, 'X', 'ends', 'C'), { text: 'flowchart TD\n  A --> C\n  X --> B\n  C\n', count: 1 });
+  assert.deepEqual(moveEdges(src, 'X', 'all', 'C'), { text: 'flowchart TD\n  A --> C\n  X\n  C --> B\n  C\n', count: 2 });
+});
+
+test('moveEdges moves one end of a self-loop for starts or ends, and both for all', () => {
+  const src = 'flowchart TD\n  X --> X\n  C\n';
+  assert.equal(moveEdges(src, 'X', 'starts', 'C').text, 'flowchart TD\n  X\n  C --> X\n  C\n');
+  assert.equal(moveEdges(src, 'X', 'ends', 'C').text, 'flowchart TD\n  X --> C\n  X\n  C\n');
+  assert.deepEqual(moveEdges(src, 'X', 'all', 'C'), { text: 'flowchart TD\n  X\n  C --> C\n  C\n', count: 1 });
+});
+
+test('moveEdges splits an & group, the other start keeping its edge', () => {
+  assert.equal(moveEdges('flowchart TD\n  X & Y --> Z\n  C\n', 'X', 'starts', 'C').text,
+    'flowchart TD\n  X\n  C --> Z\n  Y --> Z\n  C\n');
+});
+
+test('moveEdges lifts edges out of a subgraph in their order, linkStyle following each', () => {
+  const src = 'flowchart TD\n  subgraph g\n    X --> A\n    X --> B\n  end\n  C --> D\n  linkStyle 0 stroke:red\n  linkStyle 1 stroke:blue\n';
+  assert.deepEqual(moveEdges(src, 'X', 'starts', 'C'), {
+    text: 'flowchart TD\n  subgraph g\n    A\n    X\n    B\n  end\n  C --> D\n  C --> A\n  C --> B\n  linkStyle 1 stroke:red\n  linkStyle 2 stroke:blue\n',
+    count: 2,
+  });
+});
+
+test('moveEdges moves all of a node\'s edges out of a subgraph in their order, starts and ends alike', () => {
+  const src = 'flowchart TD\n  subgraph g\n    A --> X --> B\n  end\n  C --> D\n  linkStyle 0 stroke:red\n  linkStyle 1 stroke:blue\n';
+  assert.equal(moveEdges(src, 'X', 'all', 'C').text,
+    'flowchart TD\n  subgraph g\n    A\n    X\n    B\n  end\n  C --> D\n  A --> C\n  C --> B\n  linkStyle 1 stroke:red\n  linkStyle 2 stroke:blue\n');
+});
+
+test('moveEdges moves a subgraph\'s own edges, lifting one written inside its block', () => {
+  assert.deepEqual(moveEdges('flowchart TD\n  subgraph g\n    A\n    g --> A\n  end\n  g --> B\n  C\n', 'g', 'starts', 'C'),
+    { text: 'flowchart TD\n  subgraph g\n    A\n  end\n  C --> B\n  C --> A\n  C\n', count: 2 });
+});
+
+test('moveEdges onto a subgraph with no id names it once', () => {
+  assert.deepEqual(moveEdges('flowchart TD\n  A --> B\n  A --> C\n  subgraph "Order log"\n    Q\n  end\n', 'A', 'starts', 'subGraph0'), {
+    // A keeps a line of its own where its last edge was.
+    text: 'flowchart TD\n  s1 --> B\n  A\n  s1 --> C\n  subgraph s1 ["Order log"]\n    Q\n  end\n',
+    count: 2,
+  });
+});
+
+test('moveEdges writes nothing onto the item itself, or with no edge on that side', () => {
+  const src = 'flowchart TD\n  A --> B\n';
+  assert.deepEqual(moveEdges(src, 'A', 'all', 'A'), { text: src, count: 0 });
+  assert.deepEqual(moveEdges(src, 'A', 'ends', 'B'), { text: src, count: 0 });
 });
 
 test('retarget onto a subgraph names one with no id, and onto its own end writes nothing', () => {

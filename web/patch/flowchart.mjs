@@ -887,6 +887,28 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
 }
 
 /**
+ * Move node or subgraph `id`'s edges to `to`: the start of each edge starting there (`starts`), the end of each edge
+ * ending there (`ends`), or both (`all`; a self-loop then moves both its ends). Each is retarget()ed in turn, in file
+ * order, so each stays in place or moves out after the last edge as retarget says, those moved out keeping their
+ * order. Returns { text, count }: the edges moved.
+ */
+export function moveEdges(/** @type {string} */ text, /** @type {string} */ id, /** @type {'starts' | 'ends' | 'all'} */ which, /** @type {string} */ to) {
+  const sides = /** @type {const} */ ({ starts: ['start'], ends: ['end'], all: ['start', 'end'] })[which];
+  const at = (/** @type {Edge} */ e, /** @type {'start' | 'end'} */ side) => (side === 'start' ? e.from : e.to) === id;
+  const count = edges(text).filter((e) => sides.some((side) => at(e, side))).length;
+  if (to === id || !count) return { text, count: 0 };
+  // An id-less subgraph is named once, here: each retarget after names it by that id.
+  ({ text, id: to } = endpoint(text, to));
+  // An edge's svgId comes from its ends, so it changes with each move: the next one is found afresh each time.
+  const next = () => edges(text).find((x) => sides.some((side) => at(x, side)));
+  for (let e = next(); e; e = next()) {
+    const side = /** @type {'start' | 'end'} */ (sides.find((s) => at(/** @type {Edge} */ (e), s)));
+    text = retarget(text, e.svgId, side, to).text;
+  }
+  return { text, count };
+}
+
+/**
  * Lines inserted at the top level just after the last edge, so that whatever follows the edges (`linkStyle`, an edge's
  * `@{ … }`) still does: after its line, or after the `end` of the outermost subgraph it is in.
  */

@@ -16,8 +16,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
   never expands.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one
-  exception is Move start to… or Move end to… on an edge written inside a subgraph block when its new end is named
-  outside that block: an edge line pulls both its ends into its block, so the line moves out, after the last edge,
+  exception is a move of an edge's end (Move start to…, Move end to…, and the node's and subgraph's Move edge starts
+  to…, Move edge ends to…, Move all edges to…, which move each of its edges so) on an edge written inside a subgraph
+  block when its new end is named outside that block: an edge line pulls both its ends into its block, so the line moves out, after the last edge,
   and its `linkStyle` number goes with it (the others after it move down one).
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
@@ -42,7 +43,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move start to…, Move end to… |
+  | Connect, Reverse, Move | what they say | Connect to…, Reverse edge, Move start to…, Move edge starts to… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
@@ -58,11 +59,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N, S and E have no other key, so S and
-  E move a selected edge's start and end outside menus as in its menu. The Edit items have no menu key at all (the
+  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N, S, E and A have no other key, so S
+  and E move a selected edge's start and end outside menus as in its menu, and on a node or subgraph S, E and A move
+  its edges' starts, ends or both: one meaning, move an edge's end, whatever is selected. The Edit items have no menu key at all (the
   user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open menu Enter runs the item
   in focus. So E is free for Move end to…, a letter of its label, and Add subgraph is G, menu-only, so that S and E
-  stay free for moving a node's edges later. Escape, or a
+  are free for moving a node's edges. A node's or subgraph's edges are the ones written to its own id: a collapsed
+  subgraph's box also shows its hidden contents' edges, which stay theirs (what a node does is the same, hidden or
+  not), so its Move edge … items are grayed when only those reach it, saying to expand it. Escape, or a
   click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the dashed outline, Escape closes the find
   first and the wait after, so the outline stays the one thing Enter picks.

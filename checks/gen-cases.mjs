@@ -5,12 +5,13 @@
 // given an id, { from, to }; `into`: { id, subgraph } a node or subgraph added inside another; `title`: { id, text }
 // the subgraph retitled, and its new title as written. `shape`: { id, refs } the node given a shape, and that shape
 // written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it. `move`: { side, to, index } an edge
-// (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after.
+// (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after. `moves`: { id, which, to } node
+// or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -89,6 +90,25 @@ for (const [name, list, src] of sources) {
         const { text: out, index } = retarget(src, e.svgId, end, to);
         cases.push({ name: `${name} move ${end} of ${e.svgId} to ${to}`, kind: 'move', src, out, at, renamed,
           move: { side, to: renamed?.to ?? to, index } });
+      }
+    }
+  }
+}
+// Each node's and subgraph's edges moved, each side and both, to a node at either end of the list and to each subgraph.
+for (const [name, list, src] of sources) {
+  const sgs = subgraphs(src).filter((s) => s.end !== null && !subgraphRefusal(src, s.id));
+  for (const id of [...list, ...sgs.filter((s) => s.written).map((s) => s.id)]) {
+    if (!edges(src).some((e) => e.from === id || e.to === id)) continue;
+    const targets = new Set([list.find((n) => n !== id), list.findLast((n) => n !== id), ...sgs.map((s) => s.id)]);
+    for (const to of targets) {
+      if (!to || to === id) continue;
+      const sg = sgs.find((s) => s.id === to);
+      const renamed = sg && !sg.written ? { from: sg.id, to: freeId(src, 's') } : null;
+      for (const which of ['starts', 'ends', 'all']) {
+        const { text: out, count } = moveEdges(src, id, which, to);
+        if (!count) continue;
+        cases.push({ name: `${name} move ${which} of ${id} to ${to}`, kind: 'moves', src, out, renamed,
+          moves: { id, which, to: renamed?.to ?? to } });
       }
     }
   }

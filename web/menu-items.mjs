@@ -16,8 +16,9 @@ export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
   c: ['connect'],
   r: ['reverse-edge'],
-  s: ['move-start'],
-  e: ['move-end'],
+  s: ['move-start', 'move-starts'],
+  e: ['move-end', 'move-ends'],
+  a: ['move-all'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -66,6 +67,13 @@ export const LOCKED = 'The code is being edited: save or cancel it to edit the d
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
+ * @property {EdgeSides} [sides] the selected node's or subgraph's edges
+ */
+
+/**
+ * A node's or subgraph's edges: how many start and end at its own id, and whether a collapsed box also has edges
+ * drawn to it from nodes hidden inside, which are theirs.
+ * @typedef {{ starts: number, ends: number, inside: boolean }} EdgeSides
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -93,6 +101,22 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
 const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to it.';
 
+/** What a Move edge … item says when `count` of the selection's edges are none: why there is nothing to move. */
+const noEdges = (/** @type {MenuState} */ s, /** @type {string} */ none) => (s.sides?.inside
+  ? 'These edges belong to nodes inside this subgraph: expand it (H) to move them.' : none);
+/**
+ * The node's, subgraph's and box's Move edge … items: one end of each of its edges, or both.
+ * @type {MenuItem[]}
+ */
+const MOVE_EDGES = [
+  { action: 'move-starts', label: 'Move edge starts to…', key: 's', mode: true,
+    applies: (s) => Boolean(s.sides?.starts), why: (s) => noEdges(s, 'No edge starts here.') },
+  { action: 'move-ends', label: 'Move edge ends to…', key: 'e', mode: true,
+    applies: (s) => Boolean(s.sides?.ends), why: (s) => noEdges(s, 'No edge ends here.') },
+  { action: 'move-all', label: 'Move all edges to…', key: 'a', mode: true,
+    applies: (s) => Boolean(s.sides?.starts || s.sides?.ends), why: (s) => noEdges(s, 'No edges here.') },
+];
+
 /**
  * Each kind's menu. `box` is a subgraph drawn collapsed: the subgraph's menu, with Expand in place of Collapse.
  * @type {Record<'node' | 'edge' | 'subgraph' | 'box' | 'title' | 'space', MenuItem[]>}
@@ -101,6 +125,7 @@ export const MENUS = {
   node: [
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
+    ...MOVE_EDGES,
     { action: 'edit-node', label: 'Edit node' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
@@ -118,6 +143,7 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    ...MOVE_EDGES,
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
@@ -127,6 +153,7 @@ export const MENUS = {
     { action: 'add-node', label: 'Add node', key: 'n', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g', applies: () => false, why: () => EXPAND_FIRST },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    ...MOVE_EDGES,
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
