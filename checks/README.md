@@ -8,8 +8,8 @@ anything under `web/`).
 `gen-cases.mjs` applies the node edits (add connected, connect, edit label, every shape, delete) to every node, the edge edits
 (delete, label, unlabel, reverse, every arrow type, each end moved to every node and subgraph) to every edge, and the subgraph edits (edit title, add a node or a
 subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
-and a subgraph at the top level, and each node's and subgraph's edges moved (starts, ends, all) to a node and to each
-subgraph.
+and a subgraph at the top level, each node's and subgraph's edges moved (starts, ends, all) to a node and to each
+subgraph, and each node merged into another.
 `parse-check.js` runs each result through Mermaid's parser in the page, and checks that no existing node changed
 subgraph (an edge line inside a subgraph pulls its nodes into that subgraph), that what was added inside a subgraph is
 in it, and that a new subgraph title is drawn as asked. For a delete, it also checks with
@@ -17,7 +17,8 @@ Mermaid that every other node is still there, and that the edges left are the ol
 its old `linkStyle` style; for an edge edit, that every edge is in its place with its style, and that the changed one
 has the arrow type and drawn label asked for; for a move, that the moved edge has its new end, its type, label and
 `linkStyle` style, at its place (where it was, or last), and the others are in order with theirs; for a move of a node's edges, that the
-edges are the same ones, those ends moved, each with its type, label and style; for a shape, that the node has it, with its label and classes, and that
+edges are the same ones, those ends moved, each with its type, label and style; for a merge, that the node is gone
+and Mermaid draws as many edges as merma reads; for a shape, that the node has it, with its label and classes, and that
 no other node changed.
 
 1. Start merma with a root you can write to, and open any diagram in that root in a browser.

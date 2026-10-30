@@ -15,12 +15,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Copy SVG and Download SVG show what you see, collapse included. H toggles it, separate from O and I, which move: I
   on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
   never expands.
-- No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one
-  exception is a move of an edge's end (Move start to…, Move end to…, and the node's and subgraph's Move edges
-  starting here to…, Move edges ending here to…, Move all edges to…, which move each of its edges so) on an edge
-  written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends into
-  its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after it
-  move down one).
+- No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
+  is a move of an edge's end (Move start to…, Move end to…, and Merge into…, which moves each of the node's edges so) on
+  an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
+  into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after
+  it move down one).
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
 
@@ -45,6 +44,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Connect from…, Reverse edge, Move start to… |
+  | Merge | one thing goes into another, which takes its edges | Merge into… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
@@ -60,16 +60,18 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N, S, E and A have no other key, so S
-  and E move a selected edge's start and end outside menus as in its menu, and on a node or subgraph S, E and A move
-  its edges' starts, ends or both: one meaning, move an edge's end, whatever is selected. Hence the labels "Move edges
-  starting here to…" and "Move edges ending here to…" (the user read "Move edge starts to…" backwards, as the edge
-  coming in at the start; swapping the keys would make S move opposite ends on a node and on an edge). The Edit items
-  have no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open menu Enter runs the item
-  in focus. So E is free for Move end to…, a letter of its label, and Add subgraph is G, menu-only, so that S and E
-  are free for moving a node's edges. A node's or subgraph's edges are the ones written to its own id: a collapsed
-  subgraph's box also shows its hidden contents' edges, which stay theirs (what a node does is the same, hidden or
-  not), so its Move edges … items are grayed when only those reach it, saying to expand it. Escape, or a
+  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N, S and E have no other key, so S and
+  E move a selected edge's start and end outside menus as in its menu, and E on a node is Merge into… ("mErge": a key
+  is a letter of its label; a merge moves every edge's end to the other node, close to E's meaning on an edge). The
+  Edit items have no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu,
+  and in an open menu Enter runs the item in focus. So E is free for Move end to…, and Add subgraph is G, menu-only.
+- Merge into… (the user, after trying it as three moves): a node's edges move to another node (the end at it moves),
+  and the node goes. The user expected moving a node's edges to swing their far ends (a redirect: "Start" now leads to
+  "In stock?"), and read every label for the near-end move backwards, so it is named for what it is for: merging a
+  duplicate, replacing a node. Not "Swap" (two nodes trading edges) nor "Merge with" (which one stays?). An edge
+  between the two goes, as it would mean nothing after; a self-loop comes along as one of the other node; an edge
+  that comes out the same as one the other node already has (same ends, arrow type and label) goes, unless it has an
+  edge id or a `linkStyle` of its own. Nodes only: a subgraph cannot take a node's place. Escape, or a
   click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
   first and the wait after, so the candidate stays the one thing Enter picks.
@@ -79,9 +81,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   never from the letter's case, so Caps Lock does not count.
 - In a wait, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
   move, Enter picks and which is selected after, is drawn as the selection is. What the wait will change is marked
-  instead: the node or subgraph it starts from outlined dashed, and each edge that will move haloed, a wide pale
-  line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one). On a collapsed box,
-  only its own edges are haloed, the ones that move.
+  instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go haloed, a wide pale
+  line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one).
 - The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
   other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
   on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that

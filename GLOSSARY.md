@@ -44,7 +44,8 @@ Mermaid syntax.
 | **subgraph id** | The name a subgraph has in the file (`pay` in `subgraph pay [Payment]`, or `Payment` in `subgraph Payment`). One written with none (`subgraph "Order log"`) is `subGraph<k>` to Mermaid, k counting every subgraph in the order their `end`s come. |
 | **subgraph title** | The text shown on a subgraph. |
 | **title** | The diagram's title, the frontmatter's `title:`, drawn over the diagram (Mermaid's word). Alone, "title" is this one; a subgraph's is its subgraph title. |
-| **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…). |
+| **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…, Connect from…). |
+| **merge** | Merge into…: a node's edges move to another node, and the node goes. |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
 

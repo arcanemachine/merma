@@ -66,6 +66,12 @@
           }
           continue;
         }
+        if (c.kind === 'merge') {
+          /* The node gone, every other where it was (above), and the edges merma reads all drawn. */
+          if (after.getVertices().has(c.merge.id)) fails.push(`${c.name}: ${c.merge.id} still drawn`);
+          if (after.getEdges().length !== c.merge.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.merge.edges}`);
+          continue;
+        }
         if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move' && c.kind !== 'moves') continue;
         /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
         const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));

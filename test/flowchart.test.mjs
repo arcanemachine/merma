@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges,
+  moveEdges, mergeNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -671,6 +671,54 @@ test('moveEdges writes nothing onto the item itself, or with no edge on that sid
   const src = 'flowchart TD\n  A --> B\n';
   assert.deepEqual(moveEdges(src, 'A', 'all', 'A'), { text: src, count: 0 });
   assert.deepEqual(moveEdges(src, 'A', 'ends', 'B'), { text: src, count: 0 });
+});
+
+for (const [name, nodes] of Object.entries(NODE_IDS)) {
+  const src = fixture(name);
+  for (const id of nodes) {
+    test(`${name} ${id}: mergeNode leaves no edge at it, the others in order, every other node named`, () => {
+      const into = nodes.find((n) => n !== id);
+      if (!into) return;
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const { text } = mergeNode(src, id, into);
+      const after = edges(text);
+      assert.ok(after.every((e) => e.from !== id && e.to !== id), 'no edge at the merged node');
+      const kept = edges(src).filter((e) => e.from !== id && e.to !== id).map(sig);
+      let k = 0;
+      for (const x of after.map(sig)) if (x === kept[k]) k++;
+      assert.equal(k, kept.length, 'the other edges in their order');
+      for (const node of nodes) {
+        if (node !== id) assert.match(text, new RegExp(`(?<![\\p{L}\\p{N}_])${node}(?![\\p{L}\\p{N}_])`, 'u'), node);
+      }
+    });
+  }
+}
+
+test('mergeNode moves the edges, drops those between the two, and deletes the node with its lines', () => {
+  const src = 'flowchart TD\n  order[Order] --> c1[Charge card]\n  order --> c2[Charge card]\n  c1 --> ok{Paid?}\n  c2 --> ok\n'
+    + '  c2 -->|retry| c2\n  c1 --> c2\n  ok -->|no| c2\n  style c2 fill:#f00\n  click c2 href "x"\n';
+  assert.deepEqual(mergeNode(src, 'c2', 'c1'), {
+    text: 'flowchart TD\n  order[Order] --> c1[Charge card]\n  c1 --> ok{Paid?}\n  c1 -->|retry| c1\n  ok -->|no| c1\n',
+    moved: 2,
+    dropped: 2,
+  });
+});
+
+test('mergeNode drops an exact copy only: another label, an edge id or a linkStyle keeps it', () => {
+  assert.deepEqual(mergeNode('flowchart TD\n  A --> X\n  A --> Y\n  A -->|go| X\n  B --> X\n  B e1@--> X\n  B --> Y\n', 'X', 'Y'),
+    { text: 'flowchart TD\n  A --> Y\n  A -->|go| Y\n  B e1@--> Y\n  B --> Y\n', moved: 2, dropped: 2 });
+  assert.deepEqual(mergeNode('flowchart TD\n  A --> X\n  A --> Y\n  linkStyle 0 stroke:red\n', 'X', 'Y'),
+    { text: 'flowchart TD\n  A --> Y\n  A --> Y\n  linkStyle 0 stroke:red\n', moved: 1, dropped: 0 });
+});
+
+test('mergeNode turns a self-loop into one of the node merged into, and lifts edges out of a subgraph', () => {
+  assert.equal(mergeNode('flowchart TD\n  X --> X\n  Y --> Z\n', 'X', 'Y').text, 'flowchart TD\n  Y --> Y\n  Y --> Z\n');
+  assert.equal(mergeNode('flowchart TD\n  subgraph g\n    A --> X\n  end\n  Y --> Z\n', 'X', 'Y').text,
+    'flowchart TD\n  subgraph g\n    A\n  end\n  Y --> Z\n  A --> Y\n');
+});
+
+test('mergeNode refuses a node into itself', () => {
+  assert.throws(() => mergeNode('flowchart TD\n  A --> B\n', 'A', 'A'), /itself/);
 });
 
 test('retarget onto a subgraph names one with no id, and onto its own end writes nothing', () => {

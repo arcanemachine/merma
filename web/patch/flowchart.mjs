@@ -909,6 +909,40 @@ export function moveEdges(/** @type {string} */ text, /** @type {string} */ id, 
 }
 
 /**
+ * Merge node `id` into node `into`: its edges move to `into` (moveEdges), and `id` is deleted (deleteNode). An edge
+ * between the two goes, as it would mean nothing after; a self-loop of `id` becomes one of `into`. An edge that would
+ * come out the same as one `into` already has (same ends, arrow type and label) goes too, unless it has an edge id or
+ * a `linkStyle` of its own. Returns { text, moved, dropped }: the edges moved, and the duplicates dropped.
+ */
+export function mergeNode(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ into) {
+  assertNode(text, id);
+  assertNode(text, into);
+  if (id === into) throw new Error('A node cannot be merged into itself.');
+  const swap = (/** @type {string} */ n) => (n === id ? into : n);
+  const sig = (/** @type {Edge} */ e) => [swap(e.from), swap(e.to), arrowType(e.arrow), e.label?.text ?? ''].join('\0');
+  const own = (/** @type {Edge} */ e) => e.from === id || e.to === id;
+  // Each edge to drop is found afresh, since every drop renumbers the edges and their linkStyle lines.
+  const next = () => {
+    const all = edges(text);
+    const between = all.find((e) => (e.from === id && e.to === into) || (e.from === into && e.to === id));
+    if (between) return { e: between, dup: false };
+    const styled = new Set(statements(text).filter((s) => s.keyword === 'linkStyle').flatMap((s) =>
+      text.slice(s.start, s.end).match(/^linkStyle\s+(\d+(?:\s*,\s*\d+)*)/)?.[1].split(/\s*,\s*/).map(Number) ?? []));
+    const copies = new Set(all.filter((e) => !own(e)).map(sig));
+    // Named or styled, an edge is not just a copy.
+    const dup = all.find((e) => own(e) && !e.userId && !styled.has(e.index) && copies.has(sig(e)));
+    return dup ? { e: dup, dup: true } : null;
+  };
+  let dropped = 0;
+  for (let d = next(); d; d = next()) {
+    text = deleteEdge(text, d.e.svgId).text;
+    if (d.dup) dropped++;
+  }
+  const { text: out, count } = moveEdges(text, id, 'all', into);
+  return { text: deleteNode(out, id).text, moved: count, dropped };
+}
+
+/**
  * Lines inserted at the top level just after the last edge, so that whatever follows the edges (`linkStyle`, an edge's
  * `@{ … }`) still does: after its line, or after the `end` of the outermost subgraph it is in.
  */

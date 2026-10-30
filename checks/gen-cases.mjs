@@ -6,12 +6,13 @@
 // the subgraph retitled, and its new title as written. `shape`: { id, refs } the node given a shape, and that shape
 // written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it. `move`: { side, to, index } an edge
 // (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after. `moves`: { id, which, to } node
-// or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style.
+// or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style. `merge`: { id, edges } node `id`
+// merged into another (mergeNode): gone, with `edges` edges left.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  mergeNode, moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -110,6 +111,16 @@ for (const [name, list, src] of sources) {
         cases.push({ name: `${name} move ${which} of ${id} to ${to}`, kind: 'moves', src, out, renamed,
           moves: { id, which, to: renamed?.to ?? to } });
       }
+    }
+  }
+}
+// Each node merged into a node at either end of the list.
+for (const [name, list, src] of sources) {
+  for (const id of list) {
+    for (const into of new Set([list.find((n) => n !== id), list.findLast((n) => n !== id)])) {
+      if (!into) continue;
+      const { text: out } = mergeNode(src, id, into);
+      cases.push({ name: `${name} merge ${id} into ${into}`, kind: 'merge', src, out, gone: id, merge: { id, edges: edges(out).length } });
     }
   }
 }
