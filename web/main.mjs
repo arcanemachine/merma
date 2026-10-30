@@ -7,7 +7,7 @@ import { EXPORT_MENU, NO_SUBGRAPH_MATCH } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
 import { prune, setView, viewText } from './collapse.mjs';
-import { baseDir, turnText } from './turn.mjs';
+import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
@@ -63,17 +63,34 @@ function keepOverrides() {
   } catch { /* storage unavailable: the views just are not kept */ }
 }
 
-// Rotate and flip (turn.mjs): the page's own, as collapses are, kept for this tab per file. `base` is the file's
-// direction when turned: a file whose own direction changes since (an agent turned it) is not turned again.
+// Rotate and flip (turn.mjs): the page's own, as collapses are, kept for this tab per file: the whole diagram's turn
+// and each subgraph's own. `base` is the direction the file had when turned: a file whose own direction changes since
+// (an agent turned it) is not turned again. A subgraph with no id keeps its title, as a collapse does (collapse.mjs).
 const turnKey = 'merma:turn:' + file;
-/** @type {{ rotate: boolean, flip: boolean, base: string | null }} */
-let turn = { rotate: false, flip: false, base: null };
+/** @typedef {{ rotate: boolean, flip: boolean, base: string | null }} Turned */
+/** @typedef {Turned & { title: string | null }} SubTurned */
+/** @type {Turned & { subs: [string, SubTurned][] }} */
+let turn = { rotate: false, flip: false, base: null, subs: [] };
 try { turn = { ...turn, ...JSON.parse(sessionStorage.getItem(turnKey) ?? '{}') }; } catch { /* nothing kept */ }
+const isOn = (/** @type {{ rotate: boolean, flip: boolean }} */ t) => t.rotate || t.flip;
 function keepTurn() {
+  turn.subs = turn.subs.filter(([, t]) => isOn(t));
   try {
-    if (turn.rotate || turn.flip) sessionStorage.setItem(turnKey, JSON.stringify(turn));
+    if (isOn(turn) || turn.subs.length) sessionStorage.setItem(turnKey, JSON.stringify(turn));
     else sessionStorage.removeItem(turnKey);
   } catch { /* storage unavailable: the turn just is not kept */ }
+}
+/**
+ * The turns that still hold for `text`: each dropped when the direction it was made from has changed. Subgraphs' only
+ * when merma and Mermaid agree on them (`subs`, else null), as collapses are.
+ */
+function pruneTurn(/** @type {string} */ text, /** @type {import('./collapse.mjs').SubgraphInfo[] | null} */ subs) {
+  if (isOn(turn) && turn.base !== baseDir(text)) turn = { ...turn, rotate: false, flip: false, base: null };
+  if (subs) turn.subs = turn.subs.filter(([id, t]) => {
+    const s = subs.find((x) => x.id === id);
+    return s && (t.title === null || t.title === s.title) && t.base === subgraphDir(text, id);
+  });
+  keepTurn();
 }
 
 // A short status message that fades out. Short messages ("Copied!") start fading after 1 s; longer ones stay up
@@ -148,17 +165,30 @@ const ui = {
     const { text } = source.snapshot();
     if (text !== null) await display(text);
   },
-  /** Rotate or flip the diagram, in this page only, and draw the file again. Whether it is turned so now. */
-  async turn(/** @type {'rotate' | 'flip'} */ which) {
+  /**
+   * Rotate or flip the diagram, or subgraph `id` on its own, in this page only, and draw the file again. Whether it is
+   * turned so now.
+   */
+  async turn(/** @type {'rotate' | 'flip'} */ which, /** @type {string | null} */ id = null) {
     const { text } = source.snapshot();
-    if (text === null) return turn[which];
-    turn = { ...turn, [which]: !turn[which], base: baseDir(text) };
+    if (text === null) return false;
+    if (id === null) {
+      turn = { ...turn, [which]: !turn[which], base: baseDir(text) };
+    } else {
+      const was = turn.subs.find(([k]) => k === id)?.[1] ?? { rotate: false, flip: false };
+      const title = /^subGraph\d+$/.test(id) ? shownSubs.find((s) => s.id === id)?.title ?? null : null;
+      const now = { ...was, [which]: !was[which], base: subgraphDir(text, id), title };
+      turn.subs = [...turn.subs.filter(([k]) => k !== id), [id, now]];
+    }
     keepTurn();
     await display(text);
-    return turn[which];
+    return id === null ? turn[which] : Boolean(turn.subs.find(([k]) => k === id)?.[1][which]);
   },
-  /** How the page turns the diagram, for the menus. */
-  turned: () => ({ rotate: turn.rotate, flip: turn.flip }),
+  /** How the page turns the diagram, or subgraph `id` on its own, for the menus. */
+  turned(/** @type {string | null} */ id = null) {
+    const t = id === null ? turn : turn.subs.find(([k]) => k === id)?.[1];
+    return { rotate: Boolean(t?.rotate), flip: Boolean(t?.flip) };
+  },
   /** The selection changed (or was drawn again): the code panel follows it, when its box is checked. */
   selected(/** @type {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string } | null} */ item) {
     if (item?.kind === followed?.kind && item?.id === followed?.id) return;
@@ -230,14 +260,14 @@ async function draw(/** @type {string} */ text) {
     overrides = prune(overrides, subs);
     keepOverrides();
   }
-  if ((turn.rotate || turn.flip) && turn.base !== baseDir(text)) { turn = { rotate: false, flip: false, base: null }; keepTurn(); }
-  const turned = turnText(text, turn);
+  pruneTurn(text, agree ? subs : null);
+  const turned = turnText(text, turn, agree ? new Map(turn.subs) : new Map());
   const drawn = agree ? viewText(turned, overrides, subs) : turned;
   let shown = await viewer.show(drawn);
   if (!shown.ok && drawn !== text && (shown = await viewer.show(text)).ok) {
     overrides = new Map();
     keepOverrides();
-    turn = { rotate: false, flip: false, base: null };
+    turn = { rotate: false, flip: false, base: null, subs: [] };
     keepTurn();
     warning = "Couldn't collapse or turn the diagram: showing the file as written.";
   }

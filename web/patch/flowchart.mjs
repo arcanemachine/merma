@@ -74,21 +74,34 @@ function headerIndex(/** @type {string[]} */ ls) {
 
 /**
  * Where a flowchart names its directions: the header's (`at` its two letters, or where they would go when it has
- * none, `dir` null) and each subgraph's `direction` line. Null when it is not a flowchart.
- * @returns {{ header: { at: number, dir: string | null }, inner: { at: number, dir: string }[] } | null}
+ * none, `dir` null), and each closed subgraph's own `direction` line (`at` its two letters, `dir`; null when it has
+ * none), with `after`, where a line of its own would go (the start of the line after `subgraph`), its indent, and the
+ * id of the subgraph it is in. Null when it is not a flowchart.
+ * @returns {{ header: { at: number, dir: string | null },
+ *   blocks: { id: string, parent: string | null, at: number | null, dir: string | null, after: number, indent: string }[] } | null}
  */
 export function directions(/** @type {string} */ text) {
   if (!isFlowchart(text)) return null;
   const ls = lines(text);
   const h = headerIndex(ls);
-  const lineAt = ls.slice(0, h).join('').length;
+  const offsetOf = (/** @type {number} */ n) => ls.slice(0, n).join('').length;
   const m = /** @type {RegExpExecArray} */ (/^(\s*(?:flowchart|graph))(\s+(TB|TD|BT|LR|RL)\b)?/.exec(ls[h]));
-  const header = m[3] ? { at: lineAt + m[0].length - 2, dir: m[3] } : { at: lineAt + m[1].length, dir: null };
-  const inner = statements(text).filter((s) => s.keyword === 'direction').flatMap((s) => {
+  const at = offsetOf(h);
+  const header = m[3] ? { at: at + m[0].length - 2, dir: m[3] } : { at: at + m[1].length, dir: null };
+  const sgs = subgraphs(text);
+  const own = statements(text).filter((s) => s.keyword === 'direction').flatMap((s) => {
     const d = /^direction\s+(TB|TD|BT|LR|RL)\b/.exec(text.slice(s.start, s.end));
-    return d ? [{ at: s.start + d[0].length - 2, dir: d[1] }] : [];
+    const sg = subgraphsAt(text, s.line, sgs).at(-1);
+    return d && sg ? [{ sg, at: s.start + d[0].length - 2, dir: d[1] }] : [];
   });
-  return { header, inner };
+  const blocks = sgs.filter((g) => g.end !== null).map((g) => {
+    const line = own.find((o) => o.sg === g);
+    const next = ls[g.start + 1] ?? '';
+    const indent = /^\s*end\b/.test(next) ? indentOf(ls[g.start]) + '  ' : indentOf(next);
+    return { id: /** @type {string} */ (g.id), parent: g.parent === null ? null : sgs[g.parent].id, at: line?.at ?? null,
+      dir: line?.dir ?? null, after: offsetOf(g.start + 1), indent };
+  });
+  return { header, blocks };
 }
 
 /** True for `flowchart` and `graph` diagrams, the only types these edits understand. */

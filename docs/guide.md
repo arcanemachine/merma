@@ -156,6 +156,11 @@ another click on it closes it.
   as written, and a reload of this tab keeps it (a new tab starts from the file). Edges to what it holds end at the box.
   A subgraph collapsed in the file itself (`pay@{ view: collapsed }`, written in the code panel) starts as a box, and
   can be expanded here the same way. On a box, Add node and Add subgraph are grayed: expand it first.
+- **Rotate** (R) and **Flip** (Shift+R) turn just this subgraph's inside, on top of any turn of the whole diagram, in
+  this tab only, as the whole diagram's do (Empty space, below); **Rotate back** and **Flip back** undo each. Grayed
+  where Mermaid lays the subgraph out with the rest of the diagram, which is whenever one of its nodes links to a node
+  outside it (or to one in a subgraph inside it): only a subgraph whose nodes link among themselves can run its own way.
+  Grayed on a collapsed box too. A change to its own `direction` line in the file drops its turn.
 
 Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
 
@@ -180,7 +185,7 @@ selected.
 **Rotate back** or **Flip back** while it is on. For fitting a wide or a tall window: the file is not changed, the page
 fits the diagram after, and a reload keeps it for this tab. Every subgraph's own `direction` turns with it. A change to
 the file's own direction (someone else's save) drops the turn. R and Shift+R do this with nothing selected; on an edge,
-R reverses it.
+R reverses it; on a subgraph, they turn just its inside (below).
 
 ## The node panel
 
@@ -261,6 +266,7 @@ here does just what it does in the selected item's menu:
 | Delete or Backspace | Delete the selected node or edge |
 | ? (wherever it is on your keyboard) | Open Help, or close it |
 | R or Shift+R with nothing selected | Rotate, or Flip, the diagram (this tab only) |
+| R or Shift+R with a subgraph selected | Rotate, or Flip, its inside (this tab only) |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead (the title fits) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |

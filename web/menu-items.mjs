@@ -68,7 +68,8 @@ export const LOCKED = 'The code is being edited: save or cancel it to edit the d
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
- * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram (turn.mjs)
+ * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
+ * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -98,6 +99,18 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
 
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
 const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to it.';
+
+/**
+ * Rotate and Flip, page-only: the whole diagram from the empty-space menu, a subgraph on its own from its menu, where
+ * Mermaid draws it in a direction of its own (MenuState `turnWhy`).
+ * @returns {MenuItem[]}
+ */
+const turnItems = () => [
+  { action: 'rotate', label: 'Rotate', labelBack: 'Rotate back', back: (s) => Boolean(s.turn?.rotate), key: 'r',
+    view: true, separated: true, applies: (s) => !s.turnWhy, why: (s) => s.turnWhy ?? null },
+  { action: 'flip', label: 'Flip', labelBack: 'Flip back', back: (s) => Boolean(s.turn?.flip), key: 'shift+r', view: true,
+    applies: (s) => !s.turnWhy, why: (s) => s.turnWhy ?? null },
+];
 
 /**
  * Each kind's menu. `box` is a subgraph drawn collapsed: the subgraph's menu, with Expand in place of Collapse.
@@ -130,6 +143,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
+    ...turnItems().map((i) => ({ ...i, separated: false })),
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
   ],
   box: [
@@ -140,6 +154,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
+    ...turnItems().map((i) => ({ ...i, separated: false })),
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
   ],
   title: [
@@ -150,9 +165,7 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
-    { action: 'rotate', label: 'Rotate', labelBack: 'Rotate back', back: (s) => Boolean(s.turn?.rotate), key: 'r',
-      view: true, separated: true },
-    { action: 'flip', label: 'Flip', labelBack: 'Flip back', back: (s) => Boolean(s.turn?.flip), key: 'shift+r', view: true },
+    ...turnItems(),
   ],
 };
 

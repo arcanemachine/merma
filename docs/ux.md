@@ -19,9 +19,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   direction in the text Mermaid gets (the header's, every subgraph's `direction`) is swapped in place, two letters for
   two, so no offset moves; a header with none gets one, since Mermaid ignores a top-level `direction` line. Kept for
   the tab with the file's direction then; a change to the file's own direction drops them, so an agent turning the file
-  is not turned back. One toggle each, not a choice of four (the user may ask for more after trying). Not per
-  subgraph: Mermaid ignores a subgraph's direction when a node inside links outside, which is most of them, and a
-  subgraph with no `direction` line has no place for one that moves no offset. The view fits after a turn.
+  is not turned back. One toggle each, not a choice of four (the user may ask for more after trying). The whole turn
+  turns every subgraph with it (the user: the picture turns as a whole), and a subgraph can be turned on its own as
+  well, on top of that (the user: "a la carte"): its own line turned, or, with none, a `direction` line of its own in
+  the drawn text (on its own line: on the `subgraph` line it does not parse). Only where Mermaid draws it in a direction
+  of its own, seen in 12.2.0: none of its nodes linked to a node outside it, nor its own nodes to one in a subgraph
+  inside it (edges to a subgraph's box do not count). That is most subgraphs grayed, all of the "Simple" demo's; it is
+  Mermaid's layout rule, not a setting. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
   is a move of an edge's end (Move start to…, Move end to…, and Merge into…, which moves each of the node's edges so) on
   an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends

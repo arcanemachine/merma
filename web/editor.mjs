@@ -7,6 +7,7 @@
 import { ARROW_TYPES } from './arrow-types.mjs';
 import { createBlink } from './blink.mjs';
 import { drawnAs, drawnEdges } from './collapse.mjs';
+import { turnable } from './turn.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
@@ -61,7 +62,7 @@ const END_GAP = 4;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip'): Promise<boolean>, turned(): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -261,6 +262,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** Whether the wait makes an edge: Connect to… or Connect from…. */
   const connecting = () => picking === 'connect' || picking === 'connect-from';
 
+  /** Rotate or flip the selected subgraph on its own, or with nothing selected the whole diagram. */
+  function turnIt(/** @type {'rotate' | 'flip'} */ which) {
+    const id = selectedSubgraph();
+    const what = id ? named({ kind: 'subgraph', id }) : 'the diagram';
+    const verb = which === 'rotate' ? 'Rotated' : 'Flipped';
+    ui.turn(which, id).then((on) => { viewer.fit(); ui.announce(`${verb} ${what}${on ? '' : ' back'}`); });
+  }
+
   /** @type {Record<string, string>} what each wait asks for: what is picked */
   const PICKED = {
     connect: 'the edge goes to', 'connect-from': 'the edge comes from',
@@ -299,9 +308,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'collapse-subgraph': () => { const { id } = selection(); ui.setView(id, 'collapsed').then(() => ui.announce(`Collapsed ${named({ kind: 'subgraph', id })}`)); },
     'expand-subgraph': () => { const { id } = selection(); ui.setView(id, 'expanded').then(() => ui.announce(`Expanded ${named({ kind: 'subgraph', id })}`)); },
     'fit-view': () => viewer.fit(),
-    // Page-only (turn.mjs), as collapse is. A turn is for fitting the window (the user), so it fits after.
-    'rotate': () => ui.turn('rotate').then((on) => { viewer.fit(); ui.announce(on ? 'Rotated the diagram' : 'Rotated the diagram back'); }),
-    'flip': () => ui.turn('flip').then((on) => { viewer.fit(); ui.announce(on ? 'Flipped the diagram' : 'Flipped the diagram back'); }),
+    // Page-only (turn.mjs), as collapse is: the whole diagram, or the selected subgraph on its own. A turn is for
+    // fitting the window (the user), so it fits after.
+    'rotate': () => turnIt('rotate'),
+    'flip': () => turnIt('flip'),
     'find': () => openFind(),
     // The selection in the middle of the view, at the zoom it has (the user).
     'center-view': () => {
@@ -368,9 +378,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       selfLoop: selected?.kind === 'edge' && shownEdge(selected.id)?.from === shownEdge(selected.id)?.to,
       nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
       collapseWhy: selected?.kind === 'subgraph' && !collapse.subs.some((s) => s.id === selected?.id) ? NO_SUBGRAPH_MATCH : null,
-      turn: ui.turned(),
+      turn: ui.turned(selectedSubgraph()),
+      turnWhy: selected?.kind === 'subgraph' ? turnWhy(selected.id) : null,
       locked,
     };
+  }
+
+  /** Why the selected subgraph cannot be turned on its own, or null when it can (turn.mjs turnable). */
+  function turnWhy(/** @type {string} */ id) {
+    if (isBox({ kind: 'subgraph', id })) return 'This subgraph is collapsed: expand it first (H) to turn it.';
+    if (!collapse.subs.some((s) => s.id === id)) return NO_SUBGRAPH_MATCH;
+    return turnable(id, collapse.subs, edges(shownText)) ? null : "Mermaid ignores this subgraph's direction: a node inside links outside it.";
   }
 
   // --- selection -----------------------------------------------------------------------------------------------
@@ -841,8 +859,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
     // R reverses a selected edge; with nothing selected it rotates the diagram, Shift+R flips it, as the empty-space
     // menu's R and Shift+R do. Nothing on a node or a subgraph, nor in a wait.
-    r: () => edgeKey('reverse-edge') || spaceKey('rotate'),
-    'shift+r': () => spaceKey('flip'),
+    r: () => edgeKey('reverse-edge') || spaceKey('rotate') || itemKey('rotate'),
+    'shift+r': () => spaceKey('flip') || itemKey('flip'),
     s: () => edgeKey('move-start'),
     e: () => edgeKey('move-end') || itemKey('merge-into'),
     enter: () => {
