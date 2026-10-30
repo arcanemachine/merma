@@ -172,8 +172,15 @@ Removing the title is not supported: Delete or Backspace on it says so.
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
-**Find…** (/) opens the find (below). **Fit to window**, last, fits the diagram to the window, as F does with nothing
+**Find…** (/) opens the find (below). **Fit to window** fits the diagram to the window, as F does with nothing
 selected.
+
+**Rotate** (R) turns the diagram sideways, top-down to left-to-right and back (bottom-up to right-to-left), and
+**Flip** (Shift+R) turns it the other way up, top-down to bottom-up, left-to-right to right-to-left; each reads
+**Rotate back** or **Flip back** while it is on. For fitting a wide or a tall window: the file is not changed, the page
+fits the diagram after, and a reload keeps it for this tab. Every subgraph's own `direction` turns with it. A change to
+the file's own direction (someone else's save) drops the turn. R and Shift+R do this with nothing selected; on an edge,
+R reverses it.
 
 ## The node panel
 
@@ -253,6 +260,7 @@ here does just what it does in the selected item's menu:
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
 | ? (wherever it is on your keyboard) | Open Help, or close it |
+| R or Shift+R with nothing selected | Rotate, or Flip, the diagram (this tab only) |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead (the title fits) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |

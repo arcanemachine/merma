@@ -66,7 +66,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function render() {
     items.forEach((item, i) => {
       const b = buttons[i];
-      const text = Object.assign(document.createElement('span'), { textContent: item.label });
+      const text = Object.assign(document.createElement('span'), { textContent: item.back?.(state) ? item.labelBack : item.label });
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
       // `shift+c` shows as ⇧C, as the shape picker shows Shift with a digit.
       const shown = item.key?.replace(/^shift\+/, '⇧').toUpperCase();

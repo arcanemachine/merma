@@ -7,6 +7,7 @@ import { EXPORT_MENU, NO_SUBGRAPH_MATCH } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
 import { prune, setView, viewText } from './collapse.mjs';
+import { baseDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
 
@@ -60,6 +61,19 @@ function keepOverrides() {
     if (overrides.size) sessionStorage.setItem(collapseKey, JSON.stringify([...overrides]));
     else sessionStorage.removeItem(collapseKey);
   } catch { /* storage unavailable: the views just are not kept */ }
+}
+
+// Rotate and flip (turn.mjs): the page's own, as collapses are, kept for this tab per file. `base` is the file's
+// direction when turned: a file whose own direction changes since (an agent turned it) is not turned again.
+const turnKey = 'merma:turn:' + file;
+/** @type {{ rotate: boolean, flip: boolean, base: string | null }} */
+let turn = { rotate: false, flip: false, base: null };
+try { turn = { ...turn, ...JSON.parse(sessionStorage.getItem(turnKey) ?? '{}') }; } catch { /* nothing kept */ }
+function keepTurn() {
+  try {
+    if (turn.rotate || turn.flip) sessionStorage.setItem(turnKey, JSON.stringify(turn));
+    else sessionStorage.removeItem(turnKey);
+  } catch { /* storage unavailable: the turn just is not kept */ }
 }
 
 // A short status message that fades out. Short messages ("Copied!") start fading after 1 s; longer ones stay up
@@ -134,6 +148,17 @@ const ui = {
     const { text } = source.snapshot();
     if (text !== null) await display(text);
   },
+  /** Rotate or flip the diagram, in this page only, and draw the file again. Whether it is turned so now. */
+  async turn(/** @type {'rotate' | 'flip'} */ which) {
+    const { text } = source.snapshot();
+    if (text === null) return turn[which];
+    turn = { ...turn, [which]: !turn[which], base: baseDir(text) };
+    keepTurn();
+    await display(text);
+    return turn[which];
+  },
+  /** How the page turns the diagram, for the menus. */
+  turned: () => ({ rotate: turn.rotate, flip: turn.flip }),
   /** The selection changed (or was drawn again): the code panel follows it, when its box is checked. */
   selected(/** @type {{ kind: 'node' | 'edge' | 'subgraph' | 'title', id: string } | null} */ item) {
     if (item?.kind === followed?.kind && item?.id === followed?.id) return;
@@ -205,12 +230,16 @@ async function draw(/** @type {string} */ text) {
     overrides = prune(overrides, subs);
     keepOverrides();
   }
-  const drawn = agree ? viewText(text, overrides, subs) : text;
+  if ((turn.rotate || turn.flip) && turn.base !== baseDir(text)) { turn = { rotate: false, flip: false, base: null }; keepTurn(); }
+  const turned = turnText(text, turn);
+  const drawn = agree ? viewText(turned, overrides, subs) : turned;
   let shown = await viewer.show(drawn);
   if (!shown.ok && drawn !== text && (shown = await viewer.show(text)).ok) {
     overrides = new Map();
     keepOverrides();
-    warning = "Couldn't collapse: showing the file as written.";
+    turn = { rotate: false, flip: false, base: null };
+    keepTurn();
+    warning = "Couldn't collapse or turn the diagram: showing the file as written.";
   }
   if (!shown.ok) {
     showError('Syntax error; showing the last good render.\n' + shown.error);

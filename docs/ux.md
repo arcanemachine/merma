@@ -15,6 +15,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Copy SVG and Download SVG show what you see, collapse included. H toggles it, separate from O and I, which move: I
   on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
   never expands.
+- Rotate and flip are view state too (the user: for fitting a wide or a tall window), drawn as collapse is: each
+  direction in the text Mermaid gets (the header's, every subgraph's `direction`) is swapped in place, two letters for
+  two, so no offset moves; a header with none gets one, since Mermaid ignores a top-level `direction` line. Kept for
+  the tab with the file's direction then; a change to the file's own direction drops them, so an agent turning the file
+  is not turned back. One toggle each, not a choice of four (the user may ask for more after trying). Not per
+  subgraph: Mermaid ignores a subgraph's direction when a node inside links outside, which is most of them, and a
+  subgraph with no `direction` line has no place for one that moves no offset. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
   is a move of an edge's end (Move start to…, Move end to…, and Merge into…, which moves each of the node's edges so) on
   an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
@@ -76,7 +83,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
   first and the wait after, so the candidate stays the one thing Enter picks.
 - Shift with an item's letter does that item the other way round (the user): Shift+C is Connect from…, C's edge the
-  other way; Shift+R will flip the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
+  other way; Shift+R flips the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
   menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
   never from the letter's case, so Caps Lock does not count.
 - In a wait, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows

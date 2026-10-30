@@ -61,7 +61,7 @@ const END_GAP = 4;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip'): Promise<boolean>, turned(): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -299,6 +299,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'collapse-subgraph': () => { const { id } = selection(); ui.setView(id, 'collapsed').then(() => ui.announce(`Collapsed ${named({ kind: 'subgraph', id })}`)); },
     'expand-subgraph': () => { const { id } = selection(); ui.setView(id, 'expanded').then(() => ui.announce(`Expanded ${named({ kind: 'subgraph', id })}`)); },
     'fit-view': () => viewer.fit(),
+    // Page-only (turn.mjs), as collapse is. A turn is for fitting the window (the user), so it fits after.
+    'rotate': () => ui.turn('rotate').then((on) => { viewer.fit(); ui.announce(on ? 'Rotated the diagram' : 'Rotated the diagram back'); }),
+    'flip': () => ui.turn('flip').then((on) => { viewer.fit(); ui.announce(on ? 'Flipped the diagram' : 'Flipped the diagram back'); }),
     'find': () => openFind(),
     // The selection in the middle of the view, at the zoom it has (the user).
     'center-view': () => {
@@ -365,6 +368,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       selfLoop: selected?.kind === 'edge' && shownEdge(selected.id)?.from === shownEdge(selected.id)?.to,
       nameWhy: selected?.kind === 'subgraph' ? subgraphRefusal(shownText, selected.id) : null,
       collapseWhy: selected?.kind === 'subgraph' && !collapse.subs.some((s) => s.id === selected?.id) ? NO_SUBGRAPH_MATCH : null,
+      turn: ui.turned(),
       locked,
     };
   }
@@ -805,6 +809,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     handlers[action]();
     return true;
   }
+  /** The empty-space menu's `action` by its key, with nothing selected and no wait. */
+  function spaceKey(/** @type {string} */ action) {
+    if (picking || selected) return false;
+    handlers[action]();
+    return true;
+  }
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
     n: () => {
@@ -829,7 +839,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'shift+c': () => (picking ? true : itemKey('connect-from')),
     // R reverses a selected edge, S and E move its start and end, as the edge menu's do, each refused as it is grayed
     // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
-    r: () => edgeKey('reverse-edge'),
+    // R reverses a selected edge; with nothing selected it rotates the diagram, Shift+R flips it, as the empty-space
+    // menu's R and Shift+R do. Nothing on a node or a subgraph, nor in a wait.
+    r: () => edgeKey('reverse-edge') || spaceKey('rotate'),
+    'shift+r': () => spaceKey('flip'),
     s: () => edgeKey('move-start'),
     e: () => edgeKey('move-end') || itemKey('merge-into'),
     enter: () => {

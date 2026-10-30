@@ -72,6 +72,25 @@ function headerIndex(/** @type {string[]} */ ls) {
   return i;
 }
 
+/**
+ * Where a flowchart names its directions: the header's (`at` its two letters, or where they would go when it has
+ * none, `dir` null) and each subgraph's `direction` line. Null when it is not a flowchart.
+ * @returns {{ header: { at: number, dir: string | null }, inner: { at: number, dir: string }[] } | null}
+ */
+export function directions(/** @type {string} */ text) {
+  if (!isFlowchart(text)) return null;
+  const ls = lines(text);
+  const h = headerIndex(ls);
+  const lineAt = ls.slice(0, h).join('').length;
+  const m = /** @type {RegExpExecArray} */ (/^(\s*(?:flowchart|graph))(\s+(TB|TD|BT|LR|RL)\b)?/.exec(ls[h]));
+  const header = m[3] ? { at: lineAt + m[0].length - 2, dir: m[3] } : { at: lineAt + m[1].length, dir: null };
+  const inner = statements(text).filter((s) => s.keyword === 'direction').flatMap((s) => {
+    const d = /^direction\s+(TB|TD|BT|LR|RL)\b/.exec(text.slice(s.start, s.end));
+    return d ? [{ at: s.start + d[0].length - 2, dir: d[1] }] : [];
+  });
+  return { header, inner };
+}
+
 /** True for `flowchart` and `graph` diagrams, the only types these edits understand. */
 export function isFlowchart(/** @type {string} */ text) {
   const ls = lines(text);

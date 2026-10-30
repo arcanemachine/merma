@@ -6,7 +6,7 @@
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
 export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
-  'Download', 'Collapse', 'Expand'];
+  'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
  * Keys the page answers outside menus, and the menu actions each one runs. A key is named by KeyboardEvent.key,
@@ -16,7 +16,8 @@ export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node'],
   c: ['connect'],
   'shift+c': ['connect-from'],
-  r: ['reverse-edge'],
+  r: ['reverse-edge', 'rotate'],
+  'shift+r': ['flip'],
   s: ['move-start'],
   e: ['move-end', 'merge-into'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
@@ -67,6 +68,7 @@ export const LOCKED = 'The code is being edited: save or cancel it to edit the d
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
+ * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram (turn.mjs)
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -90,6 +92,8 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [mode] it waits for a further click or typing
  * @property {boolean} [view] it changes only the view, so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
+ * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
+ * @property {string} [labelBack]
  */
 
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
@@ -146,6 +150,9 @@ export const MENUS = {
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
+    { action: 'rotate', label: 'Rotate', labelBack: 'Rotate back', back: (s) => Boolean(s.turn?.rotate), key: 'r',
+      view: true, separated: true },
+    { action: 'flip', label: 'Flip', labelBack: 'Flip back', back: (s) => Boolean(s.turn?.flip), key: 'shift+r', view: true },
   ],
 };
 

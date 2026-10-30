@@ -57,6 +57,7 @@ note where merma had to make one up.
 | Word | Meaning |
 |---|---|
 | **page** | merma in the browser, showing one file. |
+| **rotate**, **flip** | Turn the diagram sideways, or the other way up, in the page only: the directions Mermaid gets are turned, the file's are not. |
 | **view** | Where the diagram sits on screen: **zoom** (wheel, pinch, + and -), **move** (drag, arrows with nothing selected), **fit** (Fit to window, F, double-click). |
 | **render** | Mermaid drawing the diagram from the file's text. A file that does not parse keeps the last good render. |
 | **item** | A node, an edge, a subgraph or the title: what can be selected, and what a menu belongs to. A menu's entries are **menu items**. merma's own; not "element", which in merma's code means a DOM element. |
