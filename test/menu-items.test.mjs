@@ -34,6 +34,14 @@ test('keys are unique within a menu, each one key, Shift only with a letter the 
   }
 });
 
+// Keys are unique within a menu (above), so a menu has one trial on Q at most: a second would need Q to open a list of
+// them, which is not built.
+test('a trial item is on Q, or Shift+Q, and only a trial item is', () => {
+  for (const [menu, list] of Object.entries(ALL_MENUS)) {
+    for (const item of list) assert.equal(/^(shift\+)?q$/.test(item.key ?? ''), Boolean(item.trial), `${menu}: ${item.action}`);
+  }
+});
+
 test('an item with no key is one that Enter runs outside menus, so a quicker key does its job', () => {
   for (const { item } of items) if (item.key === undefined) assert.ok(GLOBAL_KEYS.enter.includes(item.action), item.action);
 });

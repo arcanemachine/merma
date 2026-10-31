@@ -9,7 +9,8 @@ anything under `web/`).
 (delete, label, unlabel, reverse, every arrow type, each end moved to every node and subgraph) to every edge, and the subgraph edits (edit title, add a node or a
 subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
 and a subgraph at the top level, each node's and subgraph's edges moved (starts, ends, all) to a node and to each
-subgraph, and each node merged into another.
+subgraph, each node's outgoing and incoming edges given to the same (an edge between the two kept), and each node
+merged into another.
 `parse-check.js` runs each result through Mermaid's parser in the page, and checks that no existing node changed
 subgraph (an edge line inside a subgraph pulls its nodes into that subgraph), that what was added inside a subgraph is
 in it, and that a new subgraph title is drawn as asked. For a delete, it also checks with

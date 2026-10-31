@@ -5,7 +5,7 @@
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
+export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Merge', 'Give', 'Find', 'Fit', 'Center', 'Copy',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
@@ -20,6 +20,8 @@ export const GLOBAL_KEYS = {
   'shift+r': ['flip'],
   s: ['move-start'],
   e: ['move-end', 'merge-into'],
+  q: ['give-out'],
+  'shift+q': ['give-in'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -70,6 +72,7 @@ export const LOCKED = 'The code is being edited: save or cancel it to edit the d
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
  * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
+ * @property {{ out: number, in: number }} [edgeCount] the selected node's outgoing and incoming edges
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -95,6 +98,8 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [separated] set apart from the items above it
  * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
  * @property {string} [labelBack]
+ * @property {boolean} [trial] on trial (docs/ux.md, "Trials"): marked in its menu, on Q (or Shift+Q, the other way
+ *   round) until the user gives it a letter or drops it
  */
 
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
@@ -113,6 +118,17 @@ const turnItems = () => [
 ];
 
 /**
+ * Give outgoing and incoming edges to…, on trial: the node's own end of those edges moves to the node or subgraph picked.
+ * @returns {MenuItem[]}
+ */
+const giveItems = () => /** @type {const} */ (['out', 'in']).map((way) => ({
+  action: `give-${way}`, label: `Give ${way === 'out' ? 'outgoing' : 'incoming'} edges to…`, key: way === 'out' ? 'q' : 'shift+q',
+  mode: true, trial: true,
+  applies: (/** @type {MenuState} */ s) => s.edgesOk && (s.edgeCount?.[way] ?? 0) > 0,
+  why: (/** @type {MenuState} */ s) => (s.edgesOk ? `This node has no ${way === 'out' ? 'outgoing' : 'incoming'} edges.` : NO_EDGE_MATCH),
+}));
+
+/**
  * Each kind's menu. `box` is a subgraph drawn collapsed: the subgraph's menu, with Expand in place of Collapse.
  * @type {Record<'node' | 'edge' | 'subgraph' | 'box' | 'title' | 'space', MenuItem[]>}
  */
@@ -122,6 +138,7 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
     { action: 'merge-into', label: 'Merge into…', key: 'e', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
+    ...giveItems(),
     { action: 'edit-node', label: 'Edit node' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },

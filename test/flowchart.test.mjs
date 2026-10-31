@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode,
+  moveEdges, giveEdges, mergeNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -693,6 +693,30 @@ for (const [name, nodes] of Object.entries(NODE_IDS)) {
     });
   }
 }
+
+test('giveEdges moves the near end of the outgoing or the incoming edges, leaving an edge between the two', () => {
+  const src = 'flowchart TD\n  A --> X --> B\n  X --> C\n  C --> X\n  C\n';
+  assert.deepEqual(giveEdges(src, 'X', 'out', 'C'),
+    { text: 'flowchart TD\n  A --> X\n  C --> B\n  X --> C\n  C --> X\n  C\n', count: 1 });
+  assert.deepEqual(giveEdges(src, 'X', 'in', 'C'),
+    { text: 'flowchart TD\n  A --> C\n  X --> B\n  X --> C\n  C --> X\n  C\n', count: 1 });
+});
+
+test('giveEdges with only an edge between the two moves nothing', () => {
+  assert.deepEqual(giveEdges('flowchart TD\n  X --> C\n', 'X', 'out', 'C'), { text: 'flowchart TD\n  X --> C\n', count: 0 });
+});
+
+test('giveEdges moves only the named end of a self-loop, and keeps a duplicate it makes', () => {
+  assert.equal(giveEdges('flowchart TD\n  X --> X\n  C\n', 'X', 'out', 'C').text, 'flowchart TD\n  X\n  C --> X\n  C\n');
+  assert.equal(giveEdges('flowchart TD\n  X --> X\n  C\n', 'X', 'in', 'C').text, 'flowchart TD\n  X --> C\n  X\n  C\n');
+  assert.equal(giveEdges('flowchart TD\n  X --> B\n  C --> B\n', 'X', 'out', 'C').text, 'flowchart TD\n  X\n  C --> B\n  C --> B\n');
+});
+
+test('giveEdges lifts an edge out of a subgraph block its new end is not in, its linkStyle following', () => {
+  const src = 'flowchart TD\n  subgraph g\n    X --> B\n    A --> B\n  end\n  C\n  linkStyle 0 stroke:red\n';
+  assert.equal(giveEdges(src, 'X', 'out', 'C').text,
+    'flowchart TD\n  subgraph g\n    X\n    A --> B\n  end\n  C --> B\n  C\n  linkStyle 1 stroke:red\n');
+});
 
 test('mergeNode moves the edges, drops those between the two, and deletes the node with its lines', () => {
   const src = 'flowchart TD\n  order[Order] --> c1[Charge card]\n  order --> c2[Charge card]\n  c1 --> ok{Paid?}\n  c2 --> ok\n'

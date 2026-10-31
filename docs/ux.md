@@ -28,10 +28,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   inside it (edges to a subgraph's box do not count). That is most subgraphs grayed, all of the "Simple" demo's; it is
   Mermaid's layout rule, not a setting. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
-  is a move of an edge's end (Move start to…, Move end to…, and Merge into…, which moves each of the node's edges so) on
-  an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
-  into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after
-  it move down one).
+  is a move of an edge's end (Move start to…, Move end to…, and Merge into… and Give edges to…, which move each of a
+  node's edges so) on an edge written inside a subgraph block when its new end is named outside that block: an edge line
+  pulls both its ends into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with
+  it (the others after it move down one).
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
 
@@ -57,6 +57,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Move | what they say | Connect to…, Connect from…, Reverse edge, Move start to… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
+  | Give | another thing takes some of a thing's edges; the thing stays | Give outgoing edges to… (trial) |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
@@ -87,6 +88,17 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
   first and the wait after, so the candidate stays the one thing Enter picks.
+- Give outgoing edges to… and Give incoming edges to… (Q and Shift+Q, on trial): the node's own end of those edges
+  moves to the node or subgraph picked, and the node stays: on "Take order", Give outgoing edges to "Wait for stock"
+  turns `order --> check` into `wait --> check`. For splitting a node, or putting a step after or before one with many
+  edges. It is the same edit as an earlier "Move edges starting here to…", whose label the user read backwards (as the
+  far end moving), so it is named for who has the edges after. An edge between the two stays as it is (it would become
+  a self-loop of the other); a duplicate it makes stays (nothing goes away, and Move end to… keeps them too); with
+  nothing to give it says so and writes nothing. The node stays selected: the next step is often the node again.
+- **Trials** (the user): an item being tried is in its own menu under its real name, tagged "trial", and its key is Q,
+  or Shift+Q for the same item the other way round: an exception to a key being a letter of its label, so a trial
+  takes no letter before it has earned one. The user decides from trying it whether it stays, and takes a letter, or
+  goes. One trial on Q per menu; a second would need Q to open a list of them.
 - Shift with an item's letter does that item the other way round (the user): Shift+C is Connect from…, C's edge the
   other way; Shift+R flips the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
   menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,

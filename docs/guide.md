@@ -97,6 +97,11 @@ another click on it closes it.
   its edges glow pale blue; by keyboard, the blue outline starts on the node and moves as in Connect to…, and Enter
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
   last edge when the other node is named outside it, as Move end to… says.
+- **Give outgoing edges to…** (Q), on trial, then a click on another node or subgraph, gives it this node's outgoing
+  edges: their start moves there, and this node stays, `order --> check` becoming `wait --> check`. **Give incoming
+  edges to…** (Shift+Q) gives the edges coming in: their end moves. For splitting a node, or putting a step after or
+  before it. An edge between the two stays as it is. While you pick, the node is outlined dashed and the edges that
+  will move glow pale blue; this node stays selected after. Grayed with no edges that way, or without an edge match.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
@@ -250,6 +255,7 @@ here does just what it does in the selected item's menu:
 | R with an edge selected | Reverse it |
 | S or E with an edge selected | Move start to…, or Move end to… |
 | E with a node selected | Merge into… |
+| Q or Shift+Q with a node selected | Give outgoing edges to…, or Give incoming edges to… (on trial) |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
@@ -359,8 +365,8 @@ shows what you last looked for, selected, so typing replaces it. The bar's **Pre
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
 In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Move start to… and Move end to…,
-on the end being moved; in Merge into…, on the node being merged) and moves by the same rules as the selection, through
-edges (Enter on one is refused), with I and O; Enter picks the outlined one. What the pick will change is marked
+on the end being moved; in Merge into… and Give edges to…, on the node) and moves by the same rules as the selection,
+through edges (Enter on one is refused), with I and O; Enter picks the outlined one. What the pick will change is marked
 meanwhile: the node or subgraph it starts from dashed, the edges that will move glowing pale blue. / opens the find
 inside them, as it looks anywhere else: Enter there puts the outline on the current match (on the title it is refused,
 and the find stays) and Escape puts it back where it was; either way the wait goes on, for Enter to pick. A click on a
