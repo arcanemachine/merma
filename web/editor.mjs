@@ -278,8 +278,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
   function pickNotice() {
     const what = picking === 'merge' ? `node to merge ${named(selection())} into` : `node or subgraph ${PICKED[picking ?? 'connect']}`;
-    ui.notice(`Click the ${what}, or move to it with the arrows or find it (/), and `
-      + `press Enter${connecting() ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
+    ui.notice(`Click the ${what}. Click away or press Escape to cancel.`, 'info');
   }
 
   /** @type {Record<string, () => void>} */
