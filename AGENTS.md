@@ -40,7 +40,8 @@ rather than repeating it, and write down only what someone will read again.
   plain names (`A[Start] --> B{OK?}`, `charge --> record`) that show the syntax under test, never copied from, or
   specific to, any other codebase, project or organization.
 - **Check the page in a browser** after changing anything under `web/`; the unit tests do not cover it. Run the
-  accessibility scan too: no violations outside the diagram (`checks/README.md`, "Accessibility"). After a change to
+  accessibility scan too: no violations outside the diagram (the rules: `docs/ux.md`, "Accessibility"; how to check:
+  `checks/README.md`, "Accessibility"). After a change to
   `web/patch/`, run the browser parse check as well.
 - Say why in a comment when a reader new to merma's code could not work it out; nothing more.
 - Conventional commits (`feat:`, `fix:`, `docs:`…), one commit per feature.

@@ -95,15 +95,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   move, Enter picks and which is selected after, is drawn as the selection is. What the wait will change is marked
   instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go haloed, a wide pale
   line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one).
-- The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
-  other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
-  on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that
-  inference rather than a ring; the user chose it over a ring shown only with nothing selected, so an accessibility
-  sweep should not reopen it without them (asked again, they kept it: a ring shown on Tab only, and not on a click,
-  confused more than it helped). So the diagram comes first in Tab order, whatever the dock (the user): the diagram,
-  the code panel's handle, the panel, its bar, the code, then the footer, and round to the diagram; the one stop
-  without a ring is where focus starts and rests, and the cycle never seems to stall on it. Help is the other
-  exception: it takes focus as it opens, so its arrows scroll it, and the open panel itself shows where focus is.
+- The diagram comes first in Tab order, whatever the dock (the user): the diagram, the code panel's handle, the panel,
+  its bar, the code, then the footer, and round to the diagram. The diagram has no focus ring (Accessibility), so the
+  one stop without a ring is where focus starts and rests, and the cycle never seems to stall on it.
 - No hidden affordances. A shortcut is shown where its item is: a menu item's key at its right, as most apps show
   them (the user: one system, no underlined letters), and a digit in a picker. A key is a letter of its label where
   one fits, for the memory, but need not be (Center in window, F: F is the view key everywhere; Find…, /). Names
@@ -184,10 +178,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   off screen, then click it, and the view stays put). Enter selects the current match; with no match, or nothing
   typed, it does nothing, and the box stays. / again shows the last query, selected.
 - Find's current match blinks when it becomes current (typing, Tab, reopening; not a drag or a redraw that keeps it),
-  a third of a second on and off, the user's rate, seven times, then stays on: WCAG 2.2.2 asks blinking with no
-  control to stop it to end within 5 s, and a blink as the current match changes is when it helps. Off is the plain
-  match mark, so the current never leaves the set of matches. An edge blinks by its line's color (near-black amber), not
-  its width, which would jitter, and not its label (the user: a blinking label distracts). None under reduced motion.
+  a third of a second on and off, the user's rate, seven times, then stays on (Accessibility says why it stops): a
+  blink as the current match changes is when it helps. Off is the plain match mark, so the current never leaves the
+  set of matches. An edge blinks by its line's color (near-black amber), not its width, which would jitter, and not its
+  label (the user: a blinking label distracts).
   Its colors stay amber, never the selection's blue: a blue phase would read as the match being selected, and a
   selected match would not blink at all.
 - Moving by keyboard, as one model (the user settled each rule in UAT, case by case, as "press X, get Y"):
@@ -313,7 +307,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Follow selection (the user: a box, checked by default, the browser's for every file): checked, it always follows,
   reading or editing, so there is one rule to keep in mind; unchecked, never. Each new selection (click, tap, keys,
   find's Enter, undo's) bands the item's lines in the selection's pale blue behind the text, puts the caret at their
-  start and scrolls them to the middle of the view, smoothly (at once under reduced motion), unless they are in view
+  start and scrolls them to the middle of the view, smoothly (Accessibility: reduced motion), unless they are in view
   already, so walking neighbors does not shake the code. A new version of the file moves the band to the item's new
   lines but never scrolls: someone else's save does not move what you read. The band goes when the code gets focus,
   whose own caret then marks the place, and nothing moves while it has focus. Find's matches are not a selection: Tab
@@ -357,8 +351,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 ## Messages
 
-- An edit that worked shows no message: the redrawn diagram shows what it did. Screen readers, which cannot see the
-  redraw, hear a line for it ('Connected "Take order" to "Order log"').
+- An edit that worked shows no message: the redrawn diagram shows what it did (screen readers hear a line for it:
+  Accessibility).
 - A toast is only for a result you cannot see on screen ("Copied!", "SVG downloaded"), and fades; it never says what
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
@@ -376,11 +370,35 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     merma unable to match the edges, so an edit could hit the wrong one (the file at risk).
   - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
     empty label on Enter, a press while another edit saves.
-- The colors come in pairs, a background and a text color that reads on it, one pair per kind; `success` (green)
-  is the toasts'. GLOSSARY names them.
-- Screen readers hear an error at once, interrupting (an `alert`), and the others when they are free (a `status`), so
-  pressing a grayed item's key over and over does not keep cutting in. This follows "something tried that failed", not
-  the color, so re-sorting info and warning moves nothing here.
+- The colors come in pairs, a background and a text color that reads on it (Accessibility: contrast), one pair per
+  kind; `success` (green) is the toasts'. GLOSSARY names them.
+
+## Accessibility
+
+- The target is WCAG 2.2 AA throughout the page. The diagram's own markup is Mermaid's: its findings are recorded as
+  Mermaid's, never fixed here (`checks/README.md`, "Accessibility", says how the page is checked).
+- The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
+  other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
+  on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that
+  inference rather than a ring; the user chose it over a ring shown only with nothing selected, so an accessibility
+  sweep should not reopen it without them (asked again, they kept it: a ring shown on Tab only, and not on a click,
+  confused more than it helped).
+- Help takes focus as it opens, as a dialog does, so its arrows scroll it, and the open panel itself shows where focus
+  is.
+- Text reads on its background: each notice kind and the toasts have a background and a text color chosen as a pair
+  (Messages), at AA contrast.
+- Nothing blinks for long: find's current match blinks seven times and stays on, since WCAG 2.2.2 asks blinking with no
+  control to stop it to end within 5 s.
+- Reduced motion: under the system's reduced-motion setting nothing moves on its own: find's match does not blink, and
+  Follow selection scrolls the code at once rather than smoothly.
+- Screen readers hear the changes that keys and edits make:
+  - each item reached by the keys, or as a wait's candidate, is read out with what it is ('the edge "no" from "In
+    stock?" to "Wait for stock"');
+  - each edit that worked is read out as a line, since the redraw cannot be heard ('Connected "Take order" to "Order
+    log"');
+  - an error is heard at once, interrupting (an `alert`), and the other messages when the reader is free (a `status`),
+    so pressing a grayed item's key over and over does not keep cutting in. This follows "something tried that
+    failed", not the color, so re-sorting info and warning moves nothing here.
 
 ## One way to do each thing
 
