@@ -945,7 +945,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (picking && candidate?.kind === 'edge') {
         ui.notice(connecting() ? 'Pick a node or subgraph to connect: an edge cannot be connected to.'
           : giving() ? 'Pick a node or subgraph to give the edges to: an edge cannot take edges.'
-            : 'An edge cannot be connected to another edge.', 'warning');
+            : picking === 'merge' ? 'Pick a node to merge into: an edge cannot take a node.'
+              : 'An edge cannot be connected to another edge.', 'warning');
         return true;
       }
       if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
