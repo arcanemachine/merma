@@ -129,18 +129,23 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     return { next, cursor: moved(cursor, { from: at, to, key, ctrl }, fan) };
   }
 
-  /** O: the subgraph the selection (or, in Connect to…, the candidate) is drawn in; at the top, nothing. */
+  /**
+   * O: the subgraph the selection (or, in Connect to…, the candidate) is drawn in. 'top' when the selection is a
+   * top-level item, for the caller to select nothing (above the top level is the diagram); a candidate stays.
+   * @returns {boolean | 'top'}
+   */
   function out() {
     const picking = state.picking();
     const from = picking ? state.candidate() ?? selection() : state.selected();
-    if (!from || from.kind === 'title') return false;
+    if (!from) return false;
+    if (from.kind === 'title') return !picking && 'top';
     const { boxes, edges: lines } = layout();
     let parent = boxes.find((b) => b.id === from.id && b.kind === from.kind)?.parent;
     if (from.kind === 'edge') {
       const e = lines.find((x) => x.id === from.id);
       parent = e ? nest([...boxes, { kind: 'node', id: EDGE, x: e.mid.x, y: e.mid.y, w: 0, h: 0 }]).find((b) => b.id === EDGE)?.parent : null;
     }
-    if (!parent) return true;
+    if (!parent) return picking || 'top';
     const sub = /** @type {Item} */ ({ kind: 'subgraph', id: parent });
     if (from.kind !== 'edge') inside.set(parent, from.id);
     if (picking) { markCandidate(sub); candidateCursor = FRESH; } else byKey(sub);

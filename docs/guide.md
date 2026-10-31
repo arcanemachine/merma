@@ -259,8 +259,9 @@ here does just what it does in the selected item's menu:
 | / (wherever it is on your keyboard) | Find in the whole diagram (below) |
 | ` (the key left of 1, or whichever key types it) | Go to the code panel, opening it if it is closed; on the panel, back to the diagram (in any diagram) |
 | Space with an edge selected | Walk the other end's edges: the cross arrows step that end's fan (the tick moves there) |
-| O | Select the subgraph the selection is in |
+| O | Select the subgraph the selection is in; from a top-level item, nothing |
 | I with a subgraph selected | Go into it: the item you last left it by, else its top-left one; a collapsed one is expanded first |
+| I with nothing selected | Select again what O or Escape let go of |
 | H with a subgraph selected | Collapse it, or expand it: this tab's view only, never the file |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
 | Delete or Backspace | Delete the selected node or edge |
@@ -332,8 +333,9 @@ Ctrl+Arrow goes to the end that way. With nothing selected, Alt+Arrows move the 
 Alt+Right don't go back or forward.
 
 **O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
-item you last left it by with O or an arrow, else its top-left one. A click, a find or an edit forgets that. At the
-top, or with nothing inside, they do nothing.
+item you last left it by with O or an arrow, else its top-left one. A click, a find or an edit forgets that. O from a
+top-level item selects nothing, as Escape does, and I (or Enter) brings it back. I on a subgraph with nothing inside
+does nothing.
 
 Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, selects the diagram's title,
 when there is one; Down from the title goes to the box nearest below it.

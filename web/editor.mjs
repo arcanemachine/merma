@@ -833,6 +833,32 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     handlers[action]();
     return true;
   }
+  /** Deselect, keeping what was selected for Enter or I to bring back. Whether anything was. */
+  function letGo() {
+    const had = Boolean(selected);
+    if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
+    deselect();
+    return had;
+  }
+  /** Select again what Escape or O let go of, as it was, or the box it is hidden in since. Whether there was one. */
+  function bringBack() {
+    if (cleared && elsOf(cleared).length) {
+      // As it was (the user: an edge kept its counted end), so the keys go on from where they were.
+      if (clearedCursor) moves.restore(clearedCursor);
+      selectByKey(cleared, undefined, Boolean(clearedCursor));
+      return true;
+    }
+    const box = cleared && (cleared.kind === 'node' || cleared.kind === 'subgraph') ? drawnEnd(cleared.id) : null;
+    if (box && clusterEl(box)) { selectByKey({ kind: 'subgraph', id: box }); return true; }
+    return false;
+  }
+  /** @type {[string, () => boolean][]} Escape's steps on the diagram, in order */
+  const ESCAPE = [
+    ['wait', () => Boolean(picking) && (cancelPick(), true)],
+    // Both go in one press.
+    ['selection and notice', () => { const had = letGo(); return (!locked && ui.hideNotice()) || had; }],
+    ['code panel', () => ui.escape()],
+  ];
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
     n: () => {
@@ -871,16 +897,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
       if (selected) { editLabelOrTitle(selected); return true; }
-      // What Escape cleared comes back, while it is still drawn; else the middle node.
-      if (cleared && elsOf(cleared).length) {
-        // As it was (the user: an edge kept its counted end), so the keys go on from where they were.
-        if (clearedCursor) moves.restore(clearedCursor);
-        selectByKey(cleared, undefined, Boolean(clearedCursor));
-        return true;
-      }
-      // Hidden since in a collapsed subgraph: its box.
-      const box = cleared && (cleared.kind === 'node' || cleared.kind === 'subgraph') ? drawnEnd(cleared.id) : null;
-      if (box && clusterEl(box)) { selectByKey({ kind: 'subgraph', id: box }); return true; }
+      if (bringBack()) return true;
       const r = els.diagram.getBoundingClientRect();
       const id = nearest(layout().boxes.filter((b) => b.kind === 'node'), r.left + r.width / 2, r.top + r.height / 2);
       if (id) selectByKey({ kind: 'node', id });
@@ -906,9 +923,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const key = `Arrow${d}`, name = key.toLowerCase();
       return [[name, () => arrow(key, 'plain')], [`ctrl+${name}`, () => arrow(key, 'ctrl')], [`shift+${name}`, () => arrow(key, 'shift')]];
     })),
-    o: () => moves.out(),
-    // I on a collapsed subgraph expands it first: what it holds must be drawn to go into.
+    // O from a top-level item selects nothing, as Escape does, so Enter or I brings it back.
+    o: () => {
+      const went = moves.out();
+      if (went !== 'top') return went;
+      letGo();
+      ui.announce('Nothing selected');
+      return true;
+    },
+    // I on a collapsed subgraph expands it first: what it holds must be drawn to go into. With nothing selected, it
+    // goes back in to what O or Escape let go of.
     i: () => {
+      if (!picking && !selected) return bringBack();
       const at = picking ? candidate : selected;
       if (!at || !isBox(at)) return moves.into();
       ui.setView(at.id, 'expanded').then(() => moves.into());
@@ -940,17 +966,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     0: () => { viewer.zoomTo(1); return true; },
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
-    // Escape steps out one level: Connect to…, the selection, a notice, then whatever the page holds open around the
-    // diagram (ui.escape: the code panel). It is claimed only when it let go of something, so that otherwise the
-    // browser's own use of it goes ahead.
-    escape: () => {
-      if (picking) { cancelPick(); return true; }
-      const had = Boolean(selected);
-      if (selected) { cleared = selected; clearedCursor = moves.cursor(); }
-      deselect();
-      const hid = !locked && ui.hideNotice();
-      return had || hid || ui.escape();
-    },
+    // Escape steps out one level, the first of these that lets go of something. Help
+    // (main.mjs), a menu or submenu (menu.mjs), the label box and its shape picker, and the find box take it first, as
+    // they hold focus; so does the code panel (code-panel.mjs) for its own levels while focus is in it. It is claimed
+    // only when it let go of something, so that otherwise the browser's own use of it goes ahead.
+    escape: () => ESCAPE.some(([, step]) => step()),
   };
   const VIEW_KEYS = ['f', 'escape', '+', '=', '-', '0',
     ...['up', 'down', 'left', 'right'].flatMap((d) => [`arrow${d}`, `ctrl+arrow${d}`, `shift+arrow${d}`])];

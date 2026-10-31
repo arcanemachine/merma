@@ -7,7 +7,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 ## The file comes first
 
 - Every action is one small text edit to the `.mmd` file, and one undo step. Nothing the page adds (positions,
-  selection, view) is written into the file. The file is shared with editors and agents; the page is a view of it.
+  selection, the view: fit, center, zoom and move, collapse, rotate and flip, find) is written into the file. The file
+  is shared with editors and agents; the page is a view of it.
 - Collapsing a subgraph is view state, the page's by design (the user: a collapse in the page never affects the file):
   the page draws the file with Mermaid's own `id@{ view: collapsed }` (or `expanded`) lines after its last byte, so no
   offset moves, and keeps them for the tab (sessionStorage), not for the file. It is no undo step. The default state is
@@ -253,7 +254,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     and out.
   - I goes back to the item you last left a subgraph by, while keys select; a click, a find or an edit forgets it (the
     user: keeping it across a click was backwards). It is not the trail: one item per subgraph, not a list of steps.
-  - Escape clears the selection, and Enter brings it back as it was, an edge with its counted end and the trail
+    O from a top-level item, the title included, selects nothing (the user: O is out a level, and above the top level
+    is the diagram), and says so; it lets go as Escape does, so Enter or I brings it back. In a wait, the candidate
+    stays.
+  - Escape clears the selection, and Enter (or I) brings it back as it was, an edge with its counted end and the trail
     with it (the user: the end tick moved); a click on empty space forgets it (the user: you lose your place
     otherwise). With nothing to bring back, Enter selects the middle node.
   - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an edge's
