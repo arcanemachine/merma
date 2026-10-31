@@ -46,7 +46,6 @@ Mermaid syntax.
 | **title** | The diagram's title, the frontmatter's `title:`, drawn over the diagram (Mermaid's word). Alone, "title" is this one; a subgraph's is its subgraph title. |
 | **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…, Connect from…). |
 | **merge** | Merge into…: a node's edges move to another node, and the node goes. |
-| **give** | Give outgoing edges to…, Give incoming edges to…: another node or subgraph takes those of a node's edges, and the node stays. |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
 
@@ -74,7 +73,6 @@ note where merma had to make one up.
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, the **title menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it, its key or Right (never by hovering). |
 | **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** (Edit arrow type ▸) and the **shape picker**. Shows the current one. |
-| **trial** | A menu item being tried: tagged "trial" in its menu, on Q or Shift+Q until it earns a letter or goes (`docs/ux.md`). merma's own. |
 | **grayed** | A menu item that does not apply right now: still there, with its reason. |
 | **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
 | **node panel** | A node's label box with the shape picker under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |

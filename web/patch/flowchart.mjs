@@ -922,12 +922,11 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
  * Move node or subgraph `id`'s edges to `to`: the start of each edge starting there (`starts`), the end of each edge
  * ending there (`ends`), or both (`all`; a self-loop then moves both its ends). Each is retarget()ed in turn, in file
  * order, so each stays in place or moves out after the last edge as retarget says, those moved out keeping their
- * order. `keepBetween`: an edge between `id` and `to` stays as it is. Returns { text, count }: the edges moved.
+ * order. Returns { text, count }: the edges moved.
  */
-export function moveEdges(/** @type {string} */ text, /** @type {string} */ id, /** @type {'starts' | 'ends' | 'all'} */ which, /** @type {string} */ to, { keepBetween = false } = {}) {
+export function moveEdges(/** @type {string} */ text, /** @type {string} */ id, /** @type {'starts' | 'ends' | 'all'} */ which, /** @type {string} */ to) {
   const sides = /** @type {const} */ ({ starts: ['start'], ends: ['end'], all: ['start', 'end'] })[which];
-  const kept = (/** @type {Edge} */ e) => keepBetween && ((e.from === id && e.to === to) || (e.from === to && e.to === id));
-  const at = (/** @type {Edge} */ e, /** @type {'start' | 'end'} */ side) => (side === 'start' ? e.from : e.to) === id && !kept(e);
+  const at = (/** @type {Edge} */ e, /** @type {'start' | 'end'} */ side) => (side === 'start' ? e.from : e.to) === id;
   const count = edges(text).filter((e) => sides.some((side) => at(e, side))).length;
   if (to === id || !count) return { text, count: 0 };
   // An id-less subgraph is named once, here: each retarget after names it by that id.
@@ -939,15 +938,6 @@ export function moveEdges(/** @type {string} */ text, /** @type {string} */ id, 
     text = retarget(text, e.svgId, side, to).text;
   }
   return { text, count };
-}
-
-/**
- * Give node `id`'s outgoing (`out`) or incoming (`in`) edges to `to`: their end at `id` moves there, and `id` stays. An
- * edge between the two stays as it is (it would become a self-loop of `to`), as does a duplicate made by the move.
- * Returns { text, count }: the edges moved.
- */
-export function giveEdges(/** @type {string} */ text, /** @type {string} */ id, /** @type {'out' | 'in'} */ way, /** @type {string} */ to) {
-  return moveEdges(text, id, way === 'out' ? 'starts' : 'ends', to, { keepBetween: true });
 }
 
 /**

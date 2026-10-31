@@ -6,13 +6,13 @@
 // the subgraph retitled, and its new title as written. `shape`: { id, refs } the node given a shape, and that shape
 // written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it. `move`: { side, to, index } an edge
 // (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after. `moves`: { id, which, to } node
-// or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style; with `keep`, an edge between the
-// two stays (giveEdges). `merge`: { id, edges } node `id` merged into another (mergeNode): gone, with `edges` edges left.
+// or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style. `merge`: { id, edges } node `id`
+// merged into another (mergeNode): gone, with `edges` edges left.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  giveEdges, mergeNode, moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  mergeNode, moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -110,14 +110,6 @@ for (const [name, list, src] of sources) {
         if (!count) continue;
         cases.push({ name: `${name} move ${which} of ${id} to ${to}`, kind: 'moves', src, out, renamed,
           moves: { id, which, to: renamed?.to ?? to } });
-      }
-      // Give outgoing and incoming edges to…, nodes only: moveEdges keeping an edge between the two.
-      if (!list.includes(id)) continue;
-      for (const way of /** @type {const} */ (['out', 'in'])) {
-        const { text: out, count } = giveEdges(src, id, way, to);
-        if (!count) continue;
-        cases.push({ name: `${name} give ${way} of ${id} to ${to}`, kind: 'moves', src, out, renamed,
-          moves: { id, which: way === 'out' ? 'starts' : 'ends', to: renamed?.to ?? to, keep: true } });
       }
     }
   }

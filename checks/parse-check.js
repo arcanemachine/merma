@@ -95,11 +95,10 @@
         }
         if (c.kind === 'moves') {
           /* The same edges, those at `id` given `to` at that side, each with its type, label and linkStyle style. */
-          const { id, which, to, keep } = c.moves;
+          const { id, which, to } = c.moves;
           const sig = (a) => JSON.stringify([a.start, a.end, a.type, a.stroke, a.text, a.style]);
-          const between = (a) => keep && ((a.start === id && a.end === to) || (a.start === to && a.end === id));
-          const want = old.map((a) => (between(a) ? sig(a) : sig({ ...a, start: which !== 'ends' && a.start === id ? to : a.start,
-            end: which !== 'starts' && a.end === id ? to : a.end }))).sort();
+          const want = old.map((a) => sig({ ...a, start: which !== 'ends' && a.start === id ? to : a.start,
+            end: which !== 'starts' && a.end === id ? to : a.end })).sort();
           const got = left.map(sig).sort();
           if (want.join('\n') !== got.join('\n')) fails.push(`${c.name}: edges ${got.filter((g) => !want.includes(g)).join(' ')}, expected ${want.filter((w) => !got.includes(w)).join(' ')}`);
           continue;

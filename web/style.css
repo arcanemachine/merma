@@ -268,9 +268,6 @@ body.resizing { user-select: none; }
 .menu button .key + .more { margin-left: -12px; }
 /* A column of keys, each centered in it, so a narrow letter lines up with a wide one. */
 .menu button .key { min-width: 1.5em; text-align: center; font: inherit; color: #57606a; }
-.menu button .trial { margin-left: 6px; padding: 0 4px; border: 1px solid currentColor; border-radius: 3px; font-size: 11px;
-                      color: #57606a; }
-.menu button[aria-disabled="true"] .trial { color: inherit; }
 .menu button[aria-expanded="true"] { background: #eef3fb; }
 .menu button.separated { margin-top: 5px; position: relative; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }

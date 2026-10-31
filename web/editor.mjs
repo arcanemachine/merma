@@ -15,7 +15,7 @@ import { applies, GLOBAL_KEYS, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, 
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, giveEdges, isFlowchart, mergeNode,
+  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, mergeNode,
   nodeIdFromSvgId, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
@@ -84,7 +84,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * The wait for a node or subgraph to be picked (clicked, or Enter on the candidate), and what the pick does:
    * Connect to… makes an edge to it, Connect from… one from it to the selection; Move start to… and Move end to… move
    * that end of the selected edge there; Merge into… merges the selected node into it.
-   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge' | 'give-out' | 'give-in'}
+   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge'}
    */
   let picking = null;
   /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
@@ -252,16 +252,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     pickNotice();
   }
 
-  /** Give outgoing or incoming edges to… (on trial): the candidate starts on the selected node. */
-  function startGive(/** @type {'give-out' | 'give-in'} */ way) {
-    picking = way;
-    moves.forgetCandidate();
-    markCandidate(selection(), { quiet: true });
-    pickNotice();
-  }
-  /** The give wait's way: 'out' or 'in', or null in any other wait. */
-  const giving = () => (picking === 'give-out' ? 'out' : picking === 'give-in' ? 'in' : null);
-
   /** Connect to… or Connect from…: the candidate starts on the item itself (the user): Enter at once makes a self-loop. */
   function startConnect(/** @type {'connect' | 'connect-from'} */ way) {
     picking = way;
@@ -287,10 +277,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
   function pickNotice() {
-    const way = giving();
-    const what = picking === 'merge' ? `node to merge ${named(selection())} into`
-      : way ? `node or subgraph to give ${named(selection())}'s ${way === 'out' ? 'outgoing' : 'incoming'} edges to`
-        : `node or subgraph ${PICKED[picking ?? 'connect']}`;
+    const what = picking === 'merge' ? `node to merge ${named(selection())} into` : `node or subgraph ${PICKED[picking ?? 'connect']}`;
     ui.notice(`Click the ${what}, or move to it with the arrows or find it (/), and `
       + `press Enter${connecting() ? ' (on this one, a self-loop)' : ''}. Click away or press Escape to cancel.`, 'info');
   }
@@ -303,8 +290,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'move-start': () => startMove('start'),
     'move-end': () => startMove('end'),
     'merge-into': () => startMerge(),
-    'give-out': () => startGive('give-out'),
-    'give-in': () => startGive('give-in'),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -395,15 +380,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       collapseWhy: selected?.kind === 'subgraph' && !collapse.subs.some((s) => s.id === selected?.id) ? NO_SUBGRAPH_MATCH : null,
       turn: ui.turned(selectedSubgraph()),
       turnWhy: selected?.kind === 'subgraph' ? turnWhy(selected.id) : null,
-      edgeCount: selected?.kind === 'node' ? edgeCount(selected.id) : undefined,
       locked,
     };
-  }
-
-  /** Node `id`'s outgoing and incoming edges, a self-loop counted in both. */
-  function edgeCount(/** @type {string} */ id) {
-    const all = edges(shownText);
-    return { out: all.filter((e) => e.from === id).length, in: all.filter((e) => e.to === id).length };
   }
 
   /** Why the selected subgraph cannot be turned on its own, or null when it can (turn.mjs turnable). */
@@ -455,11 +433,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!picking || !selected) return;
     const sel = selected, which = picking;
     for (const e of elsOf(sel)) { e.removeAttribute('data-page-selected'); mark(e, 'data-page-source'); }
-    const way = giving();
-    const leaves = (/** @type {import('./patch/flowchart.mjs').Edge} */ e) => (which === 'merge' && (e.from === sel.id || e.to === sel.id))
-      || (way === 'out' && e.from === sel.id) || (way === 'in' && e.to === sel.id);
-    const moving = sel.kind === 'edge' ? [sel.id] : which !== 'merge' && !way ? []
-      : drawnEdges(edges(shownText), collapse.subs, collapse.overrides).filter(leaves).map((e) => e.svgId);
+    const moving = sel.kind === 'edge' ? [sel.id] : which !== 'merge' ? []
+      : drawnEdges(edges(shownText), collapse.subs, collapse.overrides).filter((e) => e.from === sel.id || e.to === sel.id)
+        .map((e) => e.svgId);
     for (const id of moving) {
       const path = edgeEls(id).find((x) => x.matches('path:not([data-page-only])'));
       if (!path) continue;
@@ -703,32 +679,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function pick(/** @type {Item | null} */ to) {
     if (connecting()) connectTo(to);
     else if (picking === 'start' || picking === 'end') moveTo(to);
-    else if (giving()) giveTo(to);
     else mergeTo(to);
-  }
-
-  /** End Give outgoing or incoming edges to… on `to`: that end of the selected node's edges moved there, or nothing for null. */
-  function giveTo(/** @type {Item | null} */ to) {
-    const from = selection();   // the wait starts on the selected node
-    const way = /** @type {'out' | 'in'} */ (giving());
-    picking = null;
-    ui.hideNotice();
-    if (!to) { deselect(); return; }
-    if (same(to, from)) { select(from); return; }
-    if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(from); return; }
-    // An edge between the two stays as it is, so with only those there is nothing to write, and no undo step.
-    const near = way === 'out' ? 'from' : 'to', far = way === 'out' ? 'to' : 'from';
-    if (!edges(shownText).some((e) => e[near] === from.id && e[far] !== to.id)) {
-      ui.notice(`No edges to give: each already joins ${named(to)}.`, 'info');
-      select(from);
-      return;
-    }
-    const name = named(to);
-    let count = 0;
-    editDrawn((text) => { const r = giveEdges(text, from.id, way, to.id); count = r.count; return r; }, {
-      afterSave: () => ui.announce(`Gave ${count} ${way === 'out' ? 'outgoing' : 'incoming'} edge${count === 1 ? '' : 's'} to ${name}`),
-      after: () => ({ item: from }),
-    });
   }
 
   /** End Merge into… on `to`: the selected node merged into it, or nothing for null. */
@@ -930,9 +881,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     },
     // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a wait.
     'shift+c': () => (picking ? true : itemKey('connect-from')),
-    // Q and Shift+Q, the trial key (docs/ux.md, "Trials"): Give outgoing and incoming edges to… on a node.
-    q: () => (picking ? true : itemKey('give-out')),
-    'shift+q': () => (picking ? true : itemKey('give-in')),
     // R reverses a selected edge, S and E move its start and end, as the edge menu's do, each refused as it is grayed
     // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
     // R reverses a selected edge; with nothing selected it rotates the diagram, Shift+R flips it, as the empty-space
@@ -944,9 +892,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     enter: () => {
       if (picking && candidate?.kind === 'edge') {
         ui.notice(connecting() ? 'Pick a node or subgraph to connect: an edge cannot be connected to.'
-          : giving() ? 'Pick a node or subgraph to give the edges to: an edge cannot take edges.'
-            : picking === 'merge' ? 'Pick a node to merge into: an edge cannot take a node.'
-              : 'An edge cannot be connected to another edge.', 'warning');
+          : picking === 'merge' ? 'Pick a node to merge into: an edge cannot take a node.'
+            : 'An edge cannot be connected to another edge.', 'warning');
         return true;
       }
       if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
@@ -1103,7 +1050,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const what = item.kind === 'edge' ? 'an edge, cannot be connected to'
       : picking === 'start' || picking === 'end' ? `press Enter to move the edge's ${picking} here`
-        : giving() ? (same(item, selection()) ? 'itself: pick another node or subgraph' : 'press Enter to give the edges to this')
         : !connecting() ? (same(item, selection()) ? 'itself: pick another node' : 'press Enter to merge into this')
         : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.
