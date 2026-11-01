@@ -28,7 +28,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   inside it (edges to a subgraph's box do not count). That is most subgraphs grayed, all of the "Simple" demo's; it is
   Mermaid's layout rule, not a setting. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
-  is a move of an edge's end (Move start to…, Move end to…, and Merge into…, which moves each of the node's edges so) on
+  is a move of an edge's end (Move edge end…, and Merge into…, which moves each of the node's edges so) on
   an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
   into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after
   it move down one).
@@ -55,7 +55,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Move | what they say | Connect to…, Connect from…, Reverse edge, Move start to… |
+  | Connect, Reverse, Move | what they say | Connect to…, Connect from…, Reverse edge, Move edge end… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
@@ -72,11 +72,14 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N, S and E have no other key, so S and
-  E move a selected edge's start and end outside menus as in its menu, and E on a node is Merge into… ("mErge": a key
-  is a letter of its label; a merge moves every edge's end to the other node, close to E's meaning on an edge). The
-  Edit items have no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu,
-  and in an open menu Enter runs the item in focus. So E is free for Move end to…, and Add subgraph is G, menu-only.
+  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N and E have no other key, so E moves
+  a selected edge's end outside menus as in its menu, and E on a node is Merge into… ("mErge": a key is a letter of
+  its label; a merge moves every edge's end to the other node, close to E's meaning on an edge). The Edit items have
+  no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open
+  menu Enter runs the item in focus. So E is free for Move edge end…, and Add subgraph is G, menu-only.
+- Move edge end… is one item for both ends (agreed with the user, in place of Move start to… and Move end to…): it
+  moves the counted end, the one the end tick is at, and Space or a click on the edge's line nearer the other end
+  moves that one instead. The end tick stays through the pick, dashed, as what a pick will change is.
 - Merge into… (the user, after trying it as three moves): a node's edges move to another node (the end at it moves),
   and the node goes. The user expected moving a node's edges to swing their far ends (a redirect: "Start" now leads to
   "In stock?"), and read every label for the near-end move backwards, so it is named for what it is for: merging a
