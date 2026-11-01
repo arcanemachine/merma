@@ -364,7 +364,9 @@ edges (Enter on one is refused), with I and O; Enter picks the outlined one. Wha
 meanwhile: the node or subgraph it starts from dashed, the edges that will move glowing pale blue. / opens the find
 inside them, as it looks anywhere else: Enter there puts the outline on the current match (on the title it is refused,
 and the find stays) and Escape puts it back where it was; either way the pick goes on, for Enter to pick. A click on a
-node or subgraph picks it at once.
+node or subgraph picks it at once. The notice over the diagram says what to do the way you started: started by its key
+(or a menu item chosen by the keyboard), to move with the arrows or find and press Enter; started by a click or a tap,
+to click.
 
 ## Undo and redo
 

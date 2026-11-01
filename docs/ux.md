@@ -356,7 +356,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - A toast is only for a result you cannot see on screen ("Copied!", "SVG downloaded"), and fades; it never says what
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
-- Mouse first, then keyboard: "Click away or press Escape to cancel." Most people point; the key is the shortcut.
+- A message says what to do the way you started. A pick started by a key (or a menu item chosen by the keyboard) says
+  to move with the arrows or find (/) and press Enter; one started by mouse or touch says to click, or press Escape to
+  cancel. Elsewhere, mouse first: most people point, and the key is the shortcut.
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though

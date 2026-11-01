@@ -89,6 +89,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let picking = null;
   /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
   let candidate = null;
+  /** Whether the pick started by a key (or a menu item chosen by the keyboard): its notice is worded for the keys */
+  let pickKeyed = false;
   /** @type {Item | null} what Escape last cleared, for Enter to bring back; a click on empty space forgets it */
   let cleared = null;
   /** @type {import('./navigate.mjs').Cursor | null} where the keys were then, an edge's counted end with it */
@@ -234,10 +236,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const selection = () => /** @type {Item} */ (selected);
 
   /** Move start to… or Move end to… on the selected edge: the candidate starts on the end being moved. */
-  function startMove(/** @type {'start' | 'end'} */ end) {
+  function startMove(/** @type {'start' | 'end'} */ end, keyed = false) {
     const shown = shownEdge(selection().id);
     if (!shown) return;
     picking = end;
+    pickKeyed = keyed;
     moves.forgetCandidate();
     const id = end === 'start' ? shown.from : shown.to;
     markCandidate({ kind: subgraphs(shownText).some((g) => g.id === id) ? 'subgraph' : 'node', id }, { quiet: true });
@@ -245,16 +248,18 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
 
   /** Merge into…: the candidate starts on the selected node. */
-  function startMerge() {
+  function startMerge(keyed = false) {
     picking = 'merge';
+    pickKeyed = keyed;
     moves.forgetCandidate();
     markCandidate(selection(), { quiet: true });
     pickNotice();
   }
 
   /** Connect to… or Connect from…: the candidate starts on the item itself (the user): Enter at once makes a self-loop. */
-  function startConnect(/** @type {'connect' | 'connect-from'} */ way) {
+  function startConnect(/** @type {'connect' | 'connect-from'} */ way, keyed = false) {
     picking = way;
+    pickKeyed = keyed;
     moves.forgetCandidate();
     markCandidate(selection(), { quiet: true });
     pickNotice();
@@ -275,20 +280,24 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     connect: 'the edge goes to', 'connect-from': 'the edge comes from',
     start: 'the edge should start from', end: 'the edge should end at',
   };
-  /** What the pick asks for: shown as it starts, and again when a find inside it closes. */
+  /**
+   * What the pick asks for: shown as it starts, and again when a find inside it closes. Worded for the way it started
+   * (docs/ux.md, Messages): by a key, the arrows or find and Enter; by mouse or touch, a click.
+   */
   function pickNotice() {
     const what = picking === 'merge' ? `node to merge ${named(selection())} into` : `node or subgraph ${PICKED[picking ?? 'connect']}`;
-    ui.notice(`Click the ${what}. Click away or press Escape to cancel.`, 'info');
+    ui.notice(pickKeyed ? `With the arrows or find (/), move to the ${what}, and press Enter. Press Escape to cancel.`
+      : `Click the ${what}. Click away or press Escape to cancel.`, 'info');
   }
 
-  /** @type {Record<string, () => void>} */
+  /** @type {Record<string, (keyed?: boolean) => void>} `keyed`: run by a key, or a menu item chosen by the keyboard */
   const handlers = {
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
-    'connect': () => startConnect('connect'),
-    'connect-from': () => startConnect('connect-from'),
-    'move-start': () => startMove('start'),
-    'move-end': () => startMove('end'),
-    'merge-into': () => startMerge(),
+    'connect': (keyed) => startConnect('connect', keyed),
+    'connect-from': (keyed) => startConnect('connect-from', keyed),
+    'move-start': (keyed) => startMove('start', keyed),
+    'move-end': (keyed) => startMove('end', keyed),
+    'merge-into': (keyed) => startMerge(keyed),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -356,7 +365,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     submenus: {
       'arrow-types': arrowPicker,
     },
-    onRun: (/** @type {string} */ action) => handlers[action](),
+    onRun: (/** @type {string} */ action, /** @type {boolean} */ keyed) => handlers[action](keyed),
     onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
@@ -813,7 +822,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === action));
     const state = menuState();
     if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
-    handlers[action]();
+    handlers[action](true);
     return true;
   }
   /** The node's or subgraph's menu `action` by its key, on a selected one: refused, saying why, where the menu grays it. */
@@ -823,13 +832,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!item) return false;
     const state = menuState();
     if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
-    handlers[action]();
+    handlers[action](true);
     return true;
   }
   /** The empty-space menu's `action` by its key, with nothing selected and no pick. */
   function spaceKey(/** @type {string} */ action) {
     if (picking || selected) return false;
-    handlers[action]();
+    handlers[action](true);
     return true;
   }
   /** Deselect, keeping what was selected for Enter or I to bring back. Whether anything was. */
@@ -875,7 +884,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[selected.kind].find((i) => i.action === 'connect'));
       const state = menuState();
       if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
-      handlers.connect();
+      handlers.connect(true);
       return true;
     },
     // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a pick.
