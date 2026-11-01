@@ -45,7 +45,7 @@ Mermaid syntax.
 | **subgraph title** | The text shown on a subgraph. |
 | **title** | The diagram's title, the frontmatter's `title:`, drawn over the diagram (Mermaid's word). Alone, "title" is this one; a subgraph's is its subgraph title. |
 | **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…, Connect from…). |
-| **pick** | What follows an item that needs another node or subgraph, such as Connect to… or Merge into…: you pick it by a click, or by the arrows or find and Enter; Escape or a click away cancels. merma's code calls it `picking`. |
+| **pick** | The step after an item that needs another node or subgraph, such as Connect to… or Merge into…: you pick that node or subgraph by a click, or by the arrows or find and Enter; Escape or a click anywhere else cancels. merma's code calls it `picking`. A picker's choice is a pick too, but needs no node. |
 | **candidate** | In a pick, the item the arrows or find have reached, outlined solid, which Enter picks. |
 | **merge** | Merge into…: a node's edges move to another node, and the node goes. |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
