@@ -5,7 +5,7 @@
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
+export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reattach', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
@@ -18,7 +18,7 @@ export const GLOBAL_KEYS = {
   'shift+c': ['connect-from'],
   r: ['reverse-edge', 'rotate'],
   'shift+r': ['flip'],
-  e: ['move-edge-end', 'merge-into'],
+  e: ['reattach-edge', 'merge-into'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -129,7 +129,7 @@ export const MENUS = {
     { action: 'edit-label', label: 'Edit label' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
-    { action: 'move-edge-end', label: 'Move edge end…', key: 'e', mode: true },
+    { action: 'reattach-edge', label: 'Reattach edge…', key: 'e', mode: true },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],

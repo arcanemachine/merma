@@ -200,8 +200,10 @@ export function createKeys({ layout, select, markCandidate, notice, titleEl, sta
     countFrom(/** @type {import('./navigate.mjs').Fan | null} */ fan) { cursor = { trail: cursor.trail, came: fan }; },
     /** A selection not made by a key (a click, a find, an edit): the trail starts again, and I forgets where you were. */
     forget() { cursor = FRESH; inside.clear(); },
-    /** Connect to… starts: its candidate has no moves yet. */
-    forgetCandidate() { candidateCursor = FRESH; },
+    /** A pick starts: its candidate has no moves yet, and on an edge counts from `came` (null: its source). */
+    forgetCandidate(/** @type {import('./navigate.mjs').Fan | null} */ came = null) { candidateCursor = { trail: [], came }; },
+    /** The candidate, an edge, counts as reached from `fan` (null: its source). */
+    candidateFrom(/** @type {import('./navigate.mjs').Fan | null} */ fan) { candidateCursor = { trail: candidateCursor.trail, came: fan }; },
     /** Where the keyboard goes back to after `sel` is deleted: the items the trail came from, latest first. */
     fallback: (/** @type {Item} */ sel) => /** @type {Item[]} */ (cursor.trail.map((m) => m.from).reverse()
       .filter((i) => !(i.kind === sel.kind && i.id === sel.id))),

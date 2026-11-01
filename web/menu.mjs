@@ -18,7 +18,7 @@ import { place, OPPOSITE } from './place.mjs';
  * @param {() => DOMRect} options.bounds the area it must stay inside
  * @param {HTMLElement} options.returnFocus what gets focus back when the menu closes with focus in it
  * @param {Record<string, { el: HTMLElement, focus(): void }>} [options.submenus] by an item's `submenu`
- * @param {(action: string, keyed: boolean) => void} options.onRun `keyed`: chosen by the keyboard, not by a click or tap
+ * @param {(action: string) => void} options.onRun
  * @param {(why: string) => void} options.onRefuse an item that does not apply was chosen
  * @param {() => void} [options.onClose] it closed, by whatever means
  * @param {'right' | 'above'} [options.side] where it opens from its anchor
@@ -49,9 +49,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     if (item.separated) b.classList.add('separated');
     // The item under the pointer is the focused one, so there is one highlight and Enter runs what it shows.
     b.addEventListener('pointerenter', () => b.focus());
-    // A click made by a key (Enter or Space on the item) has no clicks to count. A screen reader's browse mode can send
-    // its Enter as a real click, which then reads as one: the worst of it is the mouse wording of a notice.
-    b.addEventListener('click', (e) => choose(item, e.detail === 0));
+    b.addEventListener('click', () => choose(item));
     if (item.submenu) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); }
     el.append(b);
     return b;
@@ -87,11 +85,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     });
   }
 
-  function choose(/** @type {MenuItem} */ item, keyed = false) {
+  function choose(/** @type {MenuItem} */ item) {
     if (item.submenu) { toggleSub(item); return; }
     if (!applies(item)) { onRefuse(why(item)); return; }
     close();
-    onRun(item.action, keyed);
+    onRun(item.action);
   }
 
   /** Open `item`'s submenu, or close it when it is open. */
@@ -182,7 +180,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     } else if (byKey && e.key.length === 1) {
       e.preventDefault();
       buttons[items.indexOf(byKey)].focus();
-      choose(byKey, true);
+      choose(byKey);
     }
     e.stopPropagation();
   });
