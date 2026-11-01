@@ -288,7 +288,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   A window too small for the size you set draws the panel smaller, and your size comes back when the window grows.
 - Its dock and size are the person's, kept in the browser for every file (localStorage); whether it is open is the
   tab's, per file (sessionStorage), so the page's reload for a new build keeps it open.
-- It is a view, not a pick: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
+- It is a view, not a mode: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
   level, from the code or a control in the panel's bar to the panel (the panel is a Tab stop too, before the bar), from the panel with a draft open to the read-only code (Cancel, asking if it changed; the user: a
