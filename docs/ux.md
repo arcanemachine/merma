@@ -377,6 +377,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - The target is WCAG 2.2 AA throughout the page. The diagram's own markup is Mermaid's: its findings are recorded as
   Mermaid's, never fixed here (`checks/README.md`, "Accessibility", says how the page is checked).
+- Mouse and keyboard are equals (the user): every action can be done by keyboard alone and by pointer alone, and by
+  touch where the gesture exists. As a general rule both are first-class; where an action's nature makes one way less
+  flexible than the other, each still reaches the result.
 - The diagram shows no focus ring (the user): it is where focus rests (Escape and a click put it there), and every
   other place focus can be (the code panel, its buttons, the footer, menus) shows its own ring, so focus is known to be
   on the diagram when no ring shows. The selection shows where the keys act. WCAG 2.4.7 (Focus Visible) is met by that
