@@ -81,7 +81,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   let collapse = { subs: [], overrides: new Map() };   // how the shown drawing's subgraphs are collapsed
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   /**
-   * The wait for a node or subgraph to be picked (clicked, or Enter on the candidate), and what the pick does:
+   * The pick of a node or subgraph (clicked, or Enter on the candidate), and what it does:
    * Connect to… makes an edge to it, Connect from… one from it to the selection; Move start to… and Move end to… move
    * that end of the selected edge there; Merge into… merges the selected node into it.
    * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge'}
@@ -259,7 +259,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     markCandidate(selection(), { quiet: true });
     pickNotice();
   }
-  /** Whether the wait makes an edge: Connect to… or Connect from…. */
+  /** Whether the pick makes an edge: Connect to… or Connect from…. */
   const connecting = () => picking === 'connect' || picking === 'connect-from';
 
   /** Rotate or flip the selected subgraph on its own, or with nothing selected the whole diagram. */
@@ -270,12 +270,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     ui.turn(which, id).then((on) => { viewer.fit(); ui.announce(`${verb} ${what}${on ? '' : ' back'}`); });
   }
 
-  /** @type {Record<string, string>} what each wait asks for: what is picked */
+  /** @type {Record<string, string>} what each pick asks for: what is picked */
   const PICKED = {
     connect: 'the edge goes to', 'connect-from': 'the edge comes from',
     start: 'the edge should start from', end: 'the edge should end at',
   };
-  /** What the wait asks for: shown as it starts, and again when a find inside it closes. */
+  /** What the pick asks for: shown as it starts, and again when a find inside it closes. */
   function pickNotice() {
     const what = picking === 'merge' ? `node to merge ${named(selection())} into` : `node or subgraph ${PICKED[picking ?? 'connect']}`;
     ui.notice(`Click the ${what}. Click away or press Escape to cancel.`, 'info');
@@ -421,7 +421,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     candidate = null;
   };
   /**
-   * While a pick is waited for, what it will change (the user: solid is where the keys are, marked is what changes):
+   * During a pick, what it will change (the user: solid is where the keys are, marked is what changes):
    * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move haloed, a
    * wide pale line under it, so its own dashes and arrowheads still read. A collapsed box's halo is only on its own
    * edges, the ones that move.
@@ -463,7 +463,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
     if (!keepMode) picking = null;
-    // A wait kept through a new drawing: its marks again, the outline where it was if that is still drawn.
+    // A pick kept through a new drawing: its marks again, the outline where it was if that is still drawn.
     if (picking) {
       markSource();
       if (was && elsOf(was).length) markCandidate(was, { quiet: true });
@@ -674,7 +674,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     select(selection());
   }
 
-  /** End the wait on `to`, a click's or Enter's (null: a click on empty space). */
+  /** End the pick on `to`, a click's or Enter's (null: a click on empty space). */
   function pick(/** @type {Item | null} */ to) {
     if (connecting()) connectTo(to);
     else if (picking === 'start' || picking === 'end') moveTo(to);
@@ -683,7 +683,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** End Merge into… on `to`: the selected node merged into it, or nothing for null. */
   function mergeTo(/** @type {Item | null} */ to) {
-    const from = selection();   // the wait starts on the selected node
+    const from = selection();   // the pick starts on the selected node
     picking = null;
     ui.hideNotice();
     if (!to) { deselect(); return; }
@@ -704,7 +704,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** End Move start to… or Move end to… on `to`: that end of the selected edge moved there, or nothing for null. */
   function moveTo(/** @type {Item | null} */ to) {
-    const edge = selection();   // the wait starts on the selected edge
+    const edge = selection();   // the pick starts on the selected edge
     const end = /** @type {'start' | 'end'} */ (picking);
     picking = null;
     ui.hideNotice();
@@ -725,7 +725,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
 
   /** End Connect to… on `to`: an edge from the selection to it (Connect from…: from it to the selection), or nothing for null. */
   function connectTo(/** @type {Item | null} */ to) {
-    const sel = selection();   // the wait starts on the selection
+    const sel = selection();   // the pick starts on the selection
     const back = picking === 'connect-from';
     picking = null;
     ui.hideNotice();
@@ -803,7 +803,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // opens the selected node's panel, or edits the selected edge's label or subgraph's title, and with nothing selected
   // selects the node nearest the middle of the view; the arrows move a selected node along the edges; Delete or
   // Backspace deletes the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
-  // diagram; F fits the diagram to the window, whatever is selected or waiting; with nothing selected the arrows move
+  // diagram; F fits the diagram to the window, whatever is selected or being picked; with nothing selected the arrows move
   // the diagram; + (or =) and - zoom; Escape backs out of whatever is open. The view keys (VIEW_KEYS) also work when
   // the diagram is not editable (a sequence diagram still fits and moves).
   // None of them while the label box (or another field) has the keyboard; an open menu takes its own keys first.
@@ -826,7 +826,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     handlers[action]();
     return true;
   }
-  /** The empty-space menu's `action` by its key, with nothing selected and no wait. */
+  /** The empty-space menu's `action` by its key, with nothing selected and no pick. */
   function spaceKey(/** @type {string} */ action) {
     if (picking || selected) return false;
     handlers[action]();
@@ -853,7 +853,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /** @type {[string, () => boolean][]} Escape's steps on the diagram, in order */
   const ESCAPE = [
-    ['wait', () => Boolean(picking) && (cancelPick(), true)],
+    ['pick', () => Boolean(picking) && (cancelPick(), true)],
     // Both go in one press.
     ['selection and notice', () => { const had = letGo(); return (!locked && ui.hideNotice()) || had; }],
     ['code panel', () => ui.escape()],
@@ -868,7 +868,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return true;
     },
     // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is grayed there. While
-    // a pick is waited for it does nothing: Escape or a click away is the way out of every wait (the user), as the notice says.
+    // picking it does nothing: Escape or a click away is the way out of every pick (the user), as the notice says.
     c: () => {
       if (picking) return true;
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
@@ -878,12 +878,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       handlers.connect();
       return true;
     },
-    // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a wait.
+    // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a pick.
     'shift+c': () => (picking ? true : itemKey('connect-from')),
     // R reverses a selected edge, S and E move its start and end, as the edge menu's do, each refused as it is grayed
-    // there. Nothing on a node or a subgraph, and nothing while a pick is waited for.
+    // there. Nothing on a node or a subgraph, and nothing during a pick.
     // R reverses a selected edge; with nothing selected it rotates the diagram, Shift+R flips it, as the empty-space
-    // menu's R and Shift+R do. Nothing on a node or a subgraph, nor in a wait.
+    // menu's R and Shift+R do. Nothing on a node or a subgraph, nor in a pick.
     r: () => edgeKey('reverse-edge') || spaceKey('rotate') || itemKey('rotate'),
     'shift+r': () => spaceKey('flip') || itemKey('flip'),
     s: () => edgeKey('move-start'),
@@ -1083,8 +1083,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   // the view (docs/ux.md).
   const findBox = /** @type {HTMLInputElement} */ (els.findBox);
   /**
-   * `view`: the view before the find, put back on Escape unless the user has `moved` it since. Inside a wait for a
-   * pick, `candidate`: where the candidate was, put back unless Enter moves it to the current match.
+   * `view`: the view before the find, put back on Escape unless the user has `moved` it since. Inside a pick,
+   * `candidate`: where the candidate was, put back unless Enter moves it to the current match.
    * @type {{ before: Item | null, candidate: Item | null, matches: import('./find.mjs').Findable[], at: number, view: ReturnType<typeof viewer.getView>, moved: boolean } | null}
    */
   let finding = null;
@@ -1179,7 +1179,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function openFind() {
     if (finding) { findBox.focus(); return; }
     finding = { before: selected, candidate, matches: [], at: 0, view: viewer.getView(), moved: false };
-    // Inside a wait the selection stays: it is what the pick acts on.
+    // Inside a pick the selection stays: it is what the pick acts on.
     if (!picking) deselect();
     ui.hideNotice();
     findBox.value = lastQuery;
@@ -1190,7 +1190,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /**
    * Close the box: select `pick`, or put back what was selected before; `restore` (Escape) puts
-   * back the view as well, unless the user has moved it since. Inside a wait, `pick` takes the candidate instead
+   * back the view as well, unless the user has moved it since. Inside a pick, `pick` takes the candidate instead
    * (the user: Enter in find points, a second Enter picks), and without one the outline goes back where it was.
    */
   function closeFind(/** @type {Item | null} */ pick, restore = false) {
@@ -1282,7 +1282,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   document.addEventListener('click', (e) => {
     const at = /** @type {Node} */ (e.target);
     if (els.diagram.contains(at) || els.find.contains(at)) return;
-    // The footer's Find works inside a wait: it opens or closes the find, and the wait goes on.
+    // The footer's Find works inside a pick: it opens or closes the find, and the pick goes on.
     if (els.findToggle.contains(at)) { closeMenus(); return; }
     if (finding) closeFind(null);
     if (picking) cancelPick();

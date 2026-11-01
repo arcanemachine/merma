@@ -221,7 +221,7 @@ body.resizing { user-select: none; }
 #stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
 #stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: var(--select); text-decoration: underline 2px; }
-/* In a wait (Connect to…, a move), what it will change: the node or subgraph dashed (the user)… */
+/* In a pick (Connect to…, a move), what it will change: the node or subgraph dashed (the user)… */
 #stage g.node[data-page-source] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }

@@ -84,15 +84,15 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   between the two goes, as it would mean nothing after; a self-loop comes along as one of the other node; an edge
   that comes out the same as one the other node already has (same ends, arrow type and label) goes, unless it has an
   edge id or a `linkStyle` of its own. Nodes only: a subgraph cannot take a node's place. Escape, or a
-  click away, is the one way out of every wait; C while connecting does nothing. A find opened inside a wait (Connect
+  click away, is the one way out of every pick; C while connecting does nothing. A find opened inside a pick (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
-  first and the wait after, so the candidate stays the one thing Enter picks.
+  first and the pick after, so the candidate stays the one thing Enter picks.
 - Shift with an item's letter does that item the other way round (the user): Shift+C is Connect from…, C's edge the
   other way; Shift+R flips the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
   menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
   never from the letter's case, so Caps Lock does not count.
-- In a wait, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
-  move, Enter picks and which is selected after, is drawn as the selection is. What the wait will change is marked
+- In a pick, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
+  move, Enter picks and which is selected after, is drawn as the selection is. What the pick will change is marked
   instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go haloed, a wide pale
   line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one).
 - The diagram comes first in Tab order, whatever the dock (the user): the diagram, the code panel's handle, the panel,
@@ -249,7 +249,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   - I goes back to the item you last left a subgraph by, while keys select; a click, a find or an edit forgets it (the
     user: keeping it across a click was backwards). It is not the trail: one item per subgraph, not a list of steps.
     O from a top-level item, the title included, selects nothing (the user: O is out a level, and above the top level
-    is the diagram), and says so; it lets go as Escape does, so Enter or I brings it back. In a wait, the candidate
+    is the diagram), and says so; it lets go as Escape does, so Enter or I brings it back. In a pick, the candidate
     stays.
   - Escape clears the selection, and Enter (or I) brings it back as it was, an edge with its counted end and the trail
     with it (the user: the end tick moved); a click on empty space forgets it (the user: you lose your place
@@ -288,7 +288,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   A window too small for the size you set draws the panel smaller, and your size comes back when the window grows.
 - Its dock and size are the person's, kept in the browser for every file (localStorage); whether it is open is the
   tab's, per file (sessionStorage), so the page's reload for a new build keeps it open.
-- It is a view, not a wait: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
+- It is a view, not a pick: opening it by the footer's Code leaves focus on the button. By keyboard it has two levels,
   the code and the panel around it (the user, after trying one level): ` flips focus between the panel and the
   diagram, the panel staying open, so you can move about the diagram and hop back, a draft and all; Escape steps out a
   level, from the code or a control in the panel's bar to the panel (the panel is a Tab stop too, before the bar), from the panel with a draft open to the read-only code (Cancel, asking if it changed; the user: a
@@ -395,7 +395,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Reduced motion: under the system's reduced-motion setting nothing moves on its own: find's match does not blink, and
   Follow selection scrolls the code at once rather than smoothly.
 - Screen readers hear the changes that keys and edits make:
-  - each item reached by the keys, or as a wait's candidate, is read out with what it is ('the edge "no" from "In
+  - each item reached by the keys, or as a pick's candidate, is read out with what it is ('the edge "no" from "In
     stock?" to "Wait for stock"');
   - each edit that worked is read out as a line, since the redraw cannot be heard ('Connected "Take order" to "Order
     log"');
