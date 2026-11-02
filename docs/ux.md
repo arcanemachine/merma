@@ -207,13 +207,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     the file writes first: every edge has one). The counted end is marked with the end
     tick, so the fan the cross arrows step shows before you press: a short bar across the way the edge leaves that
     end's node, flat or upright, never tilted (the user: noticeable, not in the way; a dot read as Mermaid's circle
-    end). It is sized in the
-    diagram's units, as the line and its arrowhead are, so it grows and shrinks with them (the user: a fixed size
-    hid under the line zoomed in), with a floor on screen; it keeps a gap from the arrowhead (a bar at an arrow's base
-    is notation), and slides along the line to where it runs that way, off any bend and clear of any text. Space switches an edge to its other
-    end (the user), so the cross arrows step that end's fan. It is not a move: the arrival into the edge leaves the
-    trail, as after a step across. The cross arrows stop at the last edge rather than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried it and
-    chose stepping across.
+    end). It is sized in the diagram's units, as the line and its arrowhead are, so it grows and shrinks with them (the
+    user: a fixed size hid under the line zoomed in), with a floor on screen; it sits just past the arrowhead (the user:
+    a gap made it hard to see, and an end whose last stretch hides under the arrowhead pushed it past the bend, lying
+    along the line), and slides along the line to where it runs that way, off any bend and clear of any text. Where no
+    stretch runs that way before the middle, it crosses the line where it runs the other way, nearest the end, rather
+    than lie along it; which way it lies depends on the line, never on the zoom (a tick turning as you zoom reads as a
+    bug). Space switches an edge to its other end (the user), so the cross arrows step that end's fan. It is not a move:
+    the arrival into the edge leaves the trail, as after a step across. The cross arrows stop at the last edge rather
+    than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried
+    it and chose stepping across.
   - With no edge leaving that way, an arrow goes to the nearest box (node or subgraph) straight that way, else nothing
     (the user tried nearest-anywhere and edges-by-place, and disliked both: Boxing, Down reached Send, off to the side;
     Shipping, Right reached Wait for stock, far up). A subgraph you are in counts by its border, always straight ahead,
