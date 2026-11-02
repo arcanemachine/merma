@@ -96,7 +96,7 @@ another click on it closes it.
   type and label) goes too, unless it has an edge id or a `linkStyle`. While you pick, the node is outlined dashed and
   its edges glow pale blue; by keyboard, the blue outline starts on the node and moves as in Connect to…, and Enter
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
-  last edge when the other node is named outside it, as Reattach edge… says.
+  last edge when the other node is named outside it, as Reassign edge… says.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
@@ -127,7 +127,7 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
-- **Reattach edge…** (E), then a click on a node or a subgraph, moves the end of the edge at its end tick there:
+- **Reassign edge…** (E), then a click on a node or a subgraph, moves the end of the edge at its end tick there:
   `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id; moved from the start,
   `C --> B`. While you pick, the edge glows pale blue and its end tick is dashed at the end that moves; **Space**, or a
   click on the edge's line nearer the other end, moves that end instead. A click anywhere else, or Escape, cancels. By
@@ -250,7 +250,7 @@ here does just what it does in the selected item's menu:
 |---|---|
 | N | Add a node: connected to the selected node, or inside the selected subgraph |
 | R with an edge selected | Reverse it |
-| E with an edge selected | Reattach edge… (Space in it: the other end) |
+| E with an edge selected | Reassign edge… (Space in it: the other end) |
 | E with a node selected | Merge into… |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
@@ -360,7 +360,7 @@ word starting with it, then any; higher first. Tab stays in the find box, and Es
 shows what you last looked for, selected, so typing replaces it. The bar's **Previous**, **Next** and **Cancel** do
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
-In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Reattach edge…, on the edge
+In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Reassign edge…, on the edge
 itself; in Merge into…, on the node being merged) and moves by the same rules as the selection, through
 edges (Enter on one is refused), with I and O; Enter picks the outlined one. What the pick will change is marked
 meanwhile: the node or subgraph it starts from dashed, the edges that will move glowing pale blue. / opens the find

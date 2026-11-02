@@ -28,7 +28,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   inside it (edges to a subgraph's box do not count). That is most subgraphs grayed, all of the "Simple" demo's; it is
   Mermaid's layout rule, not a setting. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
-  is a move of an edge's end (Reattach edge…, and Merge into…, which moves each of the node's edges so) on
+  is a move of an edge's end (Reassign edge…, and Merge into…, which moves each of the node's edges so) on
   an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
   into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after
   it move down one).
@@ -55,7 +55,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Reattach | what they say | Connect to…, Connect from…, Reverse edge, Reattach edge… |
+  | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign edge… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
@@ -76,9 +76,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   a selected edge's end outside menus as in its menu, and E on a node is Merge into… ("mErge": a key is a letter of
   its label; a merge moves every edge's end to the other node, close to E's meaning on an edge). The Edit items have
   no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open
-  menu Enter runs the item in focus. So E is free for Reattach edge…, and Add subgraph is G, menu-only.
-- Reattach edge… is one item for both ends (agreed with the user, in place of Move start to… and Move end to…; not
-  "Move edge…", which reads as moving the whole edge): it moves the counted end, the one the end tick is at. Its
+  menu Enter runs the item in focus. So E is free for Reassign edge…, and Add subgraph is G, menu-only.
+- Reassign edge… is one item for both ends (agreed with the user, in place of Move start to… and Move end to…; the
+  name is the user's): it moves the counted end, the one the end tick is at. Its
   candidate starts on the edge itself, as Connect to…'s does on its item. Space, wherever the candidate is, or a click
   on the edge's line nearer the other end moves that one instead (the user; with several edges, later, Space would
   swap only the one the candidate is on). The end tick stays through the pick, dashed, as what a pick will change is;
@@ -365,10 +365,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - A toast is only for a result you cannot see on screen ("Copied!", "SVG downloaded"), and fades; it never says what
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
-- A message is not a tutorial (the user: "less is more"): it says what is happening, and at most how to leave it
-  ("Pick the node or subgraph to connect to. Press Escape or click away to cancel."). How to do things is Help's and
-  the guide's. A message reads the way a person would write it, plainly (the user: "Escape cancels" read as machine
-  phrasing; "Press Escape or click away to cancel" is how a person says it).
+- A message is not a tutorial (the user: "less is more"): it says what is happening, and at most how to leave it. How
+  to do things is Help's and the guide's.
+- A message is written the way a person would write it (the user): plain words, and what to do as an instruction.
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though

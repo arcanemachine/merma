@@ -244,7 +244,7 @@ body.resizing { user-select: none; }
 #stage path.edge-thickness-invisible[data-page-candidate] + path[data-page-only] { stroke: var(--select-faint); }
 /* The end tick: which end a selected edge counts as reached from, a short bar across it (sized in editor.mjs). */
 #stage [data-page-end] { stroke: var(--select) !important; stroke-linecap: round; pointer-events: none; }
-/* In Reattach edge…, dashed at the end that moves, as what a pick will change is (dashes sized in editor.mjs). */
+/* In Reassign edge…, dashed at the end that moves, as what a pick will change is (dashes sized in editor.mjs). */
 #stage [data-page-end][data-page-moving] { stroke-linecap: butt; }
 /* An edge one step wider than its own 2 px or 3.5 px line; a dotted edge keeps its dashes. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-selected]:not([data-page-only]) { stroke: var(--select) !important;
