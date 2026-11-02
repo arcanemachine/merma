@@ -367,7 +367,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - A message is not a tutorial (the user: "less is more"): it says what is happening, and at most how to leave it. How
   to do things is Help's and the guide's.
-- A message is written the way a person would write it (the user): plain words, and what to do as an instruction.
+- A message is written the way a person would write it (the user): plain words, and what to do in the imperative mood,
+  addressed to the reader.
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though
