@@ -534,20 +534,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const width = Math.max(END_STROKE, END_STROKE_MIN / k), h = Math.max(END_TICK, END_TICK_MIN / k) / 2;
     /** The tick `d` in from the counted end, in the path's own units. */
     /** Whether the line at `at` runs within 30° of the way the edge leaves its node. */
-    const runs = (/** @type {number} */ at, flat = endFlat) => {
+    const runs = (/** @type {number} */ at) => {
       const a = path.getPointAtLength(Math.max(0, at - 1)), b = path.getPointAtLength(Math.min(len, at + 1));
       const t = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-      return Math.abs(flat ? b.y - a.y : b.x - a.x) / t >= Math.cos(Math.PI / 6);
+      return Math.abs(endFlat ? b.y - a.y : b.x - a.x) / t >= Math.cos(Math.PI / 6);
     };
-    const tick = (/** @type {number} */ d, flat = endFlat) => {
+    const tick = (/** @type {number} */ d) => {
       const s = Math.min(len, d), at = endSide === 'start' ? s : len - s;
       const p = path.getPointAtLength(at);
       // Across the way the edge leaves its node (the user): flat for up or down, upright for sideways, never tilted.
       // `straight` where the line runs that way for the tick's width on both sides, so it crosses the line clear of
       // any bend rather than lying along it.
-      const [nx, ny] = flat ? [h, 0] : [0, h];
-      const straight = runs(at, flat) && runs(Math.max(0, at - h), flat) && runs(Math.min(len, at + h), flat);
-      const centered = runs(at, flat) && runs(Math.max(0, at - END_RUN), flat) && runs(Math.min(len, at + END_RUN), flat);
+      const [nx, ny] = endFlat ? [h, 0] : [0, h];
+      const straight = runs(at) && runs(Math.max(0, at - h)) && runs(Math.min(len, at + h));
+      const centered = runs(at) && runs(Math.max(0, at - END_RUN)) && runs(Math.min(len, at + END_RUN));
       return { ends: [{ x: p.x - nx, y: p.y - ny }, { x: p.x + nx, y: p.y + ny }], straight, centered };
     };
     const clear = (/** @type {{ x: number, y: number }[]} */ ends) => {
@@ -559,7 +559,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // line, up to its middle, until it runs the way the edge leaves its node and no text is under it.
     const start = markerReach(path, endSide) + END_GAP + width / 2;
     // Zoomed out, a straight stretch can be shorter than the tick is wide: then straight for END_RUN either side will
-    // do. Either way the tick's way then follows the line, not the zoom.
+    // do.
     const find = (/** @type {'straight' | 'centered'} */ need) => {
       for (let d = start; d <= len / 2; d += 3) {
         const at = tick(d);
@@ -567,17 +567,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       }
       return null;
     };
-    // No stretch that way before the middle (the last one hides under the arrowhead, before a bend): across the line
-    // where it runs the other way, nearest the end, rather than lying along it (the user).
-    const across = () => {
-      for (let d = start; d <= len / 2; d += 3) {
-        const at = tick(d, !endFlat);
-        if (at.straight && clear(at.ends)) return at.ends;
-      }
-      return null;
-    };
-    const ends = find('straight') ?? find('centered') ?? across()
-      ?? tick(start, runs(endSide === 'start' ? start : len - start) ? endFlat : !endFlat).ends;
+    // No stretch that way before the middle (the last one hides under the arrowhead, before a bend): at the
+    // arrowhead's base, still across the way the edge leaves its node (the user).
+    const ends = find('straight') ?? find('centered') ?? tick(start).ends;
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     for (const [a, v] of Object.entries({ x1: ends[0].x, y1: ends[0].y, x2: ends[1].x, y2: ends[1].y })) el.setAttribute(a, String(v));
     el.setAttribute('stroke-width', String(width));

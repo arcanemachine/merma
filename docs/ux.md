@@ -211,12 +211,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     user: a fixed size hid under the line zoomed in), with a floor on screen; it sits just past the arrowhead (the user:
     a gap made it hard to see, and an end whose last stretch hides under the arrowhead pushed it past the bend, lying
     along the line), and slides along the line to where it runs that way, off any bend and clear of any text. Where no
-    stretch runs that way before the middle, it crosses the line where it runs the other way, nearest the end, rather
-    than lie along it; which way it lies depends on the line, never on the zoom (a tick turning as you zoom reads as a
-    bug). Space switches an edge to its other end (the user), so the cross arrows step that end's fan. It is not a move:
-    the arrival into the edge leaves the trail, as after a step across. The cross arrows stop at the last edge rather
-    than wrap: Right always means right. An earlier version went on to the end node past the last edge; the user tried
-    it and chose stepping across.
+    stretch runs that way before the middle, it sits at the arrowhead's base. It always lies across the arrow at its
+    end, whatever the line does before it and at any zoom (the user: no exceptions; an upright tick beside a bend was
+    built and taken out). Space switches an edge to its other end (the user), so the cross arrows step that end's fan.
+    It is not a move: the arrival into the edge leaves the trail, as after a step across. The cross arrows stop at the
+    last edge rather than wrap: Right always means right. An earlier version went on to the end node past the last edge;
+    the user tried it and chose stepping across.
   - With no edge leaving that way, an arrow goes to the nearest box (node or subgraph) straight that way, else nothing
     (the user tried nearest-anywhere and edges-by-place, and disliked both: Boxing, Down reached Send, off to the side;
     Shipping, Right reached Wait for stock, far up). A subgraph you are in counts by its border, always straight ahead,
