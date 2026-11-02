@@ -363,7 +363,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do. A notice says what to do next, or why something was not done, and stays. An error is never a toast.
 - A message names a node by its label as drawn, in quotes, never by its id in the file, which the page does not show.
 - A message is not a tutorial (the user: "less is more"): it says what is happening, and at most how to leave it
-  ("Pick the node or subgraph to connect to. Escape cancels."). How to do things is Help's and the guide's.
+  ("Pick the node or subgraph to connect to. Press Escape or click away to cancel."). How to do things is Help's and
+  the guide's. What to do is said in the imperative, "Press Escape or click away to cancel", never as what a key does
+  ("Escape cancels") (the user).
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though

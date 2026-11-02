@@ -298,7 +298,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    */
   function pickNotice() {
     const what = picking === 'merge' ? `node to merge ${named(selection())} into` : PICKED[picking ?? 'connect'];
-    ui.notice(`Pick the ${what}. Escape cancels.`, 'info');
+    ui.notice(`Pick the ${what}. Press Escape or click away to cancel.`, 'info');
   }
 
   /** @type {Record<string, () => void>} */
@@ -931,7 +931,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (picking && candidate?.kind === 'edge') {
         ui.notice(connecting() ? 'Pick a node or subgraph to connect: an edge cannot be connected to.'
           : picking === 'merge' ? 'Pick a node to merge into: an edge cannot take a node.'
-            : 'An edge cannot be attached to.', 'warning');
+            : 'An edge cannot be attached to another edge.', 'warning');
         return true;
       }
       if (picking) { if (candidate) pick(candidate); return Boolean(candidate); }
@@ -1090,7 +1090,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     markSource();
     for (const e of elsOf(item)) mark(e, 'data-page-candidate');
     const what = item.kind === 'edge' ? (movingEnd() && same(item, selection()) ? 'the edge being reattached'
-      : movingEnd() ? 'an edge, cannot be attached to' : 'an edge, cannot be connected to')
+      : movingEnd() ? 'an edge cannot be attached to another edge' : 'an edge, cannot be connected to')
       : picking === 'start' || picking === 'end' ? `press Enter to move the edge's ${picking} here`
         : !connecting() ? (same(item, selection()) ? 'itself: pick another node' : 'press Enter to merge into this')
         : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
