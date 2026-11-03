@@ -16,6 +16,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Copy SVG and Download SVG show what you see, collapse included. H toggles it, separate from O and I, which move: I
   on a collapsed subgraph expands it to go in, and O never collapses (moving out would hide where you were). Escape
   never expands.
+- Mermaid's size limits (`maxEdges`, `maxTextSize`) are merma's settings, never the file's: Mermaid lets only the page
+  that loads it raise them. Over one, the last good render stays, and the error names the setting, not Mermaid's
+  advice to call `mermaid.initialize`. The text limit counts what the page draws, so the lines collapse and turn
+  append can take a file just under it over; the page then draws the file as written, with a warning.
 - Rotate and flip are view state too (the user: for fitting a wide or a tall window), drawn as collapse is: each
   direction in the text Mermaid gets (the header's, every subgraph's `direction`) is swapped in place, two letters for
   two, so no offset moves; a header with none gets one, since Mermaid ignores a top-level `direction` line. Kept for

@@ -18,6 +18,8 @@ Settings, from the environment:
   MERMA_PATH_MAP  server=host path prefixes, comma-separated, to show a file's host path
   MERMA_IDLE      seconds with no requests before the server exits (unset or 0: it runs until stopped)
   MERMA_HOSTS     host names the page may be opened under besides localhost, 127.0.0.1 and [::1], comma-separated
+  MERMA_MAX_EDGES the most edges a diagram may have (unset: Mermaid's 500)
+  MERMA_MAX_TEXT  the most characters a diagram's code may have, comments and frontmatter aside (unset: Mermaid's 50000)
   BROWSER         for merma <file>: a command to open the page with, arguments allowed (unset: the address is printed)`;
 
 const SCRATCH = '/tmp/mermaid-diagrams/scratch.mmd';
@@ -97,7 +99,11 @@ function start(/** @type {string[]} */ roots, /** @type {string} */ port, /** @t
   // loopback names and MERMA_HOSTS, since nothing says which names reach it.
   const hosts = [...LOOPBACK_HOSTS, ...parseRoots(process.env.MERMA_HOSTS || '')];
   if (!['0.0.0.0', '::'].includes(host)) hosts.push(host.includes(':') ? `[${host}]` : host);
-  const server = createServer({ files, script: realpathSync(fileURLToPath(import.meta.url)), hosts });
+  const limits = {
+    maxEdges: limit('MERMA_MAX_EDGES', 'a whole number of edges'),
+    maxTextSize: limit('MERMA_MAX_TEXT', 'a whole number of characters'),
+  };
+  const server = createServer({ files, script: realpathSync(fileURLToPath(import.meta.url)), hosts, limits });
 
   // Only with MERMA_IDLE does the server stop on its own, that many seconds after the last request. An open page polls
   // every second, but a browser may freeze or unload a tab left in the background, so the time is not a page count.
@@ -120,4 +126,15 @@ function start(/** @type {string[]} */ roots, /** @type {string} */ port, /** @t
     const name = ['127.0.0.1', '0.0.0.0', '::'].includes(host) ? 'localhost' : host.includes(':') ? `[${host}]` : host;
     onListening(`http://${name}:${/** @type {import('node:net').AddressInfo} */ (server.address()).port}`);
   });
+}
+
+/** A size limit from the environment: a whole number above 0, or undefined when unset; merma refuses anything else. */
+function limit(/** @type {string} */ name, /** @type {string} */ what) {
+  const value = process.env[name];
+  if (!value) return undefined;
+  if (!/^[1-9]\d*$/.test(value)) {
+    console.error(`merma: ${name} must be ${what}, not ${value}`);
+    process.exit(2);
+  }
+  return Number(value);
 }

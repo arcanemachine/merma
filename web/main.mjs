@@ -10,6 +10,7 @@ import { prune, setView, viewText } from './collapse.mjs';
 import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
+import { limitSentence, readLimits } from './limits.mjs';
 import { hide as hideTop, mode as modeNotice, NONE, show as showNotice } from './notices.mjs';
 
 // Every id the page asks for is in index.html.
@@ -229,7 +230,10 @@ const ui = {
 let editor = null;
 let shownOnce = false;   // a diagram has been rendered; until then the view is the initial fit, not worth keeping
 
-const viewer = createViewer({ diagram: el('diagram'), stage: el('stage') }, {
+// Mermaid's size limits, as merma was started with them (MERMA_MAX_EDGES, MERMA_MAX_TEXT); empty: Mermaid's own.
+const meta = (/** @type {string} */ name) => /** @type {HTMLMetaElement} */ (document.querySelector(`meta[name="${name}"]`)).content;
+const limits = readLimits(meta('merma-max-edges'), meta('merma-max-text'));
+const viewer = createViewer({ diagram: el('diagram'), stage: el('stage'), limits }, {
   onClick: (target, x, y) => { clickedAway(target); editor?.clicked(target, x, y); },
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
@@ -290,7 +294,8 @@ async function draw(/** @type {string} */ text) {
     warning = "Couldn't collapse or turn the diagram: showing the file as written.";
   }
   if (!shown.ok) {
-    showError('The file has a syntax error, so the last good render is shown.\n' + shown.error);
+    showError(shown.limit ? limitSentence(shown.limit, limits, false)
+      : 'The file has a syntax error, so the last good render is shown.\n' + shown.error);
     editor?.failed();
     return;
   }
@@ -306,7 +311,7 @@ async function draw(/** @type {string} */ text) {
 const source = createSource(file, { onText: display, onError: showError, onBuild: noteBuild });
 
 editor = createEditor({
-  source, viewer, parse, display, ui,
+  source, viewer, parse, limits, display, ui,
   els: { stage: el('stage'), diagram: el('diagram'), labelBox: el('label-box'), find: el('find'), findBox: el('find-box'),
     findCount: el('find-count'), findPrev: el('find-prev'), findNext: el('find-next'), findCancel: el('find-cancel'),
     findToggle: el('find-toggle') },

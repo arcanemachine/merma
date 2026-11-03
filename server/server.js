@@ -42,8 +42,10 @@ function hostName(header = '') {
  * @param {string} options.script the path /health reports
  * @param {string[]} [options.hosts] host names requests may be addressed to (default: loopback only)
  * @param {string} [options.web] the page's files (default: web/ beside server/)
+ * @param {{ maxEdges?: number, maxTextSize?: number }} [options.limits] Mermaid's size limits for the page (unset:
+ *   Mermaid's defaults)
  */
-export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB }) {
+export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB, limits = {} }) {
   const allowedHosts = new Set(hosts.map((h) => h.toLowerCase()));
   const build = createBuild({ web, fixed: FIXED });
   // lastRequest: the time of the last request, for the idle exit.
@@ -80,7 +82,9 @@ export function createServer({ files, script, hosts = LOOPBACK_HOSTS, web = WEB 
       return send(res, 200, text, 'text/plain', { ETag: etag });
     }
 
-    return serveWeb(web, url.pathname, res, build.id());
+    return serveWeb(web, url.pathname, res, {
+      MERMA_BUILD: build.id(), MERMA_MAX_EDGES: String(limits.maxEdges ?? ''), MERMA_MAX_TEXT: String(limits.maxTextSize ?? ''),
+    });
   }
 
   async function edit(/** @type {Request} */ req, /** @type {Response} */ res, /** @type {string} */ f) {
@@ -134,9 +138,9 @@ function shellQuote(/** @type {string} */ s) {
 
 /**
  * A file from the page's folder, by its path; nothing outside it and nothing but the page's own file types. The page
- * itself gets the build id filled in.
+ * itself gets `{{NAME}}` filled in from `fill`: the build id and the size limits.
  */
-async function serveWeb(/** @type {string} */ web, /** @type {string} */ pathname, /** @type {import('node:http').ServerResponse} */ res, /** @type {string} */ buildId) {
+async function serveWeb(/** @type {string} */ web, /** @type {string} */ pathname, /** @type {import('node:http').ServerResponse} */ res, /** @type {Record<string, string>} */ fill) {
   const root = web.endsWith(sep) ? web : web + sep;
   const page = pathname === '/';
   const path = normalize(join(root, page ? 'index.html' : decodeURIComponent(pathname)));
@@ -144,7 +148,7 @@ async function serveWeb(/** @type {string} */ web, /** @type {string} */ pathnam
   if (!path.startsWith(root) || !type) return send(res, 404, 'Not found');
   try {
     const body = await readFile(path, 'utf8');
-    return send(res, 200, page ? body.replace('{{MERMA_BUILD}}', buildId) : body, type);
+    return send(res, 200, page ? body.replace(/\{\{(\w+)\}\}/g, (m, name) => fill[name] ?? m) : body, type);
   } catch {
     return send(res, 404, 'Not found');
   }

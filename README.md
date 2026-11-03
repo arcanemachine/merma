@@ -35,6 +35,8 @@ Either way the server runs until you stop it (Ctrl+C), unless `MERMA_IDLE` is se
 | `MERMA_PATH_MAP` | `server=host` path prefixes, comma-separated. The page shows a file's host path, for a server in a container |
 | `MERMA_IDLE` | Seconds with no requests before the server exits. Unset or 0: it runs until stopped. An open page polls every second, but a browser may freeze or unload a tab left in the background, which then stops asking |
 | `BROWSER` | For `merma <file>`: a command to open the page with, arguments allowed (`firefox --new-tab`). Unset: the address is only printed |
+| `MERMA_MAX_EDGES` | The most edges a diagram may have. Default: Mermaid's 500 |
+| `MERMA_MAX_TEXT` | The most characters a diagram's code may have, leaving out comments and frontmatter. Default: Mermaid's 50,000. Mermaid's drawing slows as diagrams grow, so a higher limit is no promise of a quick render |
 | `MERMA_HOSTS` | Host names the page may be opened under, besides `localhost`, `127.0.0.1` and `[::1]` (and the bound address, when it is a single one), comma-separated. Requests addressed to any other name are refused, which stops DNS rebinding |
 
 Binding to anything other than `127.0.0.1` lets anyone who can reach the machine read and edit the served diagrams:
@@ -57,6 +59,7 @@ there is no login.
 | `web/main.mjs` | Wires the parts together; the header and footer |
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
+| `web/limits.mjs` | Mermaid's size limits: telling a render or save over one apart, and what the page says |
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
 | `web/keys.mjs` | What the arrows, O and I do to the selection and to Connect to…'s candidate: the trail to retrace, and I's place inside |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |

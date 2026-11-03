@@ -19,6 +19,7 @@ import {
   nodeIdFromSvgId, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
+import { limitOf, limitSentence } from './limits.mjs';
 import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
 import { NODE_SHAPES } from './shapes.mjs';
@@ -64,12 +65,13 @@ const END_RUN = 3;
  * @param {ReturnType<typeof import('./source.mjs').createSource>} deps.source
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
+ * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
  * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
-export function createEditor({ source, viewer, parse, display, ui, els }) {
+export function createEditor({ source, viewer, parse, limits, display, ui, els }) {
   // What is drawn may be selected and edited (a flowchart that rendered). While the code panel holds the lock (its code
   // being edited) it may still be selected, walked and found, but not edited (the user). Both set only by setEditable().
   let drawnEditable = false;
@@ -1971,7 +1973,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     try {
       await parse(text);
     } catch (e) {
-      ui.notice((says.invalid ?? 'Your change was not saved, because it would make the diagram invalid.') + '\n' + (e.message || e), 'error');
+      const error = e.message || String(e);
+      if (limitOf(error) === 'edges') ui.notice(limitSentence('edges', limits, true), 'error');
+      else ui.notice((says.invalid ?? 'Your change was not saved, because it would make the diagram invalid.') + '\n' + error, 'error');
       return false;
     }
     const saved = await source.save(text, base);

@@ -7,14 +7,10 @@
 // A change to this version changes the module's name in types/mermaid.d.ts too.
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
 import { frame as frameView, tooBig } from './frame.mjs';
+import { limitOf, overTextLimit, TEXT_LIMIT_LABEL } from './limits.mjs';
 
 // useMaxWidth: false renders every diagram type at its natural size; the view below fits and zooms it.
 const natural = { useMaxWidth: false };
-mermaid.initialize({
-  startOnLoad: false,
-  flowchart: natural, sequence: natural, class: natural, state: natural, er: natural,
-  gantt: natural, journey: natural, pie: natural, mindmap: natural, timeline: natural, gitGraph: natural,
-});
 
 const PAD = 24;
 // A press that moves less than this many pixels before release is a click; more is a move.
@@ -26,13 +22,14 @@ const LONG_PRESS_MS = 500;
 const DOUBLE_TAP_MS = 350;
 const DOUBLE_TAP_SLOP = 24;
 
-/** Check that `text` is valid Mermaid; throws with Mermaid's message if not. */
+/** Check that `text` is valid Mermaid; throws with Mermaid's message if not. Needs createViewer to have run. */
 export const parse = (/** @type {string} */ text) => mermaid.parse(text);
 
 /**
  * @param {object} els
  * @param {HTMLElement} els.diagram the area the diagram is shown in
  * @param {HTMLElement} els.stage the element inside it that holds the SVG and is moved and scaled
+ * @param {import('./limits.mjs').Limits} [els.limits] Mermaid's size limits, where they differ from its defaults
  * @param {object} [hooks]
  * @param {(target: Element, x: number, y: number) => void} [hooks.onClick] a click, with the element pressed and where it
  *   was released (client coordinates)
@@ -46,7 +43,12 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  *   `byUser`: by the user (the wheel, a drag or pinch, pan(), zoom(), zoomTo()), not by the page (fit(), reveal(),
  *   center(), setView())
  */
-export function createViewer({ diagram, stage }, hooks = {}) {
+export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
+  mermaid.initialize({
+    startOnLoad: false, ...limits,
+    flowchart: natural, sequence: natural, class: natural, state: natural, er: natural,
+    gantt: natural, journey: natural, pie: natural, mindmap: natural, timeline: natural, gitGraph: natural,
+  });
   const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {} } = hooks;
   // A scale and offset applied to the stage. The first render is fitted to the window (never enlarged); after that the
   // view is kept across re-renders (the user), so an edit moves nothing under the pointer. Until the user zooms or
@@ -351,11 +353,22 @@ export function createViewer({ diagram, stage }, hooks = {}) {
       }
     },
 
-    /** Render `text` in place of the current diagram. On a syntax error the last good render stays. */
+    /**
+     * Render `text` in place of the current diagram. On a syntax error, or over a size limit (`limit`), the last good
+     * render stays.
+     * @returns {Promise<{ ok: true } | { ok: false, error: string, limit: import('./limits.mjs').Limit | null }>}
+     */
     async show(/** @type {string} */ text) {
       const id = 'd' + n++;
       try {
         const { svg } = await mermaid.render(id, text, scratch);
+        // Over maxTextSize Mermaid draws a stand-in diagram rather than failing; the last good render is kept.
+        if (svg.includes(TEXT_LIMIT_LABEL)) {
+          const drawn = document.createElement('template');
+          drawn.innerHTML = svg;
+          const labels = [...drawn.content.querySelectorAll('g.node')].map((g) => g.textContent ?? '');
+          if (overTextLimit(labels)) return { ok: false, error: TEXT_LIMIT_LABEL, limit: 'text' };
+        }
         const first = renderId === null;
         stage.innerHTML = svg;
         renderId = id;
@@ -367,7 +380,8 @@ export function createViewer({ diagram, stage }, hooks = {}) {
         // A failed render can leave its scratch element in the page.
         document.getElementById('d' + id)?.remove();
         document.getElementById(id)?.remove();
-        return { ok: false, error: e.message || String(e) };
+        const error = e.message || String(e);
+        return { ok: false, error, limit: limitOf(error) };
       }
     },
 

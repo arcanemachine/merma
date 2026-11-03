@@ -108,3 +108,20 @@ test('MERMA_IDLE that is not a number of seconds is refused', () => {
   assert.equal(r.status, 2);
   assert.match(String(r.stderr), /MERMA_IDLE must be a number of seconds/);
 });
+
+test('MERMA_MAX_EDGES and MERMA_MAX_TEXT reach the page', async () => {
+  const { url } = await run([file('limits.mmd')], { MERMA_MAX_EDGES: '2000', MERMA_MAX_TEXT: '90000' });
+  const page = await (await fetch(new URL('/', url))).text();
+  assert.ok(page.includes('<meta name="merma-max-edges" content="2000">'));
+  assert.ok(page.includes('<meta name="merma-max-text" content="90000">'));
+});
+
+test('MERMA_MAX_EDGES and MERMA_MAX_TEXT that are not whole numbers above 0 are refused', () => {
+  for (const [name, value, says] of [['MERMA_MAX_EDGES', '2k', 'a whole number of edges'], ['MERMA_MAX_TEXT', '0', 'a whole number of characters'],
+    ['MERMA_MAX_EDGES', '1.5', 'a whole number of edges']]) {
+    // A timeout, so a value let through fails the test rather than leaving merma serving.
+    const r = spawnSync(process.execPath, [BIN, file('bad.mmd')], { env: { ...process.env, BROWSER: '', [name]: value }, timeout: 5000 });
+    assert.equal(r.status, 2, `${name}=${value}`);
+    assert.match(String(r.stderr), new RegExp(`${name} must be ${says}, not ${value.replace('.', '\\.')}`));
+  }
+});

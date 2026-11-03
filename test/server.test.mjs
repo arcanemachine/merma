@@ -261,6 +261,21 @@ test('every response carries the build id, and the page is served with the same 
   }
 });
 
+test('the page is served with the size limits the server was given, and empty ones when it was given none', async () => {
+  const page = await get('/');
+  assert.ok(page.text.includes('<meta name="merma-max-edges" content="">'));
+  assert.ok(page.text.includes('<meta name="merma-max-text" content="">'));
+  const other = createServer({ files: createFiles({ roots: [ROOT] }), script: 'x', limits: { maxEdges: 2000, maxTextSize: 90000 } });
+  await new Promise((resolve) => other.listen(0, '127.0.0.1', resolve));
+  try {
+    const text = await (await fetch(`http://127.0.0.1:${other.address().port}/`)).text();
+    assert.ok(text.includes('<meta name="merma-max-edges" content="2000">'));
+    assert.ok(text.includes('<meta name="merma-max-text" content="90000">'));
+  } finally {
+    other.close();
+  }
+});
+
 test('the build id changes when a page file changes under a running server', async () => {
   const web = mkdtempSync(join(tmpdir(), 'merma-web-'));
   writeFileSync(join(web, 'index.html'), '<meta name="merma-build" content="{{MERMA_BUILD}}">');
