@@ -97,7 +97,7 @@
           if (after.getEdges().length !== c.merge.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.merge.edges}`);
           continue;
         }
-        if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move' && c.kind !== 'moves') continue;
+        if (c.kind !== 'delete' && c.kind !== 'change' && c.kind !== 'move' && c.kind !== 'moves' && c.kind !== 'relocate') continue;
         /* A subgraph named in an edge is a vertex too, until the edge goes: it is the subgraph, not a node. */
         const vertices = after.getVertices(), blocks = new Set(before.getSubGraphs().map((sg) => sg.id));
         for (const node of before.getVertices().keys()) if (node !== c.gone && !blocks.has(node) && !vertices.has(node)) fails.push(`${c.name}: ${node} lost`);
