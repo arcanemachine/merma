@@ -17,7 +17,9 @@ short subset of it (gestures and keys outside menus): a change to the page updat
 
 **No sprawl.** Each fact lives in one place: words in `GLOSSARY.md`, UX rules in `docs/ux.md`, what the page does in
 `docs/guide.md`, what merma is and how to run it in `README.md`. Each doc says at its top what goes in it; link to it
-rather than repeating it, and write down only what someone will read again.
+rather than repeating it, and write down only what someone will read again. The one exception is `skill/SKILL.md`, the
+agent skill: it is saved away from merma and read on its own, so it repeats what an agent needs (commands, settings,
+how to write a diagram merma edits). A change to any of those updates it in the same commit.
 
 ## Contributing
 

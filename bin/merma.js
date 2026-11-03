@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// merma <file.mmd> [port]: open one diagram. merma serve [port] [host]: serve a live view of .mmd files. See
-// README.md for the settings.
+// merma <file.mmd> [port]: open one diagram. merma serve [port] [host]: serve a live view of .mmd files. merma skill:
+// print the agent skill. See README.md for the settings.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
@@ -8,10 +8,12 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createFiles, parsePathMap, parseRoots } from '../server/files.js';
 import { createServer, LOOPBACK_HOSTS } from '../server/server.js';
+import { stamped } from '../server/skill.js';
 
 const USAGE = `Usage:
   merma <file.mmd> [port]        open that file (only that file is served); port: a free one
   merma serve [port] [host]      serve the .mmd files under MERMA_ROOTS (defaults 63762, 127.0.0.1)
+  merma skill                    print an agent skill (SKILL.md) that teaches an agent to use merma
 
 Settings, from the environment:
   MERMA_ROOTS     for serve: folders whose .mmd files may be served, comma-separated (default /tmp/mermaid-diagrams/)
@@ -27,12 +29,21 @@ const SCRATCH_TEXT = 'flowchart TD\n  A["Edit /tmp/mermaid-diagrams/scratch.mmd"
 
 const [command, ...args] = process.argv.slice(2);
 if (command === 'serve') serve(args[0] ?? '63762', args[1] ?? '127.0.0.1');
+else if (command === 'skill') skill();
 else if (command?.endsWith('.mmd')) await open(resolve(command), args[0] ?? '0');
 else {
   const help = command === undefined || command === '--help' || command === '-h';
   if (!help) console.log(`merma: opens .mmd files; got ${command}\n`);
   console.log(USAGE);
   process.exit(help ? 0 : 2);
+}
+
+// Printed to be saved as a skill; the hint goes to the terminal only, so a redirect saves the skill alone.
+function skill() {
+  process.stdout.write(stamped());
+  if (process.stdout.isTTY) {
+    console.error('\nSave it as merma/SKILL.md in the folder your agent reads skills from:\nmerma skill > <skills folder>/merma/SKILL.md');
+  }
 }
 
 function serve(/** @type {string} */ port, /** @type {string} */ host) {

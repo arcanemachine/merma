@@ -18,6 +18,7 @@
     "server/",
     "web/",
     "docs/",
+    "skill/",
     "README.md",
     "LICENSE.md",
     "!web/tsconfig.json"

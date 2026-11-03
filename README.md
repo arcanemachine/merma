@@ -42,6 +42,20 @@ Either way the server runs until you stop it (Ctrl+C), unless `MERMA_IDLE` is se
 Binding to anything other than `127.0.0.1` lets anyone who can reach the machine read and edit the served diagrams:
 there is no login.
 
+## A skill for agents
+
+`merma skill` prints an agent skill (`SKILL.md`) that teaches an agent to use merma: serve a diagram, hand the page
+to the user, and work on the same file with them. Save it as `merma/SKILL.md` in the folder your agent reads skills
+from:
+
+```bash
+mkdir -p <skills folder>/merma
+merma skill > <skills folder>/merma/SKILL.md
+```
+
+It is stamped with the version it came from and a hash of its text, so an agent can tell when its saved copy differs
+from the merma in use and offer to update it, keeping its Custom rules section.
+
 ## Using it
 
 `docs/guide.md` says what every gesture, menu item and key does; the page's Help button lists the main ones.
@@ -80,6 +94,7 @@ there is no login.
 | `web/history.mjs` | The undo stack and when an undo is safe |
 | `web/patch/flowchart.mjs` | The text edits themselves: pure functions, no DOM |
 | `test/` | `npm test`; `test/fixtures/` holds hand-written flowcharts every edit is tested against |
+| `skill/SKILL.md`, `server/skill.js` | The agent skill, and its stamp (`merma skill`) |
 | `checks/` | Checks that need a browser (`checks/README.md`) |
 | `tsconfig.json`, `web/tsconfig.json`, `types/` | Type-checking (`npm run typecheck`): the Node side, the page, and declarations JSDoc cannot make (Mermaid's CDN module). Not shipped |
 | `GLOSSARY.md` | The words merma uses, in the page, the docs and merma's code |
