@@ -67,6 +67,7 @@ note where merma had to make one up.
 | **fan** | The edges leaving a box one way (by their heading), left to right, or top to bottom: Down from a node selects the first of its down fan. merma's own. |
 | **step across** | What the cross arrows do on an edge: to the edge beside it in a fan, never onto a node. Not "page", which is merma in the browser. merma's own. |
 | **counted end** | The end a selected edge counts as reached from, whose fan the cross arrows step; marked by the end tick, and switched by Space or by clicking the line near the other end. merma's own. |
+| **half** | Of an edge a node is inserted into: one of the two edges it becomes, the **first** from its start to the new node, the **second** from the new node to its end. merma's own. |
 | **end tick** | The short blue bar across a selected edge near its counted end. merma's own. |
 | **trail** | The arrow moves since the selection was last set another way, steps across left out: the opposite arrow retraces them, and a click, a find, O, I, an edit or Escape starts a new one. merma's own. |
 | **place inside** | For each subgraph, the item you last left it by, which I goes back to; kept while keys select, forgotten on a click, a find or an edit. Not the trail. merma's own. |

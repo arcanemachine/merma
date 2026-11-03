@@ -919,6 +919,35 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
 }
 
 /**
+ * Insert a new node into the edge Mermaid drew as `svgId`: `A --> B` becomes `A --> N` and `N --> B`, both with its
+ * arrow. The first half is the edge rewritten in place (a pair of its own in a chain or an `&` group), so it keeps its
+ * number, its edge id and settings, and every `linkStyle`; N is declared on the line after it, in the same block. The
+ * second half goes after the last edge, so no edge moves. The label stays on the `first` half, or goes to the `second`
+ * as written. Returns { text, id }.
+ * @param {string} text
+ * @param {string} svgId
+ * @param {{ label?: string, side?: 'first' | 'second' }} [options]
+ */
+export function insertNode(text, svgId, { label = 'New node', side = 'first' } = {}) {
+  const { e, s, key } = locate(text, svgId);
+  const id = freeId(text);
+  const moves = side === 'second' && e.label;
+  const link = s.links[e.step];
+  const connector = text.slice(link.start, link.end).slice(link.userId ? link.userId.length + 1 : 0);
+  const half = (/** @type {Edge} */ x) => (x.index === e.index ? { ...x, to: id, label: moves ? null : x.label } : x);
+  // The second half first: written after every edge, it moves none, and the split then keeps B only where B still
+  // needs a mention of its own (in its block, when the second half is outside it).
+  const second = afterLastEdge(text, [`${id} ${moves ? connector : e.arrow} ${e.to}`]);
+  const split = transform(second, { at: s.start, pairs: new Map([[key, { to: id, ...(moves ? { body: e.arrow } : {}) }]]), expect: half });
+  // After the line the first half is on: a split statement alone on its line is written over several.
+  const at = /** @type {Statement} */ (statements(split).find((x) => x.start === edges(split)[e.index].statement.start));
+  const out = insertAfter(split, at.line, `${id}[${quoteLabel(label)}]`);
+  const skip = new Set([...(e.userId ? [e.userId] : []), ...subgraphs(text).filter((g) => g.written).map((g) => /** @type {string} */ (g.id))]);
+  check(text, out, half, null, skip, [{ from: id, to: e.to, arrow: e.arrow, label: moves ? e.label : null }]);
+  return { text: out, id };
+}
+
+/**
  * Move node or subgraph `id`'s edges to `to`: the start of each edge starting there (`starts`), the end of each edge
  * ending there (`ends`), or both (`all`; a self-loop then moves both its ends). Each is retarget()ed in turn, in file
  * order, so each stays in place or moves out after the last edge as retarget says, those moved out keeping their

@@ -104,6 +104,13 @@ another click on it closes it.
 
 ### Edge menu
 
+- **Insert node** (N) puts a new node in the middle of the edge, and opens its label box, as Add connected node does:
+  `A --> B` becomes `A --> n1` and `n1 --> B`, both with the edge's arrow. The first half stays where the edge was
+  written, keeping its edge id and `linkStyle`; the second goes after the last edge. An edge with a label asks which
+  half keeps it: the end tick shows the half (at the start, the first; at the end, the second). It starts on the
+  first; hold **Shift** to show the other, or point at a half. Enter, or a click on the edge, puts the label on the
+  half the tick shows; Escape or a click away cancels. Grayed on an edge written inside a collapsed subgraph, where
+  the node would be hidden: expand it first.
 - **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
   Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
 - **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the shape picker names shapes; click one
@@ -248,7 +255,7 @@ here does just what it does in the selected item's menu:
 
 | Key | Does |
 |---|---|
-| N | Add a node: connected to the selected node, or inside the selected subgraph |
+| N | Add a node: connected to the selected node, inside the selected subgraph, or into the selected edge |
 | R with an edge selected | Reverse it |
 | E with an edge selected | Reassign edge… (Space in it: the other end) |
 | E with a node selected | Merge into… |

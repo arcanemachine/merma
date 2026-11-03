@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode,
+  moveEdges, mergeNode, insertNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -543,6 +543,57 @@ for (const [name, ids] of Object.entries(EDGE_IDS)) {
     });
   }
 }
+
+for (const [name, ids] of Object.entries(EDGE_IDS)) {
+  const src = fixture(name);
+  for (const svgId of ids) {
+    test(`${name} ${svgId}: insertNode splits that edge in two, the first half in place, the second last, N in its block`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const before = edges(src), at = before.findIndex((e) => e.svgId === svgId), e = before[at];
+      // The innermost subgraph a line is in, by its start line, or -1 at the top level.
+      const blockAt = (text, n) => subgraphs(text).filter((g) => g.end !== null && g.start < n && n < g.end).at(-1)?.start ?? -1;
+      const lineOf = (text, offset) => text.slice(0, offset).split('\n').length - 1;
+      for (const side of ['first', 'second']) {
+        const { text, id } = insertNode(src, svgId, { side });
+        const label = (keep) => (keep ? e.label : null);
+        const want = before.map((x, k) => (k === at ? sig({ ...x, to: id, label: label(side === 'first') }) : sig(x)));
+        want.push(sig({ from: id, to: e.to, arrow: e.arrow, label: label(side === 'second') }));
+        assert.deepEqual(edges(text).map(sig), want, side);
+        const half = edges(text)[at];
+        const declared = text.split('\n').findIndex((l) => l.trim().startsWith(`${id}[`));
+        assert.equal(blockAt(text, declared), blockAt(text, lineOf(text, half.statement.start)), `${side}: declared in its block`);
+      }
+    });
+  }
+}
+
+test('insertNode keeps the first half in place in a chain, and every linkStyle on its edge', () => {
+  assert.deepEqual(insertNode('flowchart TD\n  A --> B --> C\n  linkStyle 1 stroke:red\n', 'L_A_B_0'),
+    { text: 'flowchart TD\n  A --> n1\n  n1["New node"]\n  B --> C\n  n1 --> B\n  linkStyle 1 stroke:red\n', id: 'n1' });
+});
+
+test('insertNode splits an & group around the edge, every other edge keeping its number', () => {
+  assert.equal(insertNode('flowchart TD\n  A & B --> C\n', 'L_B_C_0').text,
+    'flowchart TD\n  A --> C\n  B --> n1\n  n1["New node"]\n  n1 --> C\n');
+});
+
+test('insertNode leaves the edge id and its settings on the first half; a label moved goes as written', () => {
+  assert.equal(insertNode('flowchart TD\n  A e1@==>|yes| B\n  e1@{ animate: true }\n  B --> C\n', 'e1', { side: 'second' }).text,
+    'flowchart TD\n  A e1@==> n1\n  n1["New node"]\n  e1@{ animate: true }\n  B --> C\n  n1 ==>|yes| B\n');
+  assert.equal(insertNode('flowchart TD\n  A -- yes --> B\n', 'L_A_B_0', { side: 'second' }).text,
+    'flowchart TD\n  A --> n1\n  n1["New node"]\n  n1 -- yes --> B\n');
+  assert.equal(insertNode('flowchart TD\n  A -- yes --> B\n', 'L_A_B_0').text,
+    'flowchart TD\n  A -- yes --> n1\n  n1["New node"]\n  n1 --> B\n');
+});
+
+test('insertNode in a subgraph declares N there, and keeps the far end there though the second half is outside', () => {
+  assert.equal(insertNode('flowchart TD\n  subgraph s [S]\n    A --> B --> C\n  end\n  C --> D\n', 'L_B_C_0').text,
+    'flowchart TD\n  subgraph s [S]\n    A --> B\n    B --> n1\n    n1["New node"]\n    C\n  end\n  C --> D\n  n1 --> C\n');
+});
+
+test('insertNode into a self-loop makes a loop through the new node', () => {
+  assert.equal(insertNode('flowchart TD\n  A --> A\n', 'L_A_A_0').text, 'flowchart TD\n  A --> n1\n  n1["New node"]\n  n1 --> A\n');
+});
 
 test('retarget rewrites a top-level edge in place, its old end keeping its shape', () => {
   const src = 'flowchart TD\n  A[Start] --> B\n  B --> C\n  linkStyle 0 stroke:red\n';

@@ -5,7 +5,7 @@
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
+export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
@@ -13,7 +13,7 @@ export const VERBS = ['Add', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', '
  * lower-cased, after its modifiers: `ctrl+` (Ctrl or Alt), then `shift+`.
  */
 export const GLOBAL_KEYS = {
-  n: ['add-node', 'add-connected-node'],
+  n: ['add-node', 'add-connected-node', 'insert-node'],
   c: ['connect'],
   'shift+c': ['connect-from'],
   r: ['reverse-edge', 'rotate'],
@@ -65,6 +65,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {boolean} [locked] the code is being edited, so only `view` items apply
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
+ * @property {string | null} [insertWhy] why a node cannot be inserted into the selected edge
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
@@ -97,6 +98,8 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  */
 
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
+/** Why a node cannot be inserted into an edge whose line is in a collapsed subgraph: the node would be hidden. */
+export const INSERT_COLLAPSED = 'This edge is inside a collapsed subgraph. Expand it first (H) to insert a node.';
 const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to it.';
 
 /**
@@ -126,6 +129,7 @@ export const MENUS = {
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
   edge: [
+    { action: 'insert-node', label: 'Insert node', key: 'n', applies: (s) => !s.insertWhy, why: (s) => s.insertWhy ?? null },
     { action: 'edit-label', label: 'Edit label' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },

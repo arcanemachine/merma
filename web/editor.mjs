@@ -11,16 +11,17 @@ import { turnable } from './turn.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
-import { applies, GLOBAL_KEYS, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, whyNot } from './menu-items.mjs';
+import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, whyNot } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, isFlowchart, mergeNode,
+  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, insertNode, isFlowchart, mergeNode,
   nodeIdFromSvgId, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
+import { shiftHeld, watchShift } from './shift.mjs';
 import { NODE_SHAPES } from './shapes.mjs';
 
 // With nothing selected, an arrow key moves the diagram a tenth of the area's size (Ctrl half, Shift a fiftieth); + and
@@ -86,8 +87,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * The pick of a node or subgraph (clicked, or Enter on the candidate), and what it does:
    * Connect to… makes an edge to it, Connect from… one from it to the selection; Reassign edge… moves that end of the
-   * selected edge there (`start` or `end`, which Space swaps); Merge into… merges the selected node into it.
-   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge'}
+   * selected edge there (`start` or `end`, which Space swaps); Merge into… merges the selected node into it. Insert
+   * node's (`insert`) picks a half of the selected edge instead, for its label.
+   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge' | 'insert'}
    */
   let picking = null;
   /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
@@ -281,6 +283,42 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     markCandidate(selection(), { quiet: true });
     pickNotice();
   }
+  /**
+   * Insert node on the selected edge: at once with no label, else a pick of the half that keeps it (the user). The
+   * end tick shows the half: the first at the edge's start, the second at its end. It starts on the first, a hovered
+   * half takes it, and Shift held shows the other until let go; Enter or a click places on the half it shows.
+   */
+  let insertHalf = /** @type {'start' | 'end'} */ ('start');
+  const insertTick = () => (shiftHeld() ? (insertHalf === 'start' ? 'end' : 'start') : insertHalf);
+  function startInsert() {
+    const id = selection().id;
+    const e = shownEdge(id);
+    if (!e) return;
+    if (!e.label) { insertInto(id, 'start'); return; }
+    picking = 'insert';
+    insertHalf = 'start';
+    ui.mode('Pick the half that keeps the label. Press Escape or click away to cancel.');
+    markEnd();
+  }
+  /** End Insert node's pick, the label on the half `half`: N is added, its label box open. */
+  function insertInto(/** @type {string} */ id, /** @type {'start' | 'end'} */ half) {
+    picking = null;
+    ui.mode(null);
+    addAndName((text) => insertNode(text, id, { side: half === 'start' ? 'first' : 'second' }), null, 'node', true);
+  }
+  /** Redraw the tick for a new half, and say which: a screen reader cannot see it. */
+  function showInsertHalf() {
+    const was = endSide;
+    markEnd();
+    if (endSide !== was) ui.announce(`The label stays on the ${endSide === 'start' ? 'first' : 'second'} half`);
+  }
+  watchShift(() => { if (picking === 'insert') showInsertHalf(); });
+  els.stage.addEventListener('pointermove', (e) => {
+    if (picking !== 'insert' || !same(itemAt(/** @type {Element} */ (e.target)), selected)) return;
+    const half = clickedSide(/** @type {Element} */ (e.target), e.clientX, e.clientY, true);
+    if (half && half !== insertHalf) { insertHalf = half; showInsertHalf(); }
+  });
+
   /** Whether the pick makes an edge: Connect to… or Connect from…. */
   const connecting = () => picking === 'connect' || picking === 'connect-from';
 
@@ -318,6 +356,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
+    'insert-node': () => startInsert(),
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
     'add-node': () => {
       const subgraph = selectedSubgraph();
@@ -403,10 +442,20 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       collapseWhy: selected?.kind === 'subgraph' && !collapse.subs.some((s) => s.id === selected?.id) ? NO_SUBGRAPH_MATCH : null,
       turn: ui.turned(selectedSubgraph()),
       turnWhy: selected?.kind === 'subgraph' ? turnWhy(selected.id) : null,
+      insertWhy: selected?.kind === 'edge' ? insertWhy(selected.id) : null,
       locked,
     };
   }
 
+  /** Why a node cannot be inserted into edge `id`: its line is in a collapsed subgraph, where N would be hidden. */
+  function insertWhy(/** @type {string} */ id) {
+    const e = shownEdge(id);
+    if (!e) return null;
+    const line = shownText.slice(0, e.statement.start).split('\n').length - 1;
+    const sg = subgraphs(shownText).filter((g) => g.end !== null && g.start < line && line < g.end).at(-1);
+    if (!sg?.id) return null;
+    return drawnEnd(sg.id) !== sg.id || isBox({ kind: 'subgraph', id: sg.id }) ? INSERT_COLLAPSED : null;
+  }
   /** Why the selected subgraph cannot be turned on its own, or null when it can (turn.mjs turnable). */
   function turnWhy(/** @type {string} */ id) {
     if (isBox({ kind: 'subgraph', id })) return 'This subgraph is collapsed: expand it first (H) to turn it.';
@@ -520,7 +569,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (measure) {
       const { boxes, edges } = layout();
       const e = edges.find((x) => x.id === id);
-      endSide = e ? (movingEnd() ?? countedEnd(boxes, e, moves.came())) : null;
+      endSide = e ? (picking === 'insert' ? insertTick() : movingEnd() ?? countedEnd(boxes, e, moves.came())) : null;
       const key = e && (endSide === 'start' ? heading(e.start, e.startOut) : heading(e.end, e.endOut));
       endFlat = key === 'ArrowUp' || key === 'ArrowDown';
     }
@@ -608,8 +657,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     moves.countFrom(side === 'end' ? otherEnd(layout(), /** @type {Item} */ (selected).id, null) : null);
     markEnd();
   }
-  /** Which end of the selected edge a click on it at (`x`, `y`) is on, by countFromClick's rule; null off an edge. */
-  function clickedSide(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y) {
+  /**
+   * Which end of the selected edge a click on it at (`x`, `y`) is on, by countFromClick's rule; null off an edge. With
+   * `middle`, split at the line's middle, as Insert node's halves are (a label can sit near either end).
+   */
+  function clickedSide(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, middle = false) {
     if (selected?.kind !== 'edge') return null;
     const id = selected.id;
     const path = /** @type {SVGPathElement | undefined} */ (edgeEls(id).find((e) => e.matches('path:not([data-page-only])')));
@@ -627,6 +679,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       return best;
     };
     const label = edgeEls(id).find((e) => e.matches('g.edgeLabel'))?.getBoundingClientRect();
+    if (middle) return along(x, y) > len / 2 ? 'end' : 'start';
     const split = label?.width ? along(label.left + label.width / 2, label.top + label.height / 2) : len / 2;
     return !target.closest('g.edgeLabel') && along(x, y) > split ? 'end' : 'start';
   }
@@ -655,14 +708,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * @param {string | null} [into]
    * @param {'node' | 'subgraph'} [kind]
    */
-  function addAndName(change, into = null, kind = 'node') {
+  function addAndName(change, into = null, kind = 'node', drawn = false) {
     const view = viewer.getView();
     /** @type {EditOptions} */
     const options = {
       afterSave: (result, entry) => { naming = { kind, id: result.id, entry, view, moved: false }; },
       after: (result) => ({ item: { kind, id: result.id }, label: true }),
     };
-    if (into && drawnOnly(into)) editDrawn(change, options); else edit(change, options);
+    if (drawn || (into && drawnOnly(into))) editDrawn(change, options); else edit(change, options);
   }
 
   /** After an edit to the edge drawn as `id`: that edge again, found by its place, which no edit changes. */
@@ -702,6 +755,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     clearRefusal();
     const item = itemAt(target);
     clickedDuringEdit(item);
+    if (picking === 'insert') {
+      // A click on the edge places on the half it shows: the hovered one, or the other with Shift held.
+      const half = item && same(item, selected) && !Number.isNaN(x) ? clickedSide(target, x, y, true) : null;
+      if (half) { insertHalf = half; insertInto(/** @type {Item} */ (selected).id, insertTick()); } else cancelPick();
+      return;
+    }
     if (picking) {
       // In Reassign edge…, a click on the edge itself makes it the candidate, and its side is the end that moves.
       const side = movingEnd() && item && same(item, selected) && !Number.isNaN(x) ? clickedSide(target, x, y) : null;
@@ -928,6 +987,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const keys = {
     n: () => {
       if (picking) return false;
+      if (selected?.kind === 'edge') return edgeKey('insert-node');
       const from = selectedNode();
       if (from) addAndName((text) => addConnected(text, from));
       else handlers['add-node']();
@@ -953,6 +1013,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // E reassigns a selected edge's counted end, or merges a selected node, as their menus' E does.
     e: () => edgeKey('reassign-edge') || itemKey('merge-into'),
     enter: () => {
+      if (picking === 'insert') { insertInto(selection().id, insertTick()); return true; }
       // Enter on the edge being reassigned: nothing to do, as Enter at once on a node's own pick writes nothing.
       if (movingEnd() && candidate && same(candidate, selection())) return true;
       if (picking && candidate?.kind === 'edge') {
@@ -1043,6 +1104,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   };
   const VIEW_KEYS = ['f', 'escape', '+', '=', '-', '0',
     ...['up', 'down', 'left', 'right'].flatMap((d) => [`arrow${d}`, `ctrl+arrow${d}`, `shift+arrow${d}`])];
+  const INSERT_KEYS = ['enter', 'escape', 'f', '+', '=', '-', '0'];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));
 
@@ -1400,6 +1462,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.metaKey || !keys[name]) return;
     // A diagram that cannot be selected (not a flowchart) takes only the view keys, silently.
     if (!selectable && !VIEW_KEYS.includes(name)) return;
+    // Insert node's pick takes only Enter, Escape and the view keys: nothing else is picked in it.
+    if (picking === 'insert' && !INSERT_KEYS.includes(name)) return;
     if (name !== 'escape') clearRefusal();   // Escape's own steps take it first
     if (keys[name]()) e.preventDefault();
   });
