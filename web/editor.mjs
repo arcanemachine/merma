@@ -988,6 +988,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     n: () => {
       if (picking) return false;
       if (selected?.kind === 'edge') return edgeKey('insert-node');
+      // On a subgraph, as its menu's N does: grayed on a collapsed box, whose new node would be hidden.
+      if (selected?.kind === 'subgraph') return itemKey('add-node');
       const from = selectedNode();
       if (from) addAndName((text) => addConnected(text, from));
       else handlers['add-node']();
