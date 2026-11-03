@@ -28,6 +28,10 @@ rather than repeating it, and write down only what someone will read again.
   meet.
 - **The `.mmd` file is the only source of truth.** An edit changes only the bytes it must, and nothing the page adds
   (positions, state) is ever written into the file or beside it.
+- **Stay inside Mermaid's paradigm (the user).** merma is a tool for working with Mermaid diagrams, so it uses
+  Mermaid's own syntax and features as far as they go. Everything the page draws is what Mermaid draws from the file,
+  or from the file with lines in Mermaid's own syntax appended (as collapse does). merma never draws an element the
+  file does not hold. merma's own metadata in the file is the last resort, and only with the user's agreement.
 - **Tests ship with the code, in the same commit.** `npm test` runs `test/*.test.mjs` with Node's own runner.
 - **No bullshit tests.** A test exists to fail when the behavior it names breaks:
   - it checks what its name and comments say, no less (an assertion that cannot fail is worse than none);
