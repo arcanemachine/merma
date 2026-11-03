@@ -57,7 +57,7 @@ export const NO_SUBGRAPH_MATCH = "merma can't match this diagram's subgraphs to 
   + 'expanded here.';
 
 /** Why an edit does nothing while the code panel's draft holds the lock: the warning, and a grayed item's reason. */
-export const LOCKED = 'The code is being edited: save or cancel it to edit the diagram.';
+export const LOCKED = 'The code is being edited. Save or cancel it to edit the diagram.';
 
 /**
  * What a menu needs to know to gray its items.
