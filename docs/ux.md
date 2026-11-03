@@ -79,10 +79,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open
   menu Enter runs the item in focus. So E is free for Reassign edge…, and Add subgraph is G, menu-only.
 - Reassign edge… is one item for both ends (agreed with the user, in place of Move start to… and Move end to…; the
-  name is the user's): it moves the counted end, the one the end tick is at. Its
+  name is the user's): it moves the counted end, the one the tick is at. Its
   candidate starts on the edge itself, as Connect to…'s does on its item. Space, wherever the candidate is, or a click
   on the edge's line nearer the other end moves that one instead (the user; with several edges, later, Space would
-  swap only the one the candidate is on). The end tick stays through the pick, dashed, as what a pick will change is;
+  swap only the one the candidate is on). The tick stays through the pick, dashed, as what a pick will change is;
   the notice stays as it was.
 - Merge into… (the user, after trying it as three moves): a node's edges move to another node (the end at it moves),
   and the node goes. The user expected moving a node's edges to swing their far ends (a redirect: "Start" now leads to
@@ -205,7 +205,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked (or right-clicked,
     or long-pressed: its menu then acts where you pointed) on its line counts as reached from the end on the click's side, split at its label where it has one, else at its middle, along the line
     (the user: every click decides, the same each time); clicked on its label, or found, from its source (the node
-    the file writes first: every edge has one). The counted end is marked with the end
+    the file writes first: every edge has one). The counted end is marked with the
     tick, so the fan the cross arrows step shows before you press: a short bar across the way the edge leaves that
     end's node, flat or upright, never tilted (the user: noticeable, not in the way; a dot read as Mermaid's circle
     end). It is sized in the diagram's units, as the line and its arrowhead are, so it grows and shrinks with them (the
@@ -262,7 +262,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     is the diagram), and says so; it lets go as Escape does, so Enter or I brings it back. In a pick, the candidate
     stays.
   - Escape clears the selection, and Enter (or I) brings it back as it was, an edge with its counted end and the trail
-    with it (the user: the end tick moved); a click on empty space forgets it (the user: you lose your place
+    with it (the user: the tick moved); a click on empty space forgets it (the user: you lose your place
     otherwise). With nothing to bring back, Enter selects the middle node.
   - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an edge's
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see

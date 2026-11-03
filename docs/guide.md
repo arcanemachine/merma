@@ -107,7 +107,7 @@ another click on it closes it.
 - **Insert node** (N) puts a new node in the middle of the edge, and opens its label box, as Add connected node does:
   `A --> B` becomes `A --> n1` and `n1 --> B`, both with the edge's arrow. The edge from A stays where the edge was
   written, keeping its edge id and `linkStyle`; the edge to B goes after the last edge. A label stays on the new edge
-  nearer the end tick: click the line nearer an end, or press Space, to choose. Grayed on an edge written inside a
+  nearer the tick: click the line nearer an end, or press Space, to choose. Grayed on an edge written inside a
   collapsed subgraph, where the node would be hidden: expand it first.
 - **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
   Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
@@ -132,13 +132,13 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
-- **Reassign edge…** (E), then a click on a node or a subgraph, moves the end of the edge at its end tick there:
+- **Reassign edge…** (E), then a click on a node or a subgraph, moves the end of the edge at its tick there:
   `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id; moved from the start,
-  `C --> B`. While you pick, the edge glows pale blue and its end tick is dashed at the end that moves; **Space**, or a
+  `C --> B`. While you pick, the edge glows pale blue and its tick is dashed at the end that moves; **Space**, or a
   click on the edge's line nearer the other end, moves that end instead. A click anywhere else, or Escape, cancels. By
   keyboard, the blue outline starts on the edge itself (Enter there changes nothing), and the arrows or a find (/)
   move it from the end that moves, as in Connect to…; Enter picks the node or subgraph it is on.
-  A self-loop or a second edge between the same two nodes is allowed. The moved edge stays selected, its end tick at the
+  A self-loop or a second edge between the same two nodes is allowed. The moved edge stays selected, its tick at the
   end that moved. It keeps its place in the file, except when it is written inside a subgraph and its new end is named
   outside it: an edge written in a subgraph pulls both its nodes into it, so its line moves after the file's last edge,
   and its `linkStyle` number goes with it.
@@ -310,7 +310,7 @@ the diagram. A key with nowhere to go does nothing.
   label, or of its middle with none; on its label, or found, its source, the node written first in the file), and past the last one there, on into the fan at its
   other end, from its place there. They never land on a node, and stop at the last edge. From "Paid?", Down, then
   Right, Right, Right steps through its four edges; from the edge labelled no, Left steps on to Retry's edge to Charge
-  card. A short blue bar across a selected edge near one end, the **end tick**, shows the end whose edges they step.
+  card. A short blue bar across a selected edge near one end, the **tick**, shows the end whose edges they step.
   **Space** switches to the other end: on the "yes" edge from "Paid?" to "Order log", reached from "Order log", Space
   then Left steps through "Paid?"'s edges instead. The opposite cross arrow steps back: Right then Left puts you back
   where you were, counting from the same end.
@@ -348,7 +348,7 @@ Up (or Ctrl+Up) from a box with nowhere else to go, and nothing drawn above it, 
 when there is one; Down from the title goes to the box nearest below it.
 
 **Ways out**, wherever you are: / (find looks through the whole diagram), Ctrl+Arrows (they jump),
-Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back as it was (an edge keeps its end tick).
+Up to the title, or Escape and a click. Escape clears the selection; Enter brings it back as it was (an edge keeps its tick).
 
 **Find** with / (or the footer's **Find**, the way in on a phone, which opens it and closes it again; or **Find…**
 in the empty-space menu): type, and every node, edge label,

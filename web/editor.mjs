@@ -29,7 +29,7 @@ const PAN_STEP = 0.1;
 const PAN_BIG = 0.5;
 const PAN_SMALL = 0.02;
 const ZOOM_STEP = 1.25;
-// The end tick, in the diagram's units (the arrowhead is 14 wide): its length across the line and its stroke, each
+// The tick, in the diagram's units (the arrowhead is 14 wide): its length across the line and its stroke, each
 // with a floor on screen in pixels, and its gap from the arrowhead or the node.
 const END_TICK = 18;
 const END_TICK_MIN = 12;
@@ -468,7 +468,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * During a pick, what it will change (the user: solid is where the keys are, marked is what changes):
    * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move haloed, a
-   * wide pale line under it, so its own dashes and arrowheads still read; in Reassign edge…, the end tick dashed at the
+   * wide pale line under it, so its own dashes and arrowheads still read; in Reassign edge…, the tick dashed at the
    * end that moves. A collapsed box's halo is only on its own
    * edges, the ones that move.
    */
