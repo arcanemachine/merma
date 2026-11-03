@@ -901,6 +901,18 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
     const expect = (/** @type {Edge} */ x) => (x.index === e.index ? { ...x, [side]: to } : x);
     return { text: transform(text, { at: s.start, pairs: new Map([[key, { [side]: to }]]), expect }), index: e.index };
   }
+  return liftEdge(text, svgId, { [side]: to });
+}
+
+/**
+ * Take the edge Mermaid drew as `svgId` out of its statement (a chain or an `&` group split around it, each other node
+ * kept where it is declared) and write it again at the top level after the last edge, with its edge id and settings,
+ * its ends changed to `ends` where given; `linkStyle` numbers follow it to the last place. An edge line pulls both its
+ * ends into the block it is in, so this is how an edge leaves one. Returns { text, index }: where it is in edges().
+ */
+function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {{ from?: string, to?: string }} */ ends = {}) {
+  const { e, s, key } = locate(text, svgId);
+  const sgs = subgraphs(text);
   const link = s.links[e.step];
   const connector = text.slice(link.start, link.end).slice(link.userId ? link.userId.length + 1 : 0);
   const userId = e.userId && e.svgId === e.userId ? e.userId : null;
@@ -908,7 +920,7 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
   const settings = userId ? statements(text).filter((x) => !x.keyword && !x.links.length && x.groups.length === 1
     && x.groups[0].length === 1 && x.groups[0][0].id === userId && text.startsWith(userId + '@{', x.groups[0][0].start))
     .map((x) => text.slice(x.start, x.end)) : [];
-  const moved = { from: side === 'from' ? to : e.from, to: side === 'to' ? to : e.to, arrow: e.arrow, label: e.label };
+  const moved = { from: ends.from ?? e.from, to: ends.to ?? e.to, arrow: e.arrow, label: e.label };
   const dropped = transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), moved: e,
     expect: (x) => (x.index === e.index ? null : x) });
   const line = `${moved.from} ${userId ? userId + '@' : ''}${connector} ${moved.to}`;
@@ -945,6 +957,165 @@ export function insertNode(text, svgId, { label = 'New node', side = 'first' } =
   const skip = new Set([...(e.userId ? [e.userId] : []), ...subgraphs(text).filter((g) => g.written).map((g) => /** @type {string} */ (g.id))]);
   check(text, out, half, null, skip, [{ from: id, to: e.to, arrow: e.arrow, label: moves ? e.label : null }]);
   return { text: out, id };
+}
+
+/**
+ * The subgraph Mermaid draws node `id` in, or null at the top level. Checked in Mermaid 12.2.0: a node belongs to the
+ * first block to close that names it in a statement of its own (a nested block closes before its parent, so it wins;
+ * of two blocks one after the other, the earlier). A top-level mention never claims it, `style` and `class` lines
+ * are not mentions, and a block naming a node another has claimed takes none.
+ */
+export function blockOf(/** @type {string} */ text, /** @type {string} */ id, sgs = subgraphs(text)) {
+  let best = null;
+  for (const s of statements(text)) {
+    if (s.keyword || !s.groups.flat().some((r) => r.id === id)) continue;
+    const g = subgraphsAt(text, s.line, sgs).filter((x) => x.end !== null).at(-1);
+    if (g && (!best || /** @type {number} */ (g.end) < /** @type {number} */ (best.end))) best = g;
+  }
+  return best;
+}
+
+/** A block by what the file says of it, so a subgraph with no id is the same block after a move renames it. */
+const blockKey = (/** @type {string} */ text, /** @type {Subgraph | null} */ g) => (!g ? null : g.written ? g.id : text.slice(g.title.start, g.title.end));
+
+/** Every node named in a statement, but subgraph ids and edge ids. */
+function nodeIds(/** @type {string} */ text) {
+  const skip = new Set([...subgraphs(text).filter((g) => g.written).map((g) => g.id), ...edges(text).map((e) => e.userId).filter(Boolean)]);
+  return new Set(statements(text).filter((s) => !s.keyword).flatMap((s) => s.groups.flat().map((r) => r.id)).filter((n) => !skip.has(n)));
+}
+
+/**
+ * Throw unless `out` draws every node of `text` in the same block, but `moved` (drawn in `to`), and has the same edges
+ * (in any order). With `name`, the refusal names the node that would move, for the page to show.
+ */
+function checkBlocks(/** @type {string} */ text, /** @type {string} */ out, /** @type {string | null} */ moved, /** @type {string | null} */ to,
+  /** @type {(id: string) => string} */ name = (id) => id) {
+  const sig = (/** @type {Edge} */ e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
+  if (edges(text).map(sig).sort().join('\n') !== edges(out).map(sig).sort().join('\n')) {
+    throw new Error('This edit could not be made safely, so nothing was changed.');
+  }
+  const before = subgraphs(text), after = subgraphs(out);
+  for (const n of nodeIds(text)) {
+    const want = n === moved ? to : blockKey(text, blockOf(text, n, before));
+    if (blockKey(out, blockOf(out, n, after)) !== want) {
+      if (n === moved) throw new Error('This edit could not be made safely, so nothing was changed.');
+      throw new Error(`Moving it there would move ${name(n)} as well. Move ${name(n)} first.`);
+    }
+  }
+}
+
+/**
+ * Move node `id` into subgraph `to`, or out to the top level (null). Every block that closes before `to` does and
+ * names the node gives it up: a statement of the node alone is taken out and written again before `to`'s `end` (or at
+ * the end of the file), shape and all; an edge naming it is written again after the last edge (liftEdge). Blocks that
+ * close after `to` keep their mentions, which Mermaid then ignores. Edges follow ids, so the node keeps them. Returns
+ * { text }; the same text when the node is already there.
+ */
+export function moveNode(/** @type {string} */ text, /** @type {string} */ id, /** @type {string | null} */ to,
+  /** @type {(id: string) => string} */ name = (x) => x) {
+  assertNode(text, id);
+  const target = to === null ? null : subgraphBlock(text, to);
+  if (to !== null && !target) throw new Error('That subgraph is not in the file.');
+  const key = blockKey(text, target);
+  if (blockKey(text, blockOf(text, id)) === key) return { text };
+  const original = text;
+  // Whether line `n` is in a block that gives the node up: one closing before the target, the target's own lines aside.
+  const givingUp = (/** @type {string} */ t, /** @type {number} */ n) => {
+    const all = subgraphs(t);
+    const inner = subgraphsAt(t, n, all).filter((g) => g.end !== null).at(-1);
+    if (!inner) return false;
+    const tg = to === null ? null : all.find((g) => g.id === to && g.end !== null) ?? null;
+    if (!tg) return true;
+    return inner.start !== tg.start && /** @type {number} */ (inner.end) < /** @type {number} */ (tg.end);
+  };
+  const lineOf = (/** @type {string} */ t, /** @type {number} */ at) => t.slice(0, at).split('\n').length - 1;
+  // Each edge is found afresh: a lift renumbers the edges after it.
+  for (let guard = edges(text).length + 1; guard > 0; guard--) {
+    const e = edges(text).find((x) => (x.from === id || x.to === id) && givingUp(text, lineOf(text, x.statement.start)));
+    if (!e) break;
+    text = liftEdge(text, e.svgId).text;
+  }
+  // What is left in those blocks names the node alone: taken out, the one with a shape carried to the new place.
+  const alone = statements(text).filter((st) => !st.keyword && !st.links.length && st.groups.length === 1
+    && st.groups[0].length === 1 && st.groups[0][0].id === id && givingUp(text, st.line));
+  const starts = new Set(alone.map((st) => st.start));
+  const left = statements(text).find((st) => !st.keyword && !starts.has(st.start) && st.groups.flat().some((r) => r.id === id)
+    && givingUp(text, st.line));
+  if (left) throw new Error(`Line ${left.line + 1} is not one this editor can change. Edit it in the file.`);
+  const carried = alone.map((st) => text.slice(st.start, st.end)).find((t) => t.trim() !== id) ?? id;
+  text = apply(text, alone.map((st) => ({ s: st, parts: [] })));
+  if (target) {
+    text = insideSubgraph(text, /** @type {string} */ (to), [carried]);
+  } else if (carried !== id || !statements(text).some((st) => !st.keyword && st.groups.flat().some((r) => r.id === id))) {
+    text = appendLine(text, carried);
+  }
+  checkBlocks(original, text, id, key, name);
+  return { text };
+}
+
+/**
+ * Move subgraph `id`, its lines as they are, into subgraph `to` (before its `end`) or out to the top level (null:
+ * after the outermost block around it), indented for its new place. Refused into itself or one inside it, and when the
+ * move would change where any node is drawn: a block closing earlier or later takes or gives up nodes. `linkStyle`
+ * numbers follow its edges. Returns { text }.
+ */
+export function moveSubgraph(/** @type {string} */ text, /** @type {string} */ id, /** @type {string | null} */ to,
+  /** @type {(id: string) => string} */ name = (x) => x) {
+  const sgs = subgraphs(text);
+  const sg = sgs.find((g) => g.id === id && g.end !== null);
+  if (!sg) throw new Error('That subgraph is not in the file.');
+  const end = /** @type {number} */ (sg.end);
+  const target = to === null ? null : sgs.find((g) => g.id === to && g.end !== null);
+  if (to !== null && !target) throw new Error('That subgraph is not in the file.');
+  if (target && target.start >= sg.start && target.start <= end) throw new Error("A subgraph can't be moved into itself.");
+  const parent = sg.parent === null ? null : sgs[sg.parent];
+  if ((parent?.start ?? null) === (target?.start ?? null)) return { text };
+  const ls = lines(text);
+  const block = ls.slice(sg.start, end + 1);
+  const rest = [...ls.slice(0, sg.start), ...ls.slice(end + 1)];
+  const shift = (/** @type {number} */ n) => (n > end ? n - block.length : n);
+  // Where it goes, in the lines without it, and the indent its `subgraph` line takes there.
+  let at, indent;
+  if (target) {
+    const tEnd = shift(/** @type {number} */ (target.end));
+    at = tEnd;
+    const above = tEnd - 1 > shift(target.start) ? rest[tEnd - 1] : null;
+    indent = above ? indentOf(above) : indentOf(rest[tEnd]) + '  ';
+  } else {
+    const outer = subgraphsAt(text, sg.start, sgs).filter((g) => g.end !== null)[0];
+    at = shift(/** @type {number} */ (outer.end)) + 1;
+    indent = indentOf(ls[outer.start]);
+  }
+  const base = indentOf(block[0]);
+  const moved = block.map((l) => (l.startsWith(base) && l.trim() ? indent + l.slice(base.length) : l));
+  if (at === rest.length && rest.length && !rest[rest.length - 1].endsWith('\n')) rest[rest.length - 1] += '\n';
+  let out = [...rest.slice(0, at), ...moved, ...rest.slice(at)].join('');
+  out = followLinkStyles(text, out);
+  checkBlocks(text, out, null, null, name);
+  return { text: out };
+}
+
+/** `out` with each `linkStyle` number moved to where its edge of `text` is now, edges matched in order by their ends, arrow and label. */
+function followLinkStyles(/** @type {string} */ text, /** @type {string} */ out) {
+  const sig = (/** @type {Edge} */ e) => [e.from, e.to, e.arrow, e.label?.text ?? ''].join(' ');
+  const now = edges(out).map(sig);
+  const used = new Set();
+  const where = edges(text).map((e) => {
+    const k = now.findIndex((x, i) => x === sig(e) && !used.has(i));
+    used.add(k);
+    return k;
+  });
+  const changes = [];
+  for (const st of statements(out)) {
+    if (st.keyword !== 'linkStyle') continue;
+    const body = out.slice(st.start, st.end);
+    const m = body.match(/^(linkStyle\s+)(\d+(?:\s*,\s*\d+)*)/);
+    if (!m) continue;
+    const nums = m[2].split(/\s*,\s*/).map(Number);
+    const next = nums.map((n) => where[n] ?? n);
+    if (next.join() !== nums.join()) changes.push({ s: st, parts: [{ text: m[1] + next.join(',') + body.slice(m[0].length) }] });
+  }
+  return apply(out, changes);
 }
 
 /**
@@ -1008,9 +1179,12 @@ export function mergeNode(/** @type {string} */ text, /** @type {string} */ id, 
  * `@{ … }`) still does: after its line, or after the `end` of the outermost subgraph it is in.
  */
 function afterLastEdge(/** @type {string} */ text, /** @type {string[]} */ body) {
-  const lastEdge = statements(text).filter((s) => s.links.length).at(-1);
+  const all = statements(text);
+  const lastEdge = all.filter((s) => s.links.length).at(-1);
   const outer = lastEdge && subgraphsAt(text, lastEdge.line).at(0);
-  const n = !lastEdge ? lastContentLine(text) : outer ? outer.end ?? lastContentLine(text) : lastEdge.line;
+  // With no edge left, before the first `linkStyle`, which must come after the edge it styles.
+  const style = all.find((s) => s.keyword === 'linkStyle');
+  const n = !lastEdge ? (style ? style.line - 1 : lastContentLine(text)) : outer ? outer.end ?? lastContentLine(text) : lastEdge.line;
   const indent = statementIndent(text);
   return [...body].reverse().reduce((t, b) => insertAfter(t, n, b, indent), text);
 }

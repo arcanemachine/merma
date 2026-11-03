@@ -7,12 +7,14 @@
 // written alone each way it can be (`@{ }`, brackets), for Mermaid's names for it. `move`: { side, to, index } an edge
 // (`at`) given node or subgraph `to` at its `from` or `to` end, found at `index` after. `moves`: { id, which, to } node
 // or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style. `merge`: { id, edges } node `id`
-// merged into another (mergeNode): gone, with `edges` edges left.
+// merged into another (mergeNode): gone, with `edges` edges left. `relocate`: { id, to } a node or subgraph moved
+// into subgraph `to` (null: the top level), the edges the same, each with its style. `blocks`: for each node, the
+// subgraph blockOf says Mermaid draws it in (null: the top level).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  mergeNode, moveEdges, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
+  mergeNode, moveEdges, moveNode, moveSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -121,6 +123,24 @@ for (const [name, list, src] of sources) {
       if (!into) continue;
       const { text: out } = mergeNode(src, id, into);
       cases.push({ name: `${name} merge ${id} into ${into}`, kind: 'merge', src, out, gone: id, merge: { id, edges: edges(out).length } });
+    }
+  }
+}
+// Where blockOf says each node is drawn, for Mermaid to confirm; then each node and subgraph moved everywhere it can go.
+for (const [name, list, src] of sources) {
+  cases.push({ name: `${name} blocks`, kind: 'blocks', src, out: src, blocks: Object.fromEntries(list.map((id) => [id, blockOf(src, id)?.id ?? null])) });
+  const targets = [null, ...subgraphs(src).filter((s) => s.end !== null).map((s) => s.id)];
+  for (const id of list) {
+    for (const to of targets) {
+      const { text: out } = moveNode(src, id, to);
+      if (out !== src) cases.push({ name: `${name} move ${id} into ${to}`, kind: 'relocate', src, out, relocate: { id, to } });
+    }
+  }
+  for (const sg of subgraphs(src).filter((s) => s.end !== null && s.written)) {
+    for (const to of targets) {
+      let out;
+      try { ({ text: out } = moveSubgraph(src, /** @type {string} */ (sg.id), to)); } catch { continue; }
+      if (out !== src) cases.push({ name: `${name} move subgraph ${sg.id} into ${to}`, kind: 'relocate', src, out, relocate: { id: sg.id, to } });
     }
   }
 }

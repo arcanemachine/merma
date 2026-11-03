@@ -40,7 +40,19 @@
         const before = await db(c.src), after = await db(c.out);
         const { out: was, name } = membership(before, c.renamed ? { [c.renamed.from]: c.renamed.to } : {});
         const { out: now } = membership(after);
-        for (const [node, sg] of Object.entries(was)) if (node !== c.gone && now[node] !== sg) fails.push(`${c.name}: ${node} moved ${sg} -> ${now[node]}`);
+        const moved = c.relocate?.id;
+        for (const [node, sg] of Object.entries(was)) if (node !== c.gone && node !== moved && now[node] !== sg) fails.push(`${c.name}: ${node} moved ${sg} -> ${now[node]}`);
+        if (c.relocate) {
+          const want = c.relocate.to === null ? undefined : name(c.relocate.to);
+          if (now[moved] !== want) fails.push(`${c.name}: ${moved} is in ${now[moved]}, expected ${want}`);
+        }
+        if (c.kind === 'blocks') {
+          for (const [node, sg] of Object.entries(c.blocks)) {
+            const want = sg === null ? undefined : name(sg);
+            if (was[node] !== want) fails.push(`${c.name}: Mermaid draws ${node} in ${was[node]}, blockOf says ${want}`);
+          }
+          continue;
+        }
         if (c.into && now[c.into.id] !== name(c.into.subgraph)) fails.push(`${c.name}: ${c.into.id} is in ${now[c.into.id]}, expected ${name(c.into.subgraph)}`);
         if (c.title) {
           const got = await drawnTitle(c.out, c.title.id);
@@ -100,6 +112,13 @@
           const want = old.map((a) => sig({ ...a, start: which !== 'ends' && a.start === id ? to : a.start,
             end: which !== 'starts' && a.end === id ? to : a.end })).sort();
           const got = left.map(sig).sort();
+          if (want.join('\n') !== got.join('\n')) fails.push(`${c.name}: edges ${got.filter((g) => !want.includes(g)).join(' ')}, expected ${want.filter((w) => !got.includes(w)).join(' ')}`);
+          continue;
+        }
+        if (c.kind === 'relocate') {
+          /* The same edges, each with its type, label and linkStyle style, in any order. */
+          const sig = (a) => JSON.stringify([a.start, a.end, a.type, a.stroke, a.text, a.style]);
+          const want = old.map(sig).sort(), got = left.map(sig).sort();
           if (want.join('\n') !== got.join('\n')) fails.push(`${c.name}: edges ${got.filter((g) => !want.includes(g)).join(' ')}, expected ${want.filter((w) => !got.includes(w)).join(' ')}`);
           continue;
         }

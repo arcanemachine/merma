@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -594,6 +594,91 @@ test('insertNode in a subgraph declares N there, and keeps the far end there tho
 test('insertNode into a self-loop makes a loop through the new node', () => {
   assert.equal(insertNode('flowchart TD\n  A --> A\n', 'L_A_A_0').text, 'flowchart TD\n  A --> n1\n  n1["New node"]\n  n1 --> A\n');
 });
+
+// Mermaid 12.2.0's rule, checked in the browser: the first block to close that names the node claims it.
+test('blockOf: a nested block closes first, so it claims a node its parent names too', () => {
+  assert.equal(blockOf('flowchart TD\n  subgraph t\n    X\n    subgraph n\n      X\n    end\n  end\n', 'X')?.id, 'n');
+});
+
+test('blockOf: of two blocks one after the other, the earlier claims the node, whichever names it how', () => {
+  assert.equal(blockOf('flowchart TD\n  subgraph b\n    X --> Y\n  end\n  subgraph t\n    X\n  end\n', 'X')?.id, 'b');
+  assert.equal(blockOf('flowchart TD\n  subgraph t\n    X\n  end\n  subgraph b\n    X --> Y\n  end\n', 'X')?.id, 't');
+});
+
+test('blockOf: style and class lines are not mentions, and a top-level mention never claims', () => {
+  assert.equal(blockOf('flowchart TD\n  subgraph a\n    style X fill:red\n    P\n  end\n  subgraph b\n    X\n  end\n', 'X')?.id, 'b');
+  assert.equal(blockOf('flowchart TD\n  classDef c fill:red\n  subgraph a\n    class X c\n    P\n  end\n  X\n', 'X'), null);
+  assert.equal(blockOf('flowchart TD\n  X[Top]\n  subgraph b\n    X\n  end\n', 'X')?.id, 'b');
+});
+
+test('blockOf: a block naming nodes others have claimed takes none', () => {
+  const src = 'flowchart TD\n  subgraph t\n    P\n  end\n  subgraph b\n    Q\n  end\n  subgraph t2\n    P --> Q\n  end\n';
+  assert.equal(blockOf(src, 'P')?.id, 't');
+  assert.equal(blockOf(src, 'Q')?.id, 'b');
+});
+
+test('moveNode into a subgraph declares the node before its end, keeping its edges where they are', () => {
+  assert.equal(moveNode('flowchart TD\n  A[Alpha] --> B\n  subgraph s [S]\n    C\n  end\n', 'A', 's').text,
+    'flowchart TD\n  A[Alpha] --> B\n  subgraph s [S]\n    C\n    A\n  end\n');
+});
+
+test('moveNode out lifts its edges after the last edge, before linkStyle, and carries its shape', () => {
+  assert.equal(moveNode('flowchart TD\n  subgraph s [S]\n    A[Alpha] --> B\n    C\n  end\n  linkStyle 0 stroke:red\n', 'A', null).text,
+    'flowchart TD\n  subgraph s [S]\n    B\n    C\n  end\n  A --> B\n  linkStyle 0 stroke:red\n  A[Alpha]\n');
+});
+
+test('moveNode between subgraphs: the other end stays where it was drawn', () => {
+  assert.equal(moveNode('flowchart TD\n  subgraph a [A1]\n    X[Ex] --> Y\n    Y --> Z\n  end\n  subgraph b [B1]\n    W\n  end\n', 'X', 'b').text,
+    'flowchart TD\n  subgraph a [A1]\n    Y --> Z\n  end\n  X --> Y\n  subgraph b [B1]\n    W\n    X[Ex]\n  end\n');
+});
+
+test('moveNode out of a nested block into its parent, and onto the block it is in writes nothing', () => {
+  assert.equal(moveNode('flowchart TD\n  subgraph t [T]\n    P\n    subgraph n [N]\n      X[Ex]\n    end\n  end\n', 'X', 't').text,
+    'flowchart TD\n  subgraph t [T]\n    P\n    subgraph n [N]\n    end\n    X[Ex]\n  end\n');
+  const src = 'flowchart TD\n  subgraph s [S]\n    A\n  end\n';
+  assert.equal(moveNode(src, 'A', 's').text, src);
+});
+
+test('moveSubgraph carries its lines, indented for their place, and linkStyle follows its edges', () => {
+  assert.equal(moveSubgraph('flowchart TD\n  R --> P\n  subgraph a [A1]\n    P --> Q\n  end\n  subgraph b [B1]\n    R\n  end\n  linkStyle 1 stroke:red\n', 'a', 'b').text,
+    'flowchart TD\n  R --> P\n  subgraph b [B1]\n    R\n    subgraph a [A1]\n      P --> Q\n    end\n  end\n  linkStyle 1 stroke:red\n');
+  assert.equal(moveSubgraph('flowchart TD\n  subgraph b [B1]\n    R\n    subgraph a [A1]\n      P\n    end\n  end\n', 'a', null).text,
+    'flowchart TD\n  subgraph b [B1]\n    R\n  end\n  subgraph a [A1]\n    P\n  end\n');
+});
+
+test('moveNode leaves the mentions in blocks that close after the target, which Mermaid ignores', () => {
+  assert.equal(moveNode('flowchart TD\n  X\n  subgraph s [S]\n    C\n  end\n  subgraph b [B1]\n    X --> Y\n  end\n', 'X', 's').text,
+    'flowchart TD\n  X\n  subgraph s [S]\n    C\n    X\n  end\n  subgraph b [B1]\n    X --> Y\n  end\n');
+});
+
+test('moveSubgraph moves each linkStyle number with its edge when the edges change order', () => {
+  assert.equal(moveSubgraph('flowchart TD\n  subgraph a [A1]\n    P --> Q\n  end\n  R --> P\n  subgraph b [B1]\n    R\n  end\n  linkStyle 0 stroke:red\n', 'a', 'b').text,
+    'flowchart TD\n  R --> P\n  subgraph b [B1]\n    R\n    subgraph a [A1]\n      P --> Q\n    end\n  end\n  linkStyle 1 stroke:red\n');
+});
+
+test('moveSubgraph refuses a move into itself, and one that would move another node with it', () => {
+  assert.throws(() => moveSubgraph('flowchart TD\n  subgraph a [A1]\n    subgraph c [C1]\n      P\n    end\n  end\n', 'a', 'c'), /into itself/);
+  // b claims Y while it closes before a; moved into t, which closes after a, it no longer does.
+  assert.throws(() => moveSubgraph('flowchart TD\n  subgraph b [B1]\n    Y\n  end\n  subgraph a [A1]\n    P --> Y\n  end\n  subgraph t [T]\n    R\n  end\n', 'b', 't'),
+    /would move Y as well/);
+});
+
+for (const [name, nodes] of Object.entries(NODE_IDS)) {
+  const src = fixture(name);
+  const targets = [null, ...subgraphs(src).filter((g) => g.end !== null).map((g) => g.id)];
+  test(`${name}: moveNode puts each node where it was sent, or refuses saying why`, () => {
+    for (const id of nodes) {
+      for (const to of targets) {
+        let text;
+        try { ({ text } = moveNode(src, id, to)); } catch (e) {
+          assert.match(e.message, /would move .* as well|is not one this editor can change|could not be made safely/, `${id} to ${to}`);
+          continue;
+        }
+        assert.equal(blockOf(text, id)?.id ?? null, to, `${id} to ${to}`);
+      }
+    }
+  });
+}
 
 test('retarget rewrites a top-level edge in place, its old end keeping its shape', () => {
   const src = 'flowchart TD\n  A[Start] --> B\n  B --> C\n  linkStyle 0 stroke:red\n';
