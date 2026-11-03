@@ -228,6 +228,9 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.node[data-page-source] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;
   stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
+/* A cut node, until it is moved or Escape drops it: dashed as a pick's, selected or not. */
+#stage g.node[data-page-cut] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator) {
+  stroke: var(--select) !important; stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
 /* …and each edge that will move haloed: a wide pale line under it, not a dash, which would read as a dotted edge. */
 #stage path[data-page-halo][data-page-only] { fill: none; stroke: var(--select-faint); stroke-width: 12px; stroke-linecap: round;
   pointer-events: none; }

@@ -218,6 +218,11 @@ function assertId(/** @type {string} */ id) {
   if (!new RegExp(`^${ID}$`, 'u').test(id)) throw new Error(`${id} is not a node id this editor can change.`);
 }
 
+/** Whether node `id` is in the file: named anywhere in the diagram body, outside labels and comments. */
+export function hasNode(/** @type {string} */ text, /** @type {string} */ id) {
+  return mentions(text, id).length > 0;
+}
+
 function assertNode(/** @type {string} */ text, /** @type {string} */ id) {
   assertId(id);
   if (!mentions(text, id).length) throw new Error(`Node ${id} is not in the file.`);
@@ -937,15 +942,16 @@ function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @
  * arrow. The first half is the edge rewritten in place (a pair of its own in a chain or an `&` group), so it keeps its
  * number, its edge id and settings, and every `linkStyle`; N is declared on the line after it, in the same block. The
  * second half goes after the last edge, so no edge moves. The label stays on the `first` half, or goes to the `second`
- * as written. `shape`: what N is declared with after its id, in place of `["label"]` (a pasted copy's). Returns
- * { text, id }.
+ * as written. `shape`: what N is declared with after its id, in place of `["label"]` (a pasted copy's). `existing`: a
+ * node already in the file to insert instead, declared where it is (moveIntoEdge puts it in the edge's block).
+ * Returns { text, id }.
  * @param {string} text
  * @param {string} svgId
- * @param {{ label?: string, side?: 'first' | 'second', shape?: string | null }} [options]
+ * @param {{ label?: string, side?: 'first' | 'second', shape?: string | null, existing?: string | null }} [options]
  */
-export function insertNode(text, svgId, { label = 'New node', side = 'first', shape = null } = {}) {
+export function insertNode(text, svgId, { label = 'New node', side = 'first', shape = null, existing = null } = {}) {
   const { e, s, key } = locate(text, svgId);
-  const id = freeId(text);
+  const id = existing ?? freeId(text);
   const moves = side === 'second' && e.label;
   const link = s.links[e.step];
   const connector = text.slice(link.start, link.end).slice(link.userId ? link.userId.length + 1 : 0);
@@ -956,7 +962,7 @@ export function insertNode(text, svgId, { label = 'New node', side = 'first', sh
   const split = transform(second, { at: s.start, pairs: new Map([[key, { to: id, ...(moves ? { body: e.arrow } : {}) }]]), expect: half });
   // After the line the first half is on: a split statement alone on its line is written over several.
   const at = /** @type {Statement} */ (statements(split).find((x) => x.start === edges(split)[e.index].statement.start));
-  const out = insertAfter(split, at.line, id + (shape ?? `[${quoteLabel(label)}]`));
+  const out = existing ? split : insertAfter(split, at.line, id + (shape ?? `[${quoteLabel(label)}]`));
   const skip = new Set([...(e.userId ? [e.userId] : []), ...subgraphs(text).filter((g) => g.written).map((g) => /** @type {string} */ (g.id))]);
   check(text, out, half, null, skip, [{ from: id, to: e.to, arrow: e.arrow, label: moves ? e.label : null }]);
   return { text: out, id };
@@ -1198,6 +1204,47 @@ export function mergeNode(/** @type {string} */ text, /** @type {string} */ id, 
   }
   const { text: out, count } = moveEdges(text, id, 'all', into);
   return { text: deleteNode(out, id).text, moved: count, dropped };
+}
+
+/** The text with every edge of node `id` deleted. */
+function deleteEdgesOf(/** @type {string} */ text, /** @type {string} */ id) {
+  for (let guard = edges(text).length; guard > 0; guard--) {
+    const e = edges(text).find((x) => x.from === id || x.to === id);
+    if (!e) break;
+    text = deleteEdge(text, e.svgId).text;
+  }
+  return text;
+}
+
+/**
+ * Move node `id` (a cut node) into subgraph `to`, or to the top level (null), as moveNode does; `withEdges` false
+ * deletes its edges first. Returns { text }.
+ */
+export function moveCut(/** @type {string} */ text, /** @type {string} */ id, /** @type {string | null} */ to, withEdges = true,
+  /** @type {(id: string) => string} */ name = (x) => x) {
+  assertNode(text, id);
+  return moveNode(withEdges ? text : deleteEdgesOf(text, id), id, to, name);
+}
+
+/**
+ * Move node `id` (a cut node) into the edge Mermaid drew as `svgId`, as Insert node puts a new one there (on `side`):
+ * its own edges are deleted, the edge is split through it, and it is moved into the block the edge's first half is
+ * written in. Refused on an edge of its own. Returns { text }.
+ */
+export function moveIntoEdge(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ svgId,
+  /** @type {'first' | 'second'} */ side = 'first', /** @type {(id: string) => string} */ name = (x) => x) {
+  assertNode(text, id);
+  const target = edgeBySvgId(text, svgId);
+  if (!target) throw new Error('That edge is not in the file.');
+  if (target.from === id || target.to === id) throw new Error("This edge is the node's own.");
+  // Deleting the node's edges renumbers those after them; the target keeps its place among the rest.
+  const at = target.index - edges(text).filter((e) => (e.from === id || e.to === id) && e.index < target.index).length;
+  const bare = deleteEdgesOf(text, id);
+  const split = insertNode(bare, edges(bare)[at].svgId, { side, existing: id }).text;
+  const first = edges(split)[at];
+  const line = split.slice(0, first.statement.start).split('\n').length - 1;
+  const block = subgraphsAt(split, line).filter((g) => g.end !== null).at(-1)?.id ?? null;
+  return moveNode(split, id, block, name);
 }
 
 /**

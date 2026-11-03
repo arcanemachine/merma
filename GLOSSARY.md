@@ -89,7 +89,7 @@ note where merma had to make one up.
 | **color words** | **info**, **success**, **warning**, **error**: each a background and a text color that reads on it (`--info-bg`, `--info-fg`…, in `web/style.css`). Notices use three; success is the toasts'. |
 | **muted** | Gray: shown, but not to be acted on now: the read-only code, and the diagram while the code is being edited (`--muted-bg`). |
 | **edit** | One action that changes the file, written as a small text change and saved over the version it started from. |
-| **copy**, **paste**, **clipboard** | Copy node (Ctrl+C) keeps a copy of the node in the page's **clipboard**, one per tab, as it was then; Paste node (Ctrl+V) adds a new node from it, under a new id. The browser's words. The system clipboard gets the node's Mermaid text too, but merma never reads it. |
+| **copy**, **cut**, **paste**, **clipboard** | Copy node (Ctrl+C) keeps a copy of the node in the page's **clipboard**, one per tab, as it was then; Paste node (Ctrl+V) adds a new node from it, under a new id. Cut node (Ctrl+X) marks the node instead, and the paste then moves it (Move node here); a cut and a copy replace each other. The browser's words. The system clipboard gets the node's Mermaid text too, but merma never reads it. |
 | **undo**, **redo** | Taking back the page's own last edit, and putting it back; refused once the file has changed since. |
 | **hit path** | The wide invisible line over each edge that makes it easy to click. merma's own. |
 | **edge match** | Whether merma's reading of the edges agrees, edge for edge, with what Mermaid drew. Without it, edges can't be selected and nodes can't be deleted. merma's own. |

@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, moveCut, moveIntoEdge, hasNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1121,3 +1121,58 @@ for (const [name, ids] of Object.entries(NODE_IDS)) {
     });
   }
 }
+
+test('moveIntoEdge: the node leaves its edges and goes into the edge, on the side asked, in the edge\'s block', () => {
+  const src = 'flowchart TD\n  subgraph s [S]\n    A -->|go| B\n  end\n  C[Cut] --> D\n';
+  // C keeps its shape where it was; the edge inside s names it, so Mermaid draws it there.
+  const first = moveIntoEdge(src, 'C', 'L_A_B_0').text;
+  assert.equal(first, 'flowchart TD\n  subgraph s [S]\n    A -->|go| C\n    B\n  end\n  C --> B\n  C[Cut]\n  D\n');
+  assert.equal(blockOf(first, 'C')?.id, 's');
+  assert.equal(moveIntoEdge(src, 'C', 'L_A_B_0', 'second').text,
+    'flowchart TD\n  subgraph s [S]\n    A --> C\n    B\n  end\n  C -->|go| B\n  C[Cut]\n  D\n');
+});
+
+test('moveIntoEdge finds the edge again after the node\'s own edges before it are deleted, and refuses one of its own', () => {
+  const src = 'flowchart TD\n  X --> Y\n  A --> B\n  Y --> Z\n  linkStyle 1 stroke:red\n';
+  const { text } = moveIntoEdge(src, 'Y', 'L_A_B_0');
+  assert.deepEqual(edges(text).map((e) => `${e.from}>${e.to}`), ['A>Y', 'Y>B']);
+  assert.throws(() => moveIntoEdge(src, 'Y', 'L_X_Y_0'), /the node's own/);
+});
+
+test('moveIntoEdge takes the node out of its subgraph when the edge is written outside it', () => {
+  const { text } = moveIntoEdge('flowchart TD\n  subgraph t [T]\n    C[Cut]\n  end\n  A --> B\n', 'C', 'L_A_B_0');
+  assert.equal(blockOf(text, 'C'), null);
+  assert.deepEqual(edges(text).map((e) => `${e.from}>${e.to}`), ['A>C', 'C>B']);
+});
+
+test('moveCut moves the node as moveNode does, and without edges deletes them first', () => {
+  const src = 'flowchart TD\n  subgraph s [S]\n    A\n  end\n  B --> C\n';
+  assert.equal(moveCut(src, 'B', 's').text, moveNode(src, 'B', 's').text);
+  const bare = moveCut(src, 'B', 's', false).text;
+  assert.deepEqual(edges(bare), []);
+  assert.equal(blockOf(bare, 'B')?.id, 's');
+});
+
+for (const [name, ids] of Object.entries(EDGE_IDS)) {
+  const src = fixture(name);
+  const nodes = NODE_IDS[name] ?? [];
+  for (const svgId of ids) {
+    test(`${name} ${svgId}: moveIntoEdge puts each other node into that edge, its own edges gone, the rest kept`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const target = edgeBySvgId(src, svgId);
+      for (const id of nodes) {
+        if (target.from === id || target.to === id) { assert.throws(() => moveIntoEdge(src, id, svgId)); continue; }
+        const { text } = moveIntoEdge(src, id, svgId);
+        const rest = edges(src).filter((e) => e.from !== id && e.to !== id);
+        const want = rest.map((e) => (e.index === target.index ? sig({ ...e, to: id }) : sig(e)));
+        want.push(sig({ from: id, to: target.to, arrow: target.arrow, label: null }));
+        assert.deepEqual(edges(text).map(sig), want, id);
+      }
+    });
+  }
+}
+
+test('hasNode: a node named in the body, not one only in a label or a comment', () => {
+  const src = 'flowchart TD\n  %% B\n  A["B"] --> C\n';
+  assert.deepEqual(['A', 'B', 'C'].map((id) => hasNode(src, id)), [true, false, true]);
+});

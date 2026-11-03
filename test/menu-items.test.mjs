@@ -147,7 +147,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'expand-subgraph', 'find', 'fit-subgraph', 'fit-view', 'fit-whole', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'cut-node', 'expand-subgraph', 'find', 'fit-subgraph', 'fit-view', 'fit-whole', 'flip', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -171,6 +171,7 @@ const HELP_ONLY = {
   '?': 'main.mjs answers it',
   'ctrl+c': 'copy, handled before the key map',
   'ctrl+v': 'paste, handled before the key map',
+  'ctrl+x': 'cut, handled before the key map',
   'ctrl+z': 'undo, handled before the key map',
   'ctrl+shift+z': 'redo, handled before the key map',
   'ctrl+y': 'redo, handled before the key map',
@@ -236,4 +237,17 @@ test('Fit to whole diagram is in the empty-space menu only while a part is fitte
     assert.equal(applies(fit, { edgesOk: true, selfLoop: false, nameWhy: null, partWhy: null }), true, menu);
     assert.equal(whyNot(fit, { edgesOk: true, selfLoop: false, nameWhy: null, partWhy: PART_UNNAMED }), PART_UNNAMED, menu);
   }
+});
+
+test('with a node cut, the paste items read Move node here, gray by the cut\'s own reason, and a box takes it', () => {
+  const base = { edgesOk: true, selfLoop: false, nameWhy: null, cut: true };
+  for (const menu of ['node', 'edge', 'subgraph', 'box', 'space']) {
+    const item = MENUS[menu].find((i) => i.action === 'paste-node');
+    assert.equal(item?.back?.(base), true, menu);
+    assert.equal(item?.labelBack, 'Move node here', menu);
+    assert.equal(applies(item, base), true, menu);
+    assert.equal(whyNot(item, { ...base, cutWhy: 'It is already in this subgraph.' }), 'It is already in this subgraph.', menu);
+  }
+  const edge = MENUS.edge.find((i) => i.action === 'paste-node');
+  assert.equal(whyNot(edge, { ...base, insertWhy: 'collapsed' }), 'collapsed');
 });

@@ -78,6 +78,11 @@
           }
           continue;
         }
+        if (c.kind === 'cut') {
+          /* Drawn where it was sent (above), every other node where it was, and the edges merma reads all drawn. */
+          if (after.getEdges().length !== c.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.edges}`);
+          continue;
+        }
         if (c.kind === 'paste') {
           /* The copy drawn as the original is (shape, label, classes), every other node where it was (above), and the edges merma reads all drawn. */
           const o = before.getVertices().get(c.paste.of), n = after.getVertices().get(c.paste.id);

@@ -6,7 +6,7 @@
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
 export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
-  'Paste',
+  'Cut', 'Paste',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
@@ -75,6 +75,8 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
  * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
  * @property {boolean} [copied] a node has been copied, so there is something to paste
+ * @property {boolean} [cut] a node has been cut: the paste items move it
+ * @property {string | null} [cutWhy] why the cut node cannot be moved to the selection, or null
  * @property {boolean} [part] a subgraph is fitted as the part (Fit to subgraph)
  * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
  */
@@ -117,13 +119,22 @@ const fitPart = { action: 'fit-subgraph', label: 'Fit to subgraph', view: true, 
   applies: (/** @type {MenuState} */ s) => !s.partWhy, why: (/** @type {MenuState} */ s) => s.partWhy ?? null };
 export const NOTHING_COPIED = 'Nothing has been copied. Copy a node first (Ctrl+C).';
 
-/** Paste node and Paste node without edges, grayed until a node is copied, and where `why` says. */
-const pasteItems = (/** @type {(s: MenuState) => string | null} */ why = () => null) => [
-  { action: 'paste-node', label: 'Paste node', key: 'ctrl+v', applies: (/** @type {MenuState} */ s) => Boolean(s.copied) && !why(s),
-    why: (/** @type {MenuState} */ s) => (s.copied ? why(s) : NOTHING_COPIED) },
-  { action: 'paste-node-bare', label: 'Paste node without edges', key: 'ctrl+shift+v',
-    applies: (/** @type {MenuState} */ s) => Boolean(s.copied) && !why(s), why: (/** @type {MenuState} */ s) => (s.copied ? why(s) : NOTHING_COPIED) },
-];
+/**
+ * Paste node and Paste node without edges, or with a node cut Move node here and Move node here without edges: grayed
+ * until a node is copied or cut, and where `why` (a copy's) or `cutWhy` (a cut node's) says.
+ */
+const pasteItems = (/** @type {(s: MenuState) => string | null} */ why = () => null,
+  /** @type {(s: MenuState) => string | null} */ cutWhy = (s) => s.cutWhy ?? null) => {
+  const reason = (/** @type {MenuState} */ s) => (s.cut ? cutWhy(s) : s.copied ? why(s) : NOTHING_COPIED);
+  const item = (/** @type {string} */ action, /** @type {string} */ label, /** @type {string} */ labelBack, /** @type {string} */ key) => ({
+    action, label, labelBack, key, back: (/** @type {MenuState} */ s) => Boolean(s.cut),
+    applies: (/** @type {MenuState} */ s) => !reason(s), why: reason,
+  });
+  return [
+    item('paste-node', 'Paste node', 'Move node here', 'ctrl+v'),
+    item('paste-node-bare', 'Paste node without edges', 'Move node here without edges', 'ctrl+shift+v'),
+  ];
+};
 
 /** How a menu shows `key`, on a Mac (`mac`) or another system: `⇧C`, `Ctrl+⇧V`, `⌘⇧V`. */
 export function keyLabel(/** @type {string} */ key, /** @type {string} */ os) {
@@ -164,6 +175,7 @@ export const MENUS = {
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'edit-node', label: 'Edit node' },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
+    { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
     ...pasteItems(),
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
@@ -174,7 +186,7 @@ export const MENUS = {
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'reassign-edge', label: 'Reassign edge…', key: 'e', mode: true },
-    pasteItems((s) => s.insertWhy ?? null)[0],
+    pasteItems((s) => s.insertWhy ?? null, (s) => s.cutWhy ?? s.insertWhy ?? null)[0],
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],

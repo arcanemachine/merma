@@ -9,13 +9,14 @@
 // or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style. `merge`: { id, edges } node `id`
 // merged into another (mergeNode): gone, with `edges` edges left. `relocate`: { id, to } a node or subgraph moved
 // into subgraph `to` (null: the top level), the edges the same, each with its style. `blocks`: for each node, the
-// subgraph blockOf says Mermaid draws it in (null: the top level). `paste`: { id, of, edges } node `of` copied and pasted
+// subgraph blockOf says Mermaid draws it in (null: the top level). `cut`: a node moved by a cut (moveIntoEdge, or
+// moveCut without edges), with `relocate` where it should be drawn and `edges` how many edges Mermaid should draw. `paste`: { id, of, edges } node `of` copied and pasted
 // as `id` (pasteNode): drawn with its shape, label and classes, and `edges` edges in all.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  mergeNode, moveEdges, moveNode, moveSubgraph, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -162,5 +163,20 @@ for (const [name, list, src] of sources) {
     pasted(`into ${sg.id}`, list[0], pasteNode(src, first, { kind: 'subgraph', id: /** @type {string} */ (sg.id) }), sg.id);
   }
   for (const e of edges(src)) pasted(`onto ${e.svgId}`, list[0], pasteNode(src, first, { kind: 'edge', svgId: e.svgId, side: 'first' }), null);
+}
+// Each node cut and moved: into every edge not its own (drawn in the block the edge's first half is written in), and
+// everywhere it can go without its edges.
+for (const [name, list, src] of sources) {
+  const targets = [null, ...subgraphs(src).filter((s) => s.end !== null).map((s) => s.id)];
+  for (const id of list) {
+    for (const e of edges(src).filter((x) => x.from !== id && x.to !== id)) {
+      const { text: out } = moveIntoEdge(src, id, e.svgId);
+      cases.push({ name: `${name} cut ${id} into ${e.svgId}`, kind: 'cut', src, out, relocate: { id, to: blockOf(out, id)?.id ?? null }, edges: edges(out).length });
+    }
+    for (const to of targets) {
+      const { text: out } = moveCut(src, id, to, false);
+      if (out !== src) cases.push({ name: `${name} cut ${id} into ${to} without edges`, kind: 'cut', src, out, relocate: { id, to }, edges: edges(out).length });
+    }
+  }
 }
 process.stdout.write(JSON.stringify(cases));

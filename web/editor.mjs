@@ -15,7 +15,7 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, copiedText, copyNode, deleteEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveNode, moveSubgraph,
+  addConnected, addNode, addSubgraph, arrowType, connect, copiedText, copyNode, deleteEdge, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveNode, moveSubgraph,
   nodeIdFromSvgId, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
@@ -133,6 +133,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   let refused = false;        // the notice shows why a menu item does not apply
   /** @type {{ copy: import('./patch/flowchart.mjs').Copied, name: string } | null} the node last copied, in this tab */
   let copied = null;
+  /** @type {{ id: string, name: string } | null} the node cut, in this tab: the paste items move it */
+  let cut = null;
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
@@ -304,8 +306,62 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   function copySelected() {
     const sel = selection();
     try { copied = { copy: copyNode(shownText, sel.id), name: named(sel) }; } catch (e) { refuse(e.message || String(e)); return; }
+    dropCut();
     ui.copied(copiedText(copied.copy));
     ui.announce(`Copied ${copied.name}`);
+  }
+
+  /** Cut node: the selected node, marked dashed until a paste moves it or Escape drops it. It replaces any copy. */
+  function cutSelected() {
+    const sel = selection();
+    copied = null;
+    cut = { id: sel.id, name: named(sel) };
+    markCut();
+    ui.announce(`Cut ${cut.name}`);
+  }
+  /** Drop the cut, and its mark. */
+  function dropCut() {
+    cut = null;
+    markCut();
+  }
+  /**
+   * Mark the cut node dashed, and nothing else. A cut whose node is gone from the file is dropped; one hidden in a
+   * collapsed subgraph is kept, unmarked, and marked again once it is drawn.
+   */
+  function markCut() {
+    clearMarks('data-page-cut');
+    if (!cut) return;
+    if (!hasNode(shownText, cut.id)) { cut = null; return; }
+    for (const e of elsOf({ kind: 'node', id: cut.id })) mark(e, 'data-page-cut');
+  }
+
+  /**
+   * Move node here: the cut node into the selected edge (its own edges deleted), inside the selected subgraph, into
+   * the block of the selected node, or to the top level. `withEdges` false deletes its edges first. It stays
+   * selected after, or the box it went into.
+   */
+  function moveCutHere(/** @type {boolean} */ withEdges) {
+    const { id, name } = /** @type {{ id: string, name: string }} */ (cut);
+    const sel = selected;
+    const node = /** @type {Item} */ ({ kind: 'node', id });
+    const nameOf = (/** @type {string} */ x) => named({ kind: 'node', id: x });
+    /** @type {(text: string) => { text: string }} */
+    let change;
+    let where = 'here';
+    if (sel?.kind === 'edge') {
+      const svgId = sel.id, side = endSide === 'end' ? 'first' : 'second';
+      change = (text) => moveIntoEdge(text, id, svgId, side, nameOf);
+      where = 'into the edge';
+    } else {
+      const to = sel?.kind === 'subgraph' ? sel.id : sel?.kind === 'node' ? blockAround(sel) : null;
+      change = (text) => moveCut(text, id, to, withEdges, nameOf);
+      where = to === null ? 'to the top level' : `into ${named({ kind: 'subgraph', id: to })}`;
+    }
+    const box = sel?.kind === 'subgraph' && isBox(sel) ? sel : null;
+    editDrawn(change, {
+      afterSave: () => { dropCut(); ui.announce(`Moved ${name} ${where}`); },
+      after: box ? () => ({ item: box }) : () => ({ item: node }),
+    });
   }
 
   /**
@@ -314,6 +370,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
    * `withEdges`: it gets the original's edges too, except on an edge. The copy is selected after.
    */
   function paste(/** @type {boolean} */ withEdges) {
+    if (cut) { moveCutHere(withEdges); return; }
     if (!copied) return;
     const { copy, name } = copied;
     const sel = selected;
@@ -367,6 +424,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'delete-edge': () => deleteSelected(),
     'insert-node': () => startInsert(),
     'copy-node': () => copySelected(),
+    'cut-node': () => cutSelected(),
     'paste-node': () => paste(true),
     'paste-node-bare': () => paste(false),
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
@@ -462,9 +520,25 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
         ? `This ${selected.kind} is already at the top level.` : null,
       locked,
       copied: Boolean(copied),
+      cut: Boolean(cut),
+      cutWhy: cutWhy(),
       part: Boolean(ui.part()),
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
     };
+  }
+
+  /** Why the cut node cannot be moved to the selection (Move node here), or null: it would not move. */
+  function cutWhy() {
+    if (!cut) return null;
+    const node = /** @type {Item} */ ({ kind: 'node', id: cut.id });
+    if (selected?.kind === 'edge') {
+      const e = shownEdge(selected.id);
+      return e && (e.from === cut.id || e.to === cut.id) ? "This edge is the node's own." : null;
+    }
+    if (selected?.kind === 'title') return null;
+    const to = selected?.kind === 'subgraph' ? selected.id : selected?.kind === 'node' ? blockAround(selected) : null;
+    if (blockAround(node) !== to) return null;
+    return to === null ? 'It is already at the top level.' : 'It is already in this subgraph.';
   }
 
   /** Why a node cannot be inserted into edge `id`: its line is in a collapsed subgraph, where N would be hidden. */
@@ -488,7 +562,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   // The page's marks: the selection, Connect to…'s candidate, find's matches and its current one. Mermaid writes
   // classDef, style and linkStyle colors inline with !important, which no stylesheet rule beats: while an item is
   // marked, its inline colors lose the !important (the original kept in data-page-style), so the mark's colors show.
-  const MARKED = '[data-page-selected], [data-page-candidate], [data-page-source], [data-page-match], [data-page-current]';
+  const MARKED = '[data-page-selected], [data-page-candidate], [data-page-source], [data-page-cut], [data-page-match], [data-page-current]';
   /** Give `el` the mark `attr`, loosening its inline colors. */
   const mark = (/** @type {Element} */ el, /** @type {string} */ attr) => {
     el.setAttribute(attr, '');
@@ -1049,6 +1123,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   /** @type {[string, () => boolean][]} Escape's steps on the diagram, in order */
   const ESCAPE = [
     ['pick', () => Boolean(picking) && (cancelPick(), true)],
+    // A cut is a pick spread over time: Escape drops it first, the selection kept; a click away does not.
+    ['cut', () => Boolean(cut) && (dropCut(), ui.announce('Cut dropped'), true)],
     // Both go in one press.
     ['selection and notice', () => {
       const had = letGo();
@@ -1523,7 +1599,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     const key = e.key.toLowerCase();
     // Enter and Space on a focused button outside the diagram (the footer's, Help's) press it.
     if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 'c' || key === 'v') && copyKey(key, e)) {
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 'c' || key === 'x' || key === 'v') && copyKey(key, e)) {
       e.preventDefault();
       return;
     }
@@ -1559,14 +1635,14 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     const at = /** @type {Node} */ (e.target);
     if (!(at === document.body || els.diagram.contains(at)) || !selectable || picking) return false;
     if (!document.getSelection()?.isCollapsed) return false;
-    if (key === 'c') {
+    if (key === 'c' || key === 'x') {
       if (e.shiftKey || selected?.kind !== 'node') return false;
       clearRefusal();
       if (menuOpen()) closeMenus();
-      handlers['copy-node']();
+      handlers[key === 'c' ? 'copy-node' : 'cut-node']();
       return true;
     }
-    if (!copied) return false;
+    if (!copied && !cut) return false;
     clearRefusal();
     const list = selected ? MENUS[isBox(selected) ? 'box' : selected.kind] : MENUS.space;
     // On an edge there is only Paste node: the copy is inserted, with no other edges, either way.
@@ -2119,6 +2195,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
         if (g.matches('g.node')) g.dataset.pageCollapsed = '';
       }
       tagEdges(text);
+      markCut();
       // A new drawing while finding: find again in it, so no mark is left on what has gone.
       if (finding) { refind(); markMatches(); }
       const back = viewBack;
