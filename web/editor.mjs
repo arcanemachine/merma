@@ -11,7 +11,7 @@ import { turnable } from './turn.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
 import { createMenu } from './menu.mjs';
-import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, whyNot } from './menu-items.mjs';
+import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, PART_UNNAMED, whyNot } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
@@ -67,7 +67,7 @@ const END_RUN = 3;
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void, part(): string | null }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -382,6 +382,9 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'collapse-subgraph': () => { const { id } = selection(); ui.setView(id, 'collapsed').then(() => ui.announce(`Collapsed ${named({ kind: 'subgraph', id })}`)); },
     'expand-subgraph': () => { const { id } = selection(); ui.setView(id, 'expanded').then(() => ui.announce(`Expanded ${named({ kind: 'subgraph', id })}`)); },
     'fit-view': () => viewer.fit(),
+    // Page-only, as the address's part (main.mjs): every fit fits it, until Fit to whole diagram.
+    'fit-subgraph': () => ui.showPart(selection().id),
+    'fit-whole': () => ui.showPart(null),
     // Page-only (turn.mjs), as collapse is: the whole diagram, or the selected subgraph on its own. A turn is for
     // fitting the window (the user), so it fits after.
     'rotate': () => turnIt('rotate'),
@@ -459,6 +462,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
         ? `This ${selected.kind} is already at the top level.` : null,
       locked,
       copied: Boolean(copied),
+      part: Boolean(ui.part()),
+      partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
     };
   }
 

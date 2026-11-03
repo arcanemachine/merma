@@ -13,6 +13,10 @@ import { limitOf, overTextLimit, TEXT_LIMIT_LABEL } from './limits.mjs';
 const natural = { useMaxWidth: false };
 
 const PAD = 24;
+// A fit shows the whole diagram at actual size at most; a part (hooks.fitTo) up to twice that, so a small subgraph
+// fills the window (the user approved it so).
+const FIT_MAX = 1;
+const PART_MAX = 2;
 // A press that moves less than this many pixels before release is a click; more is a move.
 const CLICK_SLOP = 4;
 // A touch held this long without moving is a long-press, reported as a context menu. Android raises the browser's own
@@ -42,6 +46,7 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  * @param {(change: { byUser: boolean }) => void} [hooks.onViewChange] the diagram moved or was zoomed on screen;
  *   `byUser`: by the user (the wheel, a drag or pinch, pan(), zoom(), zoomTo()), not by the page (fit(), reveal(),
  *   center(), setView())
+ * @param {() => DOMRect | null} [hooks.fitTo] what a fit shows, in client coordinates, instead of the whole diagram
  */
 export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
   mermaid.initialize({
@@ -49,7 +54,7 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     flowchart: natural, sequence: natural, class: natural, state: natural, er: natural,
     gantt: natural, journey: natural, pie: natural, mindmap: natural, timeline: natural, gitGraph: natural,
   });
-  const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {} } = hooks;
+  const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {}, fitTo = () => null } = hooks;
   // A scale and offset applied to the stage. The first render is fitted to the window (never enlarged); after that the
   // view is kept across re-renders (the user), so an edit moves nothing under the pointer. Until the user zooms or
   // drags, a change in the window's size fits it again.
@@ -96,14 +101,19 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     onViewChange({ byUser });
   }
 
-  // The fit leaves the diagram area's top padding clear, besides its own margin.
+  // The fit leaves the diagram area's top padding clear, besides its own margin. It shows the whole diagram, or the
+  // rect fitTo gives (in stage coordinates here).
   function fit() {
     const box = diagram.getBoundingClientRect();
     if (!size.w || !size.h) return;
     const top = parseFloat(getComputedStyle(diagram).paddingTop) || 0;
-    view.k = Math.min(1, (box.width - 2 * PAD) / size.w, (box.height - top - 2 * PAD) / size.h);
-    view.x = (box.width - size.w * view.k) / 2;
-    view.y = top + (box.height - top - size.h * view.k) / 2;
+    const r = fitTo();
+    const a = r && r.width && r.height ? toStage(r.left, r.top) : null, z = r && toStage(r.right, r.bottom);
+    const part = a && z ? { left: a.x, top: a.y, right: z.x, bottom: z.y } : null;
+    const shown = part ?? { left: 0, top: 0, right: size.w, bottom: size.h };
+    const area = { width: box.width, height: box.height, top };
+    const to = /** @type {{ x: number, y: number, k: number }} */ (frameView([shown], area, PAD, part ? PART_MAX : FIT_MAX));
+    Object.assign(view, to);
     touched = false;
     apply();
   }

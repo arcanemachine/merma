@@ -75,6 +75,8 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
  * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
  * @property {boolean} [copied] a node has been copied, so there is something to paste
+ * @property {boolean} [part] a subgraph is fitted as the part (Fit to subgraph)
+ * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -99,6 +101,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [mode] it waits for a further click or typing
  * @property {boolean} [view] it changes only the view (or nothing: Copy node), so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
+ * @property {(state: MenuState) => boolean} [shown] when false, the item is left out of the menu
  * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
  * @property {string} [labelBack]
  */
@@ -107,6 +110,11 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
 /** Why a node cannot be inserted into an edge whose line is in a collapsed subgraph: the node would be hidden. */
 export const INSERT_COLLAPSED = 'This edge is inside a collapsed subgraph. Expand it first (H) to insert a node.';
 const EXPAND_FIRST = 'This subgraph is collapsed. Expand it first (H) to add to it.';
+/** Why a subgraph with no id in the file cannot be fitted as the part: the address names it by its id. */
+export const PART_UNNAMED = "This subgraph has no id in the file, so a link can't name it. Give it an id in the file first.";
+/** Fit to subgraph, in a subgraph's menu and a box's. */
+const fitPart = { action: 'fit-subgraph', label: 'Fit to subgraph', view: true, key: 's',
+  applies: (/** @type {MenuState} */ s) => !s.partWhy, why: (/** @type {MenuState} */ s) => s.partWhy ?? null };
 export const NOTHING_COPIED = 'Nothing has been copied. Copy a node first (Ctrl+C).';
 
 /** Paste node and Paste node without edges, grayed until a node is copied, and where `why` says. */
@@ -179,7 +187,8 @@ export const MENUS = {
     { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     ...pasteItems(),
-    { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
+    { ...fitPart, separated: true },
+    { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
@@ -193,7 +202,8 @@ export const MENUS = {
     { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     ...pasteItems(() => EXPAND_FIRST),
-    { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
+    { ...fitPart, separated: true },
+    { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
     { action: 'center-view', label: 'Center in window', key: 'f', view: true },
@@ -207,6 +217,7 @@ export const MENUS = {
     ...pasteItems(),
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
+    { action: 'fit-whole', label: 'Fit to whole diagram', key: 'w', view: true, shown: (s) => Boolean(s.part) },
     ...turnItems(),
   ],
 };

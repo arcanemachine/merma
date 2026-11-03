@@ -51,6 +51,9 @@ what `merma skill` prints over this file, with this file's Custom rules section 
    serve a folder instead, start `merma serve` the same way, with `MERMA_ROOTS` set to it.
 4. Give the user the page's address.
 
+Add `&part=<subgraph id>` (encoded the same way) to open the page fitted to one subgraph, the rest still drawn
+around it: for a link into a big diagram. The subgraph needs an id in the file (`subgraph pay [Payment]`).
+
 `?f=` takes the file's absolute path as the server sees it. When merma runs in a container,
 `MERMA_PATH_MAP=<server prefix>=<host prefix>` makes the page show the host's path, but `?f=` still takes
 the server's.

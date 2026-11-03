@@ -16,6 +16,14 @@ them.
   does. 0 zooms to actual size. The diagram is fitted when the page opens; after that, edits keep the view as it
   is (a diagram that grows can run past the edge: fit it again). Until you zoom or move it, a change in the window's
   size fits it again; once you have, a reload of the tab keeps your view too.
+- **Fit to subgraph** (S, in a subgraph's menu) fits one subgraph to the window instead of the whole diagram, zoomed in
+  up to twice actual size; the rest of the diagram is still drawn around it. The page's address gets
+  `&part=<subgraph id>`, so a link, a bookmark or an embedded page opens on that subgraph. While a part is fitted,
+  Fit to window, F with nothing selected and a double-click on empty space fit the part, and **Fit to whole diagram**
+  (W, in the empty-space menu, shown only then) goes back to the whole. Each is a step in the browser's history, so
+  Back goes to the view before. On a subgraph with no id in the file it is grayed: the address could not name it. A
+  part hidden in a collapsed subgraph fits that subgraph's box; a part not in the file shows the whole diagram, with a
+  notice, until it is back.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it. So does a file over merma's size
   limits, 500 edges or 50,000 characters of code unless merma was started with higher ones (README.md, Run).
@@ -212,7 +220,7 @@ Right-click empty space (or press M with nothing selected) for **Add node** and 
 top level, at the end of the file, and **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V), which
 add a new node from the copy there, as the node menu's do. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 **Find…** (/) opens the find (below). **Fit to window** fits the diagram to the window, as F does with nothing
-selected.
+selected (the part, while one is fitted: Viewing, above); **Fit to whole diagram** (W) is there while a part is.
 
 **Rotate** (R) turns the diagram sideways, top-down to left-to-right and back (bottom-up to right-to-left), and
 **Flip** (Shift+R) turns it the other way up, top-down to bottom-up, left-to-right to right-to-left; each reads
@@ -304,7 +312,7 @@ here does just what it does in the selected item's menu:
 | R or Shift+R with nothing selected | Rotate, or Flip, the diagram (this tab only) |
 | R or Shift+R with a subgraph selected | Rotate, or Flip, its inside (this tab only) |
 | M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
-| F | Fit the diagram to the window (in any diagram, not only flowcharts); with an item selected, center it instead (the title fits) |
+| F | Fit the diagram to the window (in any diagram, not only flowcharts), or the part while one is fitted; with an item selected, center it instead (the title fits) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |

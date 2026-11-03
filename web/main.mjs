@@ -6,7 +6,7 @@ import { createMenu } from './menu.mjs';
 import { EXPORT_MENU, NO_SUBGRAPH_MATCH } from './menu-items.mjs';
 import { createSource } from './source.mjs';
 import { createCodePanel } from './code-panel.mjs';
-import { prune, setView, viewText } from './collapse.mjs';
+import { drawnAs, prune, setView, viewText } from './collapse.mjs';
 import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
@@ -57,6 +57,42 @@ let overrides = new Map();
 let followed = null;
 /** @type {import('./collapse.mjs').SubgraphInfo[]} the subgraphs of the text last drawn, when merma reads them too */
 let shownSubs = [];
+/** @type {import('./collapse.mjs').SubgraphInfo[]} the same, for the text being drawn, from before Mermaid draws it */
+let drawingSubs = [];
+
+// A part view (docs/guide.md, Fit to subgraph): `&part=<subgraph id>` in the address, its only state, makes every fit
+// fit that subgraph, or the collapsed box that hides it. Entering and leaving one is a history entry, so Back leaves it.
+/** @type {string | null} */
+let part = new URLSearchParams(location.search).get('part');
+let partGone = false;   // the part is not in the file: said once, until it is back
+/** Where the part is drawn now, or null: no part, or not drawn. */
+function partRect() {
+  if (!part || viewer.renderId === null) return null;
+  return document.getElementById(`${viewer.renderId}-${drawnAs(part, drawingSubs, overrides)}`)?.getBoundingClientRect() ?? null;
+}
+/** After a render: say once that the part is gone, and fit to it again once it is back. */
+function checkPart() {
+  const gone = Boolean(part) && !partRect();
+  if (gone && !partGone) { ui.notice(`The subgraph ${part} is not in this file, so the whole diagram is shown.`, 'warning'); viewer.fit(); }
+  if (!gone && partGone) { ui.hideNotice(); viewer.fit(); }
+  partGone = gone;
+}
+/** Show subgraph `id` as the part, or the whole diagram (null): a new history entry, then a fit. */
+function setPart(/** @type {string | null} */ id) {
+  const url = new URL(location.href);
+  if (id === null) url.searchParams.delete('part'); else url.searchParams.set('part', id);
+  if (url.href !== location.href) history.pushState(null, '', url);
+  part = id;
+  partGone = false;
+  viewer.fit();
+  checkPart();
+}
+window.addEventListener('popstate', () => {
+  part = new URLSearchParams(location.search).get('part');
+  partGone = false;
+  viewer.fit();
+  checkPart();
+});
 try { overrides = new Map(JSON.parse(sessionStorage.getItem(collapseKey) ?? '[]')); } catch { /* nothing kept */ }
 function keepOverrides() {
   try {
@@ -222,6 +258,10 @@ const ui = {
     copyText(text).catch(() => {});
     toast('Copied!');
   },
+  /** Fit to subgraph `id`, or to the whole diagram (null), as the address's part. */
+  showPart: (/** @type {string | null} */ id) => setPart(id),
+  /** The subgraph fitted as the part, if any. */
+  part: () => part,
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -246,6 +286,7 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage'), limits
   onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
   onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },
+  fitTo: partRect,
 });
 
 // The code panel, laid out before the first render: docked afterwards, it would shrink the diagram under its first fit,
@@ -293,6 +334,7 @@ async function draw(/** @type {string} */ text) {
   pruneTurn(text, agree ? subs : null);
   const turned = turnText(text, turn, agree ? new Map(turn.subs) : new Map());
   const drawn = agree ? viewText(turned, overrides, subs) : turned;
+  drawingSubs = subs;
   let shown = await viewer.show(drawn);
   if (!shown.ok && drawn !== text && (shown = await viewer.show(text)).ok) {
     overrides = new Map();
@@ -314,6 +356,7 @@ async function draw(/** @type {string} */ text) {
   shownSubs = subs;
   editor?.rendered(text, { subs, overrides: agree ? overrides : new Map() });
   if (warning) ui.notice(warning, 'warning');
+  checkPart();
 }
 
 const source = createSource(file, { onText: display, onError: showError, onBuild: noteBuild });

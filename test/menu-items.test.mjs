@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, VERBS, whyNot } from '../web/menu-items.mjs';
+import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, PART_UNNAMED, VERBS, whyNot } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -147,7 +147,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'expand-subgraph', 'find', 'fit-view', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'expand-subgraph', 'find', 'fit-subgraph', 'fit-view', 'fit-whole', 'flip', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -224,5 +224,16 @@ test('every key the page answers outside menus is in Help', () => {
   const inHelp = new Set(helpKeyRows().flatMap((r) => r.keys));
   for (const k of Object.keys(GLOBAL_KEYS)) {
     if (!NOT_IN_HELP.includes(k)) assert.ok(inHelp.has(k), `${JSON.stringify(k)} is not in Help`);
+  }
+});
+
+test('Fit to whole diagram is in the empty-space menu only while a part is fitted; Fit to subgraph is grayed on one with no id', () => {
+  const whole = MENUS.space.find((i) => i.action === 'fit-whole');
+  assert.equal(whole?.shown?.({ edgesOk: true, selfLoop: false, nameWhy: null }), false);
+  assert.equal(whole?.shown?.({ edgesOk: true, selfLoop: false, nameWhy: null, part: true }), true);
+  for (const menu of ['subgraph', 'box']) {
+    const fit = MENUS[menu].find((i) => i.action === 'fit-subgraph');
+    assert.equal(applies(fit, { edgesOk: true, selfLoop: false, nameWhy: null, partWhy: null }), true, menu);
+    assert.equal(whyNot(fit, { edgesOk: true, selfLoop: false, nameWhy: null, partWhy: PART_UNNAMED }), PART_UNNAMED, menu);
   }
 });

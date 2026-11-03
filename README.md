@@ -24,7 +24,8 @@ To serve every diagram in some folders, from one long-running server:
 merma serve [port] [host]       # defaults 63762, 127.0.0.1
 ```
 
-Then open `http://localhost:<port>/?f=<absolute path to a .mmd file>`. With no `?f=`, the page shows a scratch
+Then open `http://localhost:<port>/?f=<absolute path to a .mmd file>`, adding `&part=<subgraph id>` to open it fitted to
+one subgraph (`docs/guide.md`, Viewing). With no `?f=`, the page shows a scratch
 diagram, `/tmp/mermaid-diagrams/scratch.mmd`, created on start if missing.
 
 Either way the server runs until you stop it (Ctrl+C), unless `MERMA_IDLE` is set.

@@ -289,6 +289,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
   for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
   Alt+Left and Alt+Right move the diagram rather than go back or forward.
+- A part (Fit to subgraph) is a place, not a mode: the address holds it, so a link, a reload and an embed agree, and
+  entering or leaving one is a history entry, so Back leaves it. Nothing is hidden or redrawn for it (the user picked
+  zooming over collapsing the rest or drawing the part alone): it changes only what a fit fits, so every edit and key
+  works as in the whole. No Escape step. It may zoom in up to twice actual size, the whole diagram never past actual
+  size, so a small subgraph fills the window.
 - Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Alt does not stand in, as
   everywhere else, since Alt+C and Alt+V are no copy or paste). The page takes them only when it acts, on the diagram
   with no text selected: Ctrl+C with a node selected, Ctrl+V with a node copied. Otherwise the browser's own copy and
