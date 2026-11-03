@@ -838,7 +838,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (ended()) return true;
     const item = itemAt(target);
     clickedDuringEdit(item, true);
-    if (item) select(item, { menu: true });
+    // On an edge, the tick goes to the clicked side, as a left click puts it, so the menu acts where you pointed.
+    if (item) { select(item, { menu: true }); if (!Number.isNaN(x)) countFromClick(target, x, y); }
     else openSpaceMenu(x, y);
     return true;
   }

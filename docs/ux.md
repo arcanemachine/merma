@@ -202,8 +202,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     bend. A box's edges leaving one way are its fan that way.
   - On an edge, the cross arrows step across, and never land on a node (the user: "when I'm at an edge, I'm paging
     between edges"): to the edge beside it in the fan at the end you came from, then on into the fan at its other end,
-    from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked on its line counts as
-    reached from the end on the click's side, split at its label where it has one, else at its middle, along the line
+    from its place there, so every edge sharing a node with it is reachable sideways. An edge clicked (or right-clicked,
+    or long-pressed: its menu then acts where you pointed) on its line counts as reached from the end on the click's side, split at its label where it has one, else at its middle, along the line
     (the user: every click decides, the same each time); clicked on its label, or found, from its source (the node
     the file writes first: every edge has one). The counted end is marked with the end
     tick, so the fan the cross arrows step shows before you press: a short bar across the way the edge leaves that
