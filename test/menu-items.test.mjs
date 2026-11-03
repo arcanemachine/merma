@@ -147,6 +147,7 @@ test('unlocked, an item applies and says why by its own rule', () => {
 // look in editor.mjs's key map and in HELP_ONLY below.
 const HELP_ONLY = {
   '`': 'code-panel.mjs answers it',
+  'shift+`': 'code-panel.mjs answers it',
   '?': 'main.mjs answers it',
   'ctrl+z': 'undo, handled before the key map',
   'ctrl+shift+z': 'redo, handled before the key map',

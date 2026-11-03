@@ -122,7 +122,24 @@ export function createCodePanel(els, file, hooks) {
   // reports another code (ISO keyboards on a Mac).
   const isTick = (/** @type {KeyboardEvent} */ e) => e.code === 'Backquote' || e.key === '`';
   const plain = (/** @type {KeyboardEvent} */ e) => !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey;
+  // Shift+` closes the panel from anywhere but a text field (the user: Escape on the diagram takes a pick and the
+  // selection first). The same key by place or by what it types, as ` is.
+  /** Shift+` taken: the panel closed, or asked to. */
+  function closeKey(/** @type {KeyboardEvent} */ e) {
+    if (!e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) return false;
+    if (e.code !== 'Backquote' && e.key !== '~') return false;
+    const target = /** @type {Element} */ (e.target);
+    // A field that takes typing types it; the read-only code, the Follow box and the Dock select do not.
+    const field = target.closest?.('textarea, input:not([type=checkbox]), [contenteditable]');
+    if (field && !(field === code && !editing)) return false;
+    // Help is open: it keeps the page's keys.
+    if (document.querySelector(':popover-open:not([data-overlay])')) return false;
+    if (!closePanel()) return false;
+    e.preventDefault();
+    return true;
+  }
   document.addEventListener('keydown', (e) => {
+    if (closeKey(e)) return;
     if (!plain(e) || !isTick(e)) return;
     const target = /** @type {Element} */ (e.target);
     if (panel.contains(target) || handle.contains(target)) return;
@@ -345,6 +362,27 @@ export function createCodePanel(els, file, hooks) {
     return true;
   }
   cancel.addEventListener('click', cancelEdit);
+  /**
+   * Close the panel from outside the code. A changed draft is saved first, if the user says so; one that does not save
+   * stays open. Whether there was a panel to close.
+   */
+  function closePanel() {
+    if (!open) return false;
+    if (closing) return true;
+    if (editing && code.value !== editing.base.text) {
+      if (confirm('Save the code and close the panel? Cancel keeps editing.')) {
+        closing = true;
+        saveEdit().then(() => { if (!editing) { setOpen(false); diagram.focus(); } }).finally(() => { closing = false; });
+      } else {
+        code.focus({ preventScroll: true });   // to go on editing, where the cursor was
+      }
+      return true;
+    }
+    cancelEdit();
+    setOpen(false);
+    diagram.focus();
+    return true;
+  }
 
   // The handle: a drag, or the arrows by STEP. Right or Down moves it right or down, whichever side the panel is on.
   // A bottom dock grows as the handle moves up.
@@ -388,27 +426,8 @@ export function createCodePanel(els, file, hooks) {
   });
 
   return {
-    /**
-     * Escape from the diagram: close the panel. A changed draft is saved first, if the user says so (the user: from the
-     * diagram, Escape offers to save and close); one that does not save stays open. Whether Escape was taken.
-     */
-    escape() {
-      if (!open) return false;
-      if (closing) return true;
-      if (editing && code.value !== editing.base.text) {
-        if (confirm('Save the code and close the panel? Cancel keeps editing.')) {
-          closing = true;
-          saveEdit().then(() => { if (!editing) { setOpen(false); diagram.focus(); } }).finally(() => { closing = false; });
-        } else {
-          code.focus({ preventScroll: true });   // to go on editing, where the cursor was
-        }
-        return true;
-      }
-      cancelEdit();
-      setOpen(false);
-      diagram.focus();
-      return true;
-    },
+    /** Escape from the diagram, its last step: close the panel (the user: it offers to save a changed draft first). */
+    escape: closePanel,
     /**
      * Show a version of the file. The scroll stays where it was; a selection in the code is lost. While editing, the
      * draft stays, and the header says when the file has changed since.

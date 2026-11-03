@@ -27,7 +27,7 @@ them.
   browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
   back into a draft) and Escape goes back to the diagram, the panel staying open; Escape in the code, or on a control
-  in the panel's bar, goes out to the panel, which Tab reaches too (just before the bar). Escape on the diagram closes the panel, once nothing is selected and no notice shows. The arrows on the panel scroll the
+  in the panel's bar, goes out to the panel, which Tab reaches too (just before the bar). Escape on the diagram closes the panel, once nothing is selected and no notice shows. Shift+`` ` `` closes it from anywhere at once, the selection staying (in the label box, find or a draft it types `~`); with a changed draft it asks first, as Escape does. The arrows on the panel scroll the
   code (Page Up, Page Down, Home and End too); to move the diagram, `` ` `` to it first.
 - **Follow selection**, a box in the code panel's bar (checked at first, remembered in the browser): selecting a
   node, an edge, a subgraph or the title scrolls the code to its line, marked in pale blue, so Edit, or `` ` `` and

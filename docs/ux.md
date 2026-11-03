@@ -279,7 +279,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   pickers use plain digits. A digit is read by its key's place on the number row, so it is the same key on every
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. `
-  (the code panel) is likewise the key left of 1, or whichever key types it (that place reports another key on ISO
+  (the code panel) is likewise the key left of 1, or whichever key types it, and Shift+` likewise by `~` (that place reports another key on ISO
   keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
   for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
   Alt+Left and Alt+Right move the diagram rather than go back or forward.
@@ -312,6 +312,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is the diagram's. In a draft, ` types a backtick (Mermaid's markdown strings use them), so Escape comes
   first. ` into the panel is a click into it, and opening it the footer's Code pressed: each ends find and Connect
   to… as the mouse's click does. Close puts focus back on the footer's Code.
+- Shift+` closes the panel from anywhere but a field you type in (the user: Escape on the diagram takes a pick and the
+  selection before the panel, and that order stays): focus goes to the diagram, the selection and a pick stay. With a
+  changed draft it asks Escape's question first. In a field, the label box, find or a draft, it types. With the panel
+  closed it does nothing; ` opens it.
 - It opens and closes at once, with no animation: the diagram refits as the panel appears, and would refit every frame.
 - Follow selection (the user: a box, checked by default, the browser's for every file): checked, it always follows,
   reading or editing, so there is one rule to keep in mind; unchecked, never. Each new selection (click, tap, keys,
