@@ -374,7 +374,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do things is Help's and the guide's.
 - A message is written the way a person would write it (the user): plain words, and what to do in the imperative mood,
   addressed to the reader.
-- A message is made of full sentences, never a fragment or a clipped label (the user).
+- A message is made of full sentences, as a person would say them (the user): it names what it is about and says
+  what happened, rather than a clipped label or a verb with nothing in front of it.
 - One thought, one sentence: no colon, semicolon or dash joining two clauses; write two sentences (the user).
 - Everyday words, the ones a person would say aloud. The passive voice is fine where it reads more naturally (the
   user).
