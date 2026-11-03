@@ -282,12 +282,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     pickNotice();
   }
   /**
-   * Insert node on the selected edge: a new node in its middle, its label box open. A label stays on the new edge on
-   * the tick's side (the user: the tick already says which end you mean).
+   * Insert node on the selected edge: a new node in its middle, its label box open. The node goes in on the tick's
+   * side of the label, which stays on the other new edge (the user: the tick lies between the label and that end).
    */
   function startInsert() {
     const id = selection().id;
-    const side = endSide === 'end' ? 'second' : 'first';
+    const side = endSide === 'end' ? 'first' : 'second';
     addAndName((text) => insertNode(text, id, { side }), null, 'node', true);
   }
 

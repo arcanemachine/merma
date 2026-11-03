@@ -106,8 +106,9 @@ another click on it closes it.
 
 - **Insert node** (N) puts a new node in the middle of the edge, and opens its label box, as Add connected node does:
   `A --> B` becomes `A --> n1` and `n1 --> B`, both with the edge's arrow. The edge from A stays where the edge was
-  written, keeping its edge id and `linkStyle`; the edge to B goes after the last edge. A label stays on the new edge
-  nearer the tick: click the line nearer an end, or press Space, to choose. Grayed on an edge written inside a
+  written, keeping its edge id and `linkStyle`; the edge to B goes after the last edge. The node goes in on the tick's
+  side of the label, and the label stays on the other new edge: click the line nearer an end, or press Space, to
+  choose. Grayed on an edge written inside a
   collapsed subgraph, where the node would be hidden: expand it first.
 - **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
   Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
