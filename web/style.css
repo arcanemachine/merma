@@ -170,9 +170,12 @@ main:is([data-dock="top"], [data-dock="bottom"]) #code-handle { cursor: row-resi
 body.resizing { user-select: none; }
 /* Messages from editing: what to do next (info), what merma cannot do here (warning), what was not saved and why
    (error). Screen readers hear them from the hidden live regions. */
-#notice { display: none; position: relative; z-index: 1; align-self: start; padding: 8px 16px; font-size: 13px;
-          line-height: 16px; white-space: pre-wrap; }
-#notice.show { display: block; }
+#notice { position: relative; z-index: 1; align-self: start; font-size: 13px; line-height: 16px; white-space: pre-wrap; }
+/* Two rows (docs/ux.md, Messages): a mode's notice, and what was refused in it under it; or a notice alone. */
+#notice > div { display: none; padding: 8px 16px; }
+#notice > div.show { display: block; }
+/* The find bar lies where the notice does: while it is open, the notice yields, and comes back as it closes. */
+main:has(#find:not([hidden])) #notice { display: none; }
 /* Find on /: a bar over the diagram's top, as the notice lies, so the diagram never moves. */
 #find { position: relative; z-index: 2; align-self: start; display: flex; gap: 8px; align-items: center;
         padding: 6px 16px; font-size: 13px; background: var(--find-bg); color: #222; }
@@ -204,9 +207,9 @@ body.resizing { user-select: none; }
   stroke: var(--find-current) !important; }
 #stage text.flowchartTitleText[data-page-match] { text-decoration: underline 2px var(--find-mark); }
 #stage:not([data-page-blink-off]) text.flowchartTitleText[data-page-current] { fill: var(--find-current); }
-#notice.info { background: var(--info-bg); color: var(--info-fg); }
-#notice.warning { background: var(--warning-bg); color: var(--warning-fg); }
-#notice.error { background: var(--error-bg); color: var(--error-fg); }
+#notice .info { background: var(--info-bg); color: var(--info-fg); }
+#notice .warning { background: var(--warning-bg); color: var(--warning-fg); }
+#notice .error { background: var(--error-bg); color: var(--error-fg); }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Flowchart nodes, edges and subgraphs can be clicked to select; the selected one is outlined in blue, whatever its
    shape. A plain stroke, not a glow: Chrome's GPU drawing of a drop-shadow filter over a large area in the scaled stage

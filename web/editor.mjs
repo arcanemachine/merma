@@ -65,7 +65,7 @@ const END_RUN = 3;
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -213,9 +213,11 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
+  /** Say why something was refused. Under the lock its notice already says why, so the refusal is shorter. */
+  const refuse = (/** @type {string} */ why) => ui.notice(why === LOCKED ? 'Not while the code is being edited.' : why, 'warning');
   /** Say why nothing happens while the code panel holds the lock; false when it does not. */
   function refuseLocked() {
-    if (locked) ui.notice(LOCKED, 'warning');
+    if (locked) refuse(LOCKED);
     return locked;
   }
 
@@ -296,12 +298,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     start: 'node or subgraph to reassign the edge to', end: 'node or subgraph to reassign the edge to',
   };
   /**
-   * What the pick is, and how to leave it (docs/ux.md, Messages: not how to pick): shown as it starts, and again when
-   * a find inside it closes.
+   * What the pick is, and how to leave it (docs/ux.md, Messages: not how to pick): the pick's notice, held while it
+   * lasts.
    */
   function pickNotice() {
     const what = picking === 'merge' ? `node to merge ${named(selection())} into` : PICKED[picking ?? 'connect'];
-    ui.notice(`Pick the ${what}. Press Escape or click away to cancel.`, 'info');
+    ui.mode(`Pick the ${what}. Press Escape or click away to cancel.`);
   }
 
   /** @type {Record<string, () => void>} */
@@ -379,7 +381,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       'arrow-types': arrowPicker,
     },
     onRun: (/** @type {string} */ action) => handlers[action](),
-    onRefuse: (/** @type {string} */ why) => { refused = true; ui.notice(why, 'warning'); },
+    onRefuse: (/** @type {string} */ why) => { refused = true; refuse(why); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
   };
@@ -691,9 +693,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     else if (busy) clickedMeanwhile = { item, menu, clicked: true };
   }
 
+  /** In a mode (a pick, the lock), the next key or click that acts takes away what was refused in it; its notice stays. */
+  function clearRefusal() { if (picking || locked) ui.hideNotice(); }
+
   function clicked(/** @type {Element} */ target, /** @type {number} */ x = NaN, /** @type {number} */ y = NaN) {
     if (!selectable) return;
     if (ended()) return;
+    clearRefusal();
     const item = itemAt(target);
     clickedDuringEdit(item);
     if (picking) {
@@ -725,7 +731,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /** Leave Connect to… or a move with nothing done: by Escape or a click away. */
   function cancelPick() {
     picking = null;
-    ui.hideNotice();
+    ui.mode(null);
     select(selection());
   }
 
@@ -740,7 +746,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function mergeTo(/** @type {Item | null} */ to) {
     const from = selection();   // the pick starts on the selected node
     picking = null;
-    ui.hideNotice();
+    ui.mode(null);
     if (!to) { deselect(); return; }
     if (to.kind !== 'node') { ui.notice('Merge into a node: a subgraph cannot take a node\'s place.', 'warning'); select(from); return; }
     // Onto itself: nothing to merge (the candidate starts there).
@@ -762,7 +768,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const edge = selection();   // the pick starts on the selected edge
     const end = /** @type {'start' | 'end'} */ (picking);
     picking = null;
-    ui.hideNotice();
+    ui.mode(null);
     if (!to) { deselect(); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(edge); return; }
     // Onto the end it has: nothing changed, so nothing is written (the outline starts there).
@@ -783,7 +789,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const sel = selection();   // the pick starts on the selection
     const back = picking === 'connect-from';
     picking = null;
-    ui.hideNotice();
+    ui.mode(null);
     if (!to) { deselect(); return; }
     if (to.kind === 'subgraph' && refuseUnnamed(to.id)) { select(sel); return; }
     deselect();
@@ -867,7 +873,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (picking || selected?.kind !== 'edge') return false;
     const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS.edge.find((i) => i.action === action));
     const state = menuState();
-    if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+    if (!applies(item, state)) { refuse(whyNot(item, state)); return true; }
     handlers[action]();
     return true;
   }
@@ -877,7 +883,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const item = MENUS[isBox(selected) ? 'box' : selected.kind].find((i) => i.action === action);
     if (!item) return false;
     const state = menuState();
-    if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+    if (!applies(item, state)) { refuse(whyNot(item, state)); return true; }
     handlers[action]();
     return true;
   }
@@ -912,7 +918,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     // Both go in one press.
     ['selection and notice', () => {
       const had = letGo();
-      const hid = !locked && ui.hideNotice();
+      const hid = ui.hideNotice();   // in a mode, only what shows over its notice
       if (had) ui.announce('Nothing selected');   // after hideNotice, which empties the live regions
       return hid || had;
     }],
@@ -934,7 +940,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[selected.kind].find((i) => i.action === 'connect'));
       const state = menuState();
-      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+      if (!applies(item, state)) { refuse(whyNot(item, state)); return true; }
       handlers.connect();
       return true;
     },
@@ -950,8 +956,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       // Enter on the edge being reassigned: nothing to do, as Enter at once on a node's own pick writes nothing.
       if (movingEnd() && candidate && same(candidate, selection())) return true;
       if (picking && candidate?.kind === 'edge') {
-        ui.notice(connecting() ? 'Pick a node or subgraph to connect: an edge cannot be connected to.'
-          : picking === 'merge' ? 'Pick a node to merge into: an edge cannot take a node.'
+        ui.notice(connecting() ? 'An edge cannot be connected to.'
+          : picking === 'merge' ? "An edge cannot take a node's place."
             : 'An edge cannot be attached to another edge.', 'warning');
         return true;
       }
@@ -1007,7 +1013,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[box ? 'box' : 'subgraph']
         .find((i) => i.action === (box ? 'expand-subgraph' : 'collapse-subgraph')));
       const state = menuState();
-      if (!applies(item, state)) { ui.notice(whyNot(item, state), 'warning'); return true; }
+      if (!applies(item, state)) { refuse(whyNot(item, state)); return true; }
       handlers[item.action]();
       return true;
     },
@@ -1272,7 +1278,6 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const to = pick ?? was.candidate;
       moves.forgetCandidate();
       if (to && elsOf(to).length) markCandidate(to, { quiet: !pick });
-      pickNotice();
     // No reveal for a pick: Enter has centered one off screen, and one on screen stays put (an edge's line may not be).
     } else if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
     if (findBox === document.activeElement) els.diagram.focus();
@@ -1286,7 +1291,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       const at = finding.matches[finding.at];
       if (!at) return;
       // The candidate never rests on the title: the find stays open.
-      if (picking && at.kind === 'title') { ui.notice('Pick a node or subgraph: the title cannot be one.', 'warning'); return; }
+      if (picking && at.kind === 'title') { ui.notice('The title cannot be picked.', 'warning'); return; }
       // A jump to a match is to its middle (the user), so it is not left at the edge; one on screen stays put. The
       // candidate brings its own into view.
       if (!at.on && !picking) viewer.center((at.box.left + at.box.right) / 2, (at.box.top + at.box.bottom) / 2);
@@ -1378,11 +1383,13 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
     if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
+      clearRefusal();
       if (e.shiftKey) redo(); else undo();
       return;
     }
     if (e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && key === 'y') {
       e.preventDefault();
+      clearRefusal();
       redo();
       return;
     }
@@ -1393,6 +1400,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (e.metaKey || !keys[name]) return;
     // A diagram that cannot be selected (not a flowchart) takes only the view keys, silently.
     if (!selectable && !VIEW_KEYS.includes(name)) return;
+    if (name !== 'escape') clearRefusal();   // Escape's own steps take it first
     if (keys[name]()) e.preventDefault();
   });
 
@@ -1978,14 +1986,14 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       if (busy) { ui.notice('Not started: another edit is still saving; try again.', 'error'); return false; }
       locked = true;
       setEditable();
-      ui.notice(LOCKED, 'info');
+      ui.mode(LOCKED);
       return true;
     },
     unlock() {
       if (!locked) return;
       locked = false;
       setEditable();
-      ui.hideNotice();
+      ui.mode(null);
     },
 
     /**
@@ -2005,7 +2013,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
         clickedMeanwhile = null;
         locked = false;
         setEditable();
-        ui.hideNotice();
+        ui.mode(null);
         ui.announce('Saved');
         await display(text);
         settled = selected;

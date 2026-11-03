@@ -10,6 +10,7 @@ import { prune, setView, viewText } from './collapse.mjs';
 import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
+import { hide as hideTop, mode as modeNotice, NONE, show as showNotice } from './notices.mjs';
 
 // Every id the page asks for is in index.html.
 const el = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
@@ -140,23 +141,40 @@ function speak(/** @type {string} */ id, /** @type {string} */ message) {
   // Set on the next frame, after the clearing, so the same message twice in a row is announced again.
   speakFrame = requestAnimationFrame(() => { el(id).textContent = message; });
 }
+let notices = NONE;
+/** Draw the notice's rows from `notices`, and speak what the step says. */
+function drawNotices(/** @type {import('./notices.mjs').Speak} */ said) {
+  for (const [id, row] of /** @type {const} */ ([['notice-base', notices.base], ['notice-top', notices.top]])) {
+    el(id).textContent = row?.text ?? '';
+    el(id).className = row ? `show ${row.kind}` : '';
+  }
+  if (said) speak(said.region === 'alert' ? 'notice-alert' : 'notice-status', said.text);
+}
 const ui = {
   notice(/** @type {string} */ message, /** @type {'info' | 'warning' | 'error'} */ kind) {
     if (!NOTICE_KINDS.includes(kind)) throw new Error(`Unknown notice kind ${kind}`);
-    el('notice').textContent = message;
-    el('notice').classList.remove(...NOTICE_KINDS);
-    el('notice').classList.add('show', kind);
-    speak(kind === 'error' ? 'notice-alert' : 'notice-status', message);
+    const step = showNotice(notices, message, kind);
+    notices = step.state;
+    drawNotices(step.speak);
+  },
+  /** A mode's notice, held until the mode ends (null), what is refused in it shown under it. */
+  mode(/** @type {string | null} */ message) {
+    cancelAnimationFrame(speakFrame);
+    for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
+    const step = modeNotice(message);
+    notices = step.state;
+    drawNotices(step.speak);
   },
   /** What an edit did, for screen readers only: on screen, the redrawn diagram shows it. */
   announce: (/** @type {string} */ message) => speak('notice-status', message),
-  /** Hide the notice; whether one was showing. */
+  /** Hide the notice, or in a mode what shows over its notice; whether one was showing. */
   hideNotice() {
     cancelAnimationFrame(speakFrame);
-    const shown = el('notice').classList.contains('show');
-    el('notice').classList.remove('show');
+    const step = hideTop(notices);
+    notices = step.state;
+    drawNotices(null);
     for (const id of ['notice-status', 'notice-alert']) el(id).textContent = '';
-    return shown;
+    return step.shown;
   },
   /** Show subgraph `id` collapsed or expanded, in this page only, and draw the file again. */
   async setView(/** @type {string} */ id, /** @type {'collapsed' | 'expanded'} */ view) {

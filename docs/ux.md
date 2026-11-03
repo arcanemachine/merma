@@ -377,6 +377,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though
   Mermaid draws it as a frame round the box and may rearrange what is inside.
+- A mode's notice (a pick's, the code panel's while the code is being edited) stays while the mode lasts (the user);
+  what is refused in it shows in a row under it, one at most, a second replacing the first, and goes with the next key
+  the page answers or click on the diagram (another key, a drag or the wheel leaves it); Escape in a pick ends the pick, both rows going. That row says only what was
+  refused, since the notice above says what to do ("An edge cannot be connected to."). Find's bar lies where the
+  notice does, so the notice yields while find is open and comes back as it closes. A screen reader hears each
+  refusal, a repeat too, and not the mode's notice again when the row goes.
 - A notice is one of three kinds, by what it means for you; each fits one case only:
   - **info** (blue): nothing you asked for was refused: what to do next ("Click the node the edge goes to"), or
     nothing to do ("Nothing to undo").

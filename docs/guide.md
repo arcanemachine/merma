@@ -33,7 +33,7 @@ them.
   node, an edge, a subgraph or the title scrolls the code to its line, marked in pale blue, so Edit, or `` ` `` and
   Enter, starts there. With it unchecked, Edit starts at the first line in view.
 - **Edit** in the code panel makes the code editable, a draft, and stops every edit in the diagram until you **Save**
-  or **Cancel**: the notice says so, and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
+  or **Cancel**: the notice says so (and a refused edit says so on a row under it), and the diagram's background turns gray, as the read-only code's is. You can still select, move about with the
   keys and find (/); a menu still opens, its edits grayed with the reason, Center in window and Find… working. Ctrl+Enter (⌘+Enter on a Mac) in the code saves,
   Ctrl+Z there undoes typing, and Escape goes out to the panel, keeping the draft (Ctrl+Enter there saves too; in the
   draft, `` ` `` types a backtick). Escape on the panel with a draft cancels it, asking first if you changed it, the
