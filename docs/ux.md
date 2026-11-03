@@ -289,6 +289,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
   for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
   Alt+Left and Alt+Right move the diagram rather than go back or forward.
+- Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Alt does not stand in, as
+  everywhere else, since Alt+C and Alt+V are no copy or paste). The page takes them only when it acts, on the diagram
+  with no text selected: Ctrl+C with a node selected, Ctrl+V with a node copied. Otherwise the browser's own copy and
+  paste go on. The page's clipboard is its own, per tab: Copy also writes the node's Mermaid text to the system
+  clipboard, but the page never reads it (no permission prompt, and no foreign text to make sense of).
 
 ## The code panel
 

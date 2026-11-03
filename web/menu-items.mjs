@@ -6,6 +6,7 @@
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
 export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
+  'Paste',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
 /**
@@ -73,6 +74,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
  * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
+ * @property {boolean} [copied] a node has been copied, so there is something to paste
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -89,12 +91,13 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {string} action what the editor runs
  * @property {string} label
  * @property {string} [key] its shortcut letter, or `shift+` and a letter (that letter's item the other way round); none
- *   for an item a quicker key outside menus already runs (Enter edits)
+ *   for an item a quicker key outside menus already runs (Enter edits). `ctrl+` first: Ctrl, or ⌘ on a Mac, which the
+ *   page answers before the menu does (copy and paste)
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
  * @property {string} [submenu] the name of what opens beside it: the item's only action
  * @property {boolean} [mode] it waits for a further click or typing
- * @property {boolean} [view] it changes only the view, so it works while the code is being edited
+ * @property {boolean} [view] it changes only the view (or nothing: Copy node), so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
  * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
  * @property {string} [labelBack]
@@ -104,6 +107,28 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
 /** Why a node cannot be inserted into an edge whose line is in a collapsed subgraph: the node would be hidden. */
 export const INSERT_COLLAPSED = 'This edge is inside a collapsed subgraph. Expand it first (H) to insert a node.';
 const EXPAND_FIRST = 'This subgraph is collapsed. Expand it first (H) to add to it.';
+export const NOTHING_COPIED = 'Nothing has been copied. Copy a node first (Ctrl+C).';
+
+/** Paste node and Paste node without edges, grayed until a node is copied, and where `why` says. */
+const pasteItems = (/** @type {(s: MenuState) => string | null} */ why = () => null) => [
+  { action: 'paste-node', label: 'Paste node', key: 'ctrl+v', applies: (/** @type {MenuState} */ s) => Boolean(s.copied) && !why(s),
+    why: (/** @type {MenuState} */ s) => (s.copied ? why(s) : NOTHING_COPIED) },
+  { action: 'paste-node-bare', label: 'Paste node without edges', key: 'ctrl+shift+v',
+    applies: (/** @type {MenuState} */ s) => Boolean(s.copied) && !why(s), why: (/** @type {MenuState} */ s) => (s.copied ? why(s) : NOTHING_COPIED) },
+];
+
+/** How a menu shows `key`, on a Mac (`mac`) or another system: `⇧C`, `Ctrl+⇧V`, `⌘⇧V`. */
+export function keyLabel(/** @type {string} */ key, /** @type {string} */ os) {
+  const ctrl = key.startsWith('ctrl+') ? (os === 'mac' ? '⌘' : 'Ctrl+') : '';
+  return ctrl + key.replace(/^ctrl\+/, '').replace(/^shift\+/, '⇧').toUpperCase();
+}
+
+/** `key` as aria-keyshortcuts writes it: `Shift+C`, `Control+Shift+V`, `Meta+V`. */
+export function keyAria(/** @type {string} */ key, /** @type {string} */ os) {
+  const parts = key.split('+');
+  const last = /** @type {string} */ (parts.pop()).toUpperCase();
+  return [...parts.map((p) => (p === 'ctrl' ? (os === 'mac' ? 'Meta' : 'Control') : 'Shift')), last].join('+');
+}
 
 /**
  * Rotate and Flip, page-only: the whole diagram from the empty-space menu, a subgraph on its own from its menu, where
@@ -130,6 +155,8 @@ export const MENUS = {
     { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'edit-node', label: 'Edit node' },
+    { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
+    ...pasteItems(),
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
@@ -139,6 +166,7 @@ export const MENUS = {
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'reassign-edge', label: 'Reassign edge…', key: 'e', mode: true },
+    pasteItems((s) => s.insertWhy ?? null)[0],
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
   ],
@@ -150,6 +178,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
+    ...pasteItems(),
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
@@ -163,6 +192,7 @@ export const MENUS = {
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
     { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
+    ...pasteItems(() => EXPAND_FIRST),
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
@@ -174,6 +204,7 @@ export const MENUS = {
   space: [
     { action: 'add-node', label: 'Add node', key: 'n' },
     { action: 'add-subgraph', label: 'Add subgraph', key: 'g' },
+    ...pasteItems(),
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
     ...turnItems(),

@@ -105,6 +105,15 @@ another click on it closes it.
   **Move out** (Shift+V) moves it one level up, into the subgraph around the one it is in, or to the top level; grayed
   at the top level.
 - **Edit node** opens the node panel on it: its label and its shape (below).
+- **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
+  `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
+  editor or a message. Nothing in the file changes.
+- **Paste node** (Ctrl+V) adds a new node from the copy, under a new id (`n1`), and selects it: in the block this node
+  is drawn in, so Ctrl+C then Ctrl+V duplicates a node beside it. The new node gets every edge the copied node had, its
+  own id in place of the copied one's (a self-loop stays one), written after the last edge; an edge whose other end is
+  no longer in the file is left out. **Paste node without edges** (Ctrl+Shift+V) adds it with none. Its classes and its
+  `style` and `click` lines come either way. One copy can be pasted many times, and still after the node it came from
+  is changed or deleted. Grayed until a node has been copied in this tab.
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
   (the first one still there); clicked, nothing is.
@@ -150,6 +159,9 @@ another click on it closes it.
   end that moved. It keeps its place in the file, except when it is written inside a subgraph and its new end is named
   outside it: an edge written in a subgraph pulls both its nodes into it, so its line moves after the file's last edge,
   and its `linkStyle` number goes with it.
+- **Paste node** (Ctrl+V) inserts a new node from the copy (Copy node, in the node menu) into the edge, as Insert
+  node does, on the tick's side of the label. It gets the edge's two halves and no other edges, so Ctrl+Shift+V does
+  the same here. Grayed on an edge written inside a collapsed subgraph.
 - **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.
 
@@ -170,6 +182,8 @@ another click on it closes it.
   they move a node. Into itself, or a subgraph inside it, is refused. A move that would make another subgraph draw one
   of its nodes moves that subgraph's edges naming it after the last edge; when that cannot keep it, the move is
   refused, naming the node to move first.
+- **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V) add a new node from the copy inside the
+  subgraph, as the node menu's do. Grayed on a collapsed box.
 - **Collapse subgraph** (H) draws it as one box with its title and "•••", and **Expand subgraph** (H) on the box
   opens it again. Only this tab's view changes, never the file: other tabs, agents and the code panel still see the file
   as written, and a reload of this tab keeps it (a new tab starts from the file). Edges to what it holds end at the box.
@@ -195,7 +209,8 @@ Removing the title isn't supported. Delete or Backspace on it says so.
 ### Empty space
 
 Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
-top level, at the end of the file. Mermaid lays the diagram out, so what you add lands where the layout puts it.
+top level, at the end of the file, and **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V), which
+add a new node from the copy there, as the node menu's do. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 **Find…** (/) opens the find (below). **Fit to window** fits the diagram to the window, as F does with nothing
 selected.
 
@@ -294,6 +309,8 @@ here does just what it does in the selected item's menu:
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel (asking to save a changed draft first) |
+| Ctrl \| ⌘+C with a node selected | Copy node |
+| Ctrl \| ⌘+V, or with Shift | Paste node, or Paste node without edges: into the selected edge, inside the selected subgraph, beside the selected node, or with nothing selected at the top level. With nothing copied, or text selected on the page, the browser's own copy and paste |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 

@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1049,3 +1049,75 @@ test('itemLines: the statement the code panel shows for each kind of item', () =
   assert.deepEqual(itemLines(text, { kind: 'edge', id: 'L_start_ok_0' }), { from: 4, to: 4 });
   assert.equal(itemLines('flowchart TD\ntitle:::hot --> b', { kind: 'title', id: 'title' }), null, 'only the frontmatter\'s');
 });
+
+test('copyNode reads the shape where it is written, its classes from every mention, its settings and its edges', () => {
+  const src = 'flowchart TD\n  A --> B:::warn\n  B{Paid?} e1@-->|yes| C\n  B --> B\n  class A,B done\n  style B fill:#eef\n  click B href "x.mmd"\n  style C fill:#fff\n';
+  const c = copyNode(src, 'B');
+  assert.deepEqual(c, {
+    id: 'B', shape: '{Paid?}', classes: ['warn'],
+    settings: [{ keyword: 'class', rest: ' done' }, { keyword: 'style', rest: ' fill:#eef' }, { keyword: 'click', rest: ' href "x.mmd"' }],
+    edges: [{ from: 'A', to: 'B', connector: '-->' }, { from: 'B', to: 'C', connector: '-->|yes|' }, { from: 'B', to: 'B', connector: '-->' }],
+  });
+  assert.equal(copiedText(c), 'B{Paid?}\nA --> B\nB -->|yes| C\nB --> B\nclass B warn\nclass B done\nstyle B fill:#eef\nclick B href "x.mmd"\n');
+});
+
+test('copyNode: a node written bare, or with no label in its @{ … }, is labeled with its id; an @{ … } shape is kept', () => {
+  assert.equal(copyNode('flowchart TD\n  A --> B\n', 'A').shape, '["A"]');
+  assert.equal(copyNode('flowchart TD\n  A@{ shape: doc, label: "Receipt" }\n', 'A').shape, '@{ shape: doc, label: "Receipt" }');
+  assert.equal(copyNode('flowchart TD\n  A@{ shape: circle }\n', 'A').shape, '@{ shape: circle, label: "A" }');
+});
+
+test('pasteNode at the top level: the copy last, its edges after the last edge with its id swapped in, so no edge moves', () => {
+  const src = 'flowchart TD\n  A --> B\n  B -- no --> B\n  linkStyle 0 stroke:red\n';
+  const { text, id } = pasteNode(src, copyNode(src, 'B'), null);
+  assert.equal(id, 'n1');
+  assert.equal(text, 'flowchart TD\n  A --> B\n  B -- no --> B\n  A --> n1\n  n1 -- no --> n1\n  linkStyle 0 stroke:red\n  n1["B"]\n');
+  assert.equal(pasteNode(src, copyNode(src, 'B'), null, false).text, src + '  n1["B"]\n');
+});
+
+test('pasteNode picks a fresh id at paste time, so one copy pasted twice makes two nodes', () => {
+  const src = 'flowchart TD\n  A[Start]\n';
+  const c = copyNode(src, 'A');
+  const once = pasteNode(src, c, null).text;
+  assert.deepEqual(pasteNode(once, c, null), { text: once + '  n2[Start]\n', id: 'n2' });
+});
+
+test('pasteNode into a subgraph, or into the block a selected node is drawn in', () => {
+  const src = 'flowchart TD\n  subgraph s [S]\n    A[Start]\n  end\n  B\n';
+  const inside = 'flowchart TD\n  subgraph s [S]\n    A[Start]\n    n1[Start]\n  end\n  B\n';
+  assert.equal(pasteNode(src, copyNode(src, 'A'), { kind: 'subgraph', id: 's' }).text, inside);
+  assert.equal(pasteNode(src, copyNode(src, 'A'), { kind: 'node', id: 'A' }).text, inside);
+  assert.equal(pasteNode(src, copyNode(src, 'A'), { kind: 'node', id: 'B' }).text, src + '  n1[Start]\n');
+});
+
+test('pasteNode onto an edge inserts the copy there, and gives it no other edges', () => {
+  const src = 'flowchart TD\n  A --> B\n  C{Paid?} --> D\n';
+  assert.equal(pasteNode(src, copyNode(src, 'C'), { kind: 'edge', svgId: 'L_A_B_0', side: 'first' }).text,
+    'flowchart TD\n  A --> n1\n  n1{Paid?}\n  C{Paid?} --> D\n  n1 --> B\n');
+});
+
+test('pasteNode leaves out an edge whose other end is gone, keeps one to a subgraph, and copies the settings', () => {
+  const src = 'flowchart TD\n  subgraph s [S]\n    X\n  end\n  A --> B:::hot\n  B --> s\n  style B fill:#eef\n';
+  const c = copyNode(src, 'B');
+  const gone = deleteNode(src, 'A').text;
+  const { text } = pasteNode(gone, c, null);
+  assert.deepEqual(edges(text).filter((e) => e.from === 'n1' || e.to === 'n1').map((e) => `${e.from} ${e.to}`), ['n1 s']);
+  assert.ok(text.endsWith('\n  class n1 hot\n  style n1 fill:#eef\n'), text);
+});
+
+for (const [name, ids] of Object.entries(NODE_IDS)) {
+  const src = fixture(name);
+  for (const id of ids) {
+    test(`${name} ${id}: pasteNode with edges moves no edge and no node, and gives the copy each of the original's edges`, () => {
+      const sig = (e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const before = edges(src);
+      const { text, id: copy } = pasteNode(src, copyNode(src, id), null);
+      const after = edges(text);
+      assert.deepEqual(after.slice(0, before.length).map(sig), before.map(sig));
+      const swap = (n) => (n === id ? copy : n);
+      assert.deepEqual(after.slice(before.length).map(sig),
+        before.filter((e) => e.from === id || e.to === id).map((e) => sig({ ...e, from: swap(e.from), to: swap(e.to) })));
+      for (const n of ids) assert.equal(blockOf(text, n)?.start ?? null, blockOf(src, n)?.start ?? null, n);
+    });
+  }
+}

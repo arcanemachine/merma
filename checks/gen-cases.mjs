@@ -9,12 +9,13 @@
 // or subgraph `id`'s edges moved to `to` (moveEdges), each with its linkStyle style. `merge`: { id, edges } node `id`
 // merged into another (mergeNode): gone, with `edges` edges left. `relocate`: { id, to } a node or subgraph moved
 // into subgraph `to` (null: the top level), the edges the same, each with its style. `blocks`: for each node, the
-// subgraph blockOf says Mermaid draws it in (null: the top level).
+// subgraph blockOf says Mermaid draws it in (null: the top level). `paste`: { id, of, edges } node `of` copied and pasted
+// as `id` (pasteNode): drawn with its shape, label and classes, and `edges` edges in all.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  mergeNode, moveEdges, moveNode, moveSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, deleteEdge, deleteNode, edges, freeId, quoteLabel,
+  mergeNode, moveEdges, moveNode, moveSubgraph, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -143,5 +144,23 @@ for (const [name, list, src] of sources) {
       if (out !== src) cases.push({ name: `${name} move subgraph ${sg.id} into ${to}`, kind: 'relocate', src, out, relocate: { id: sg.id, to } });
     }
   }
+}
+// Each node copied and pasted: at the top level with its edges, beside itself without; the first node into each
+// subgraph, and onto each edge.
+for (const [name, list, src] of sources) {
+  const pasted = (/** @type {string} */ what, /** @type {string} */ of, /** @type {{ text: string, id: string }} */ r, /** @type {string | null} */ sg) =>
+    cases.push({ name: `${name} paste ${of} ${what}`, kind: 'paste', src, out: r.text, paste: { id: r.id, of, edges: edges(r.text).length },
+      ...(sg ? { into: { id: r.id, subgraph: sg } } : {}) });
+  for (const id of list) {
+    const c = copyNode(src, id);
+    pasted('at the top level', id, pasteNode(src, c, null), null);
+    pasted('beside itself', id, pasteNode(src, c, { kind: 'node', id }, false), blockOf(src, id)?.id ?? null);
+  }
+  if (!list.length) continue;
+  const first = copyNode(src, list[0]);
+  for (const sg of subgraphs(src).filter((s) => s.end !== null)) {
+    pasted(`into ${sg.id}`, list[0], pasteNode(src, first, { kind: 'subgraph', id: /** @type {string} */ (sg.id) }), sg.id);
+  }
+  for (const e of edges(src)) pasted(`onto ${e.svgId}`, list[0], pasteNode(src, first, { kind: 'edge', svgId: e.svgId, side: 'first' }), null);
 }
 process.stdout.write(JSON.stringify(cases));

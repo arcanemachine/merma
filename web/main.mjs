@@ -214,6 +214,14 @@ const ui = {
     followed = item;
     codePanel.follow(item && ((text) => itemLines(text, item)));
   },
+  /**
+   * A node was copied: its Mermaid text goes on the system clipboard too, where the browser lets it (the page's own
+   * copy does not depend on it), and the toast says so.
+   */
+  copied(/** @type {string} */ text) {
+    copyText(text).catch(() => {});
+    toast('Copied!');
+  },
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -342,6 +350,7 @@ const osKey = 'merma:help-os';
 const osPicks = /** @type {NodeListOf<HTMLButtonElement>} */ (el('help').querySelectorAll('[data-os-pick]'));
 function showOs(/** @type {string} */ os) {
   el('help').dataset.os = os;
+  document.documentElement.dataset.os = os;   // the menus show Ctrl or ⌘ by it
   el('undo').title = os === 'mac' ? 'Undo (⌘Z)' : 'Undo (Ctrl+Z)';
   el('redo').title = os === 'mac' ? 'Redo (⌘⇧Z)' : 'Redo (Ctrl+Shift+Z or Ctrl+Y)';
   for (const b of osPicks) b.setAttribute('aria-pressed', String(b.dataset.osPick === os));

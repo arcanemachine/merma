@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { applies, EXPORT_MENU, GLOBAL_KEYS, LOCKED, MENUS, VERBS, whyNot } from '../web/menu-items.mjs';
+import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, VERBS, whyNot } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -28,10 +28,30 @@ test('keys are unique within a menu, each one key, Shift only with a letter the 
     const keys = list.map((i) => i.key).filter((k) => k !== undefined);
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const k of keys) {
-      assert.match(k, /^(shift\+)?[a-z/]$/);
-      if (k.startsWith('shift+')) assert.ok(keys.includes(k.slice(6)), `${menu}: ${k} with no ${k.slice(6)}`);
+      assert.match(k, /^(ctrl\+)?(shift\+)?[a-z/]$/);
+      if (k.includes('shift+')) assert.ok(keys.includes(k.replace('shift+', '')), `${menu}: ${k} with no ${k.replace('shift+', '')}`);
     }
   }
+});
+
+test('a menu shows Ctrl as Help does for the system, and Shift as ⇧', () => {
+  assert.deepEqual(['c', 'shift+c', 'ctrl+c', 'ctrl+shift+v'].map((k) => keyLabel(k, 'pc')), ['C', '⇧C', 'Ctrl+C', 'Ctrl+⇧V']);
+  assert.deepEqual(['ctrl+c', 'ctrl+shift+v'].map((k) => keyLabel(k, 'mac')), ['⌘C', '⌘⇧V']);
+  assert.deepEqual(['c', 'shift+c', 'ctrl+shift+v'].map((k) => keyAria(k, 'pc')), ['C', 'Shift+C', 'Control+Shift+V']);
+  assert.equal(keyAria('ctrl+v', 'mac'), 'Meta+V');
+});
+
+test('Paste node is grayed until a node is copied, then where the menu would add nothing that shows', () => {
+  const paste = (menu) => MENUS[menu].find((i) => i.action === 'paste-node');
+  for (const menu of ['node', 'edge', 'subgraph', 'box', 'space']) {
+    assert.equal(applies(paste(menu), { edgesOk: true, selfLoop: false, nameWhy: null }), false, menu);
+    assert.equal(whyNot(paste(menu), { edgesOk: true, selfLoop: false, nameWhy: null }), NOTHING_COPIED, menu);
+  }
+  const copied = { edgesOk: true, selfLoop: false, nameWhy: null, copied: true };
+  for (const menu of ['node', 'edge', 'subgraph', 'space']) assert.equal(applies(paste(menu), copied), true, menu);
+  assert.equal(applies(paste('box'), copied), false);
+  assert.equal(applies(paste('edge'), { ...copied, insertWhy: 'collapsed' }), false);
+  assert.equal(whyNot(paste('edge'), { ...copied, insertWhy: 'collapsed' }), 'collapsed');
 });
 
 test('an item with no key is one that Enter runs outside menus, so a quicker key does its job', () => {
@@ -127,7 +147,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'expand-subgraph', 'find', 'fit-view', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'expand-subgraph', 'find', 'fit-view', 'flip', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -149,6 +169,8 @@ const HELP_ONLY = {
   '`': 'code-panel.mjs answers it',
   'shift+`': 'code-panel.mjs answers it',
   '?': 'main.mjs answers it',
+  'ctrl+c': 'copy, handled before the key map',
+  'ctrl+v': 'paste, handled before the key map',
   'ctrl+z': 'undo, handled before the key map',
   'ctrl+shift+z': 'redo, handled before the key map',
   'ctrl+y': 'redo, handled before the key map',

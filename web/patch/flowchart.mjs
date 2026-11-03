@@ -937,12 +937,13 @@ function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @
  * arrow. The first half is the edge rewritten in place (a pair of its own in a chain or an `&` group), so it keeps its
  * number, its edge id and settings, and every `linkStyle`; N is declared on the line after it, in the same block. The
  * second half goes after the last edge, so no edge moves. The label stays on the `first` half, or goes to the `second`
- * as written. Returns { text, id }.
+ * as written. `shape`: what N is declared with after its id, in place of `["label"]` (a pasted copy's). Returns
+ * { text, id }.
  * @param {string} text
  * @param {string} svgId
- * @param {{ label?: string, side?: 'first' | 'second' }} [options]
+ * @param {{ label?: string, side?: 'first' | 'second', shape?: string | null }} [options]
  */
-export function insertNode(text, svgId, { label = 'New node', side = 'first' } = {}) {
+export function insertNode(text, svgId, { label = 'New node', side = 'first', shape = null } = {}) {
   const { e, s, key } = locate(text, svgId);
   const id = freeId(text);
   const moves = side === 'second' && e.label;
@@ -955,7 +956,7 @@ export function insertNode(text, svgId, { label = 'New node', side = 'first' } =
   const split = transform(second, { at: s.start, pairs: new Map([[key, { to: id, ...(moves ? { body: e.arrow } : {}) }]]), expect: half });
   // After the line the first half is on: a split statement alone on its line is written over several.
   const at = /** @type {Statement} */ (statements(split).find((x) => x.start === edges(split)[e.index].statement.start));
-  const out = insertAfter(split, at.line, `${id}[${quoteLabel(label)}]`);
+  const out = insertAfter(split, at.line, id + (shape ?? `[${quoteLabel(label)}]`));
   const skip = new Set([...(e.userId ? [e.userId] : []), ...subgraphs(text).filter((g) => g.written).map((g) => /** @type {string} */ (g.id))]);
   check(text, out, half, null, skip, [{ from: id, to: e.to, arrow: e.arrow, label: moves ? e.label : null }]);
   return { text: out, id };
@@ -1197,6 +1198,89 @@ export function mergeNode(/** @type {string} */ text, /** @type {string} */ id, 
   }
   const { text: out, count } = moveEdges(text, id, 'all', into);
   return { text: deleteNode(out, id).text, moved: count, dropped };
+}
+
+/**
+ * What a copy of a node carries, read at copy time so a paste still works once the node has changed or gone.
+ * @typedef {object} Copied
+ * @property {string} id the node's id when copied
+ * @property {string} shape what follows its id where its shape is written (`{Paid?}`, `@{ shape: doc, label: "B" }`),
+ *   with the id as its label where none is written, as Mermaid labels it: `["id"]` for a node written bare
+ * @property {string[]} classes its `:::` classes, from every mention
+ * @property {{ keyword: string, rest: string }[]} settings its `style`, `class` and `click` lines: what follows the ids
+ * @property {{ from: string, to: string, connector: string }[]} edges its edges, the connector as written, label and all
+ */
+
+/** A copy of node `id`. */
+export function copyNode(/** @type {string} */ text, /** @type {string} */ id) {
+  assertNode(text, id);
+  const ls = lines(text);
+  const m = shapedMention(text, id);
+  const block = /** @type {string} */ (m?.block);
+  // With no label written, Mermaid labels a node with its id: the copy, under another id, says so.
+  const shape = !m ? `[${quoteLabel(id)}]` : m.span ? ls[m.line].slice(m.at, m.span.end)
+    : /\blabel\s*:/.test(block) ? block : block.replace(/\s*\}$/, `, label: ${quoteLabel(id)} }`);
+  const classes = new Set();
+  for (const s of statements(text)) {
+    for (const r of s.groups.flat()) {
+      if (r.id !== id) continue;
+      for (const c of text.slice(r.start, r.end).matchAll(new RegExp(`:::(${ID})`, 'gu'))) classes.add(c[1]);
+    }
+  }
+  const settings = [];
+  for (const s of statements(text)) {
+    if (!['style', 'class', 'click'].includes(s.keyword ?? '')) continue;
+    const st = text.slice(s.start, s.end).match(/^(\w+)\s+(\S+)(.*)$/s);
+    if (st && st[2].split(',').includes(id)) settings.push({ keyword: st[1], rest: st[3] });
+  }
+  const own = edges(text).filter((e) => e.from === id || e.to === id).map((e) => ({
+    from: e.from, to: e.to, connector: text.slice(e.link.start, e.link.end).replace(new RegExp(`^${ID}@`, 'u'), ''),
+  }));
+  return { id, shape, classes: [...classes], settings, edges: own };
+}
+
+/** A copy as Mermaid text, under its own id: for the system clipboard. */
+export function copiedText(/** @type {Copied} */ c) {
+  return [
+    c.id + c.shape,
+    ...c.edges.map((e) => `${e.from} ${e.connector} ${e.to}`),
+    ...c.classes.map((k) => `class ${c.id} ${k}`),
+    ...c.settings.map((s) => `${s.keyword} ${c.id}${s.rest}`),
+  ].join('\n') + '\n';
+}
+
+/**
+ * Paste copy `c` as a new node, under a fresh id: into the edge `into.svgId` (as insertNode, on `side`), inside
+ * subgraph `into.id`, in the block node `into.id` is drawn in, or at the top level (null). With `withEdges`, it gets
+ * every edge the original had, its id in place of the original's, after the last edge; an edge whose other end is no
+ * longer in the file is left out. Pasted into an edge, it gets that edge's halves only. Its classes and its `style`
+ * and `click` lines come too. Returns { text, id }.
+ * @param {string} text
+ * @param {Copied} c
+ * @param {{ kind: 'edge', svgId: string, side: 'first' | 'second' } | { kind: 'subgraph' | 'node', id: string } | null} into
+ * @param {boolean} [withEdges]
+ */
+export function pasteNode(text, c, into, withEdges = true) {
+  /** @type {string} */
+  let id;
+  if (into?.kind === 'edge') {
+    ({ text, id } = insertNode(text, into.svgId, { side: into.side, shape: c.shape }));
+  } else {
+    id = freeId(text);
+    if (into?.kind === 'node') assertNode(text, into.id);
+    const block = into?.kind === 'subgraph' ? into.id : into?.kind === 'node' ? blockOf(text, into.id)?.id ?? null : null;
+    text = block ? insideSubgraph(text, block, [id + c.shape]) : appendLine(text, id + c.shape);
+    if (withEdges) {
+      const swap = (/** @type {string} */ n) => (n === c.id ? id : n);
+      const there = (/** @type {string} */ n) => n === c.id || mentions(text, n).length > 0;
+      const own = c.edges.filter((e) => there(e.from) && there(e.to)).map((e) => `${swap(e.from)} ${e.connector} ${swap(e.to)}`);
+      if (own.length) text = afterLastEdge(text, own);
+    }
+  }
+  for (const line of [...c.classes.map((k) => `class ${id} ${k}`), ...c.settings.map((s) => `${s.keyword} ${id}${s.rest}`)]) {
+    text = appendLine(text, line);
+  }
+  return { text, id };
 }
 
 /**

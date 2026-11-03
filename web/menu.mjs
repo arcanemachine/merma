@@ -8,7 +8,7 @@
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
-import { applies as appliesIn, whyNot } from './menu-items.mjs';
+import { applies as appliesIn, keyAria, keyLabel, whyNot } from './menu-items.mjs';
 import { place, OPPOSITE } from './place.mjs';
 
 /**
@@ -68,8 +68,9 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       const b = buttons[i];
       const text = Object.assign(document.createElement('span'), { textContent: item.back?.(state) ? item.labelBack : item.label });
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
-      // `shift+c` shows as ⇧C, as the shape picker shows Shift with a digit.
-      const shown = item.key?.replace(/^shift\+/, '⇧').toUpperCase();
+      // `shift+c` shows as ⇧C, as the shape picker shows Shift with a digit; Ctrl as Help shows it for the system.
+      const os = document.documentElement.dataset.os ?? 'pc';
+      const shown = item.key && keyLabel(item.key, os);
       const key = shown ? [Object.assign(document.createElement('kbd'), { className: 'key', textContent: shown })] : [];
       for (const k of key) k.setAttribute('aria-hidden', 'true');
       // A slot for ▸ after the key on every item of a menu with a submenu, empty on the others, so the keys keep one
@@ -78,7 +79,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
         ? [Object.assign(document.createElement('span'), { className: 'more', textContent: item.submenu ? '▸' : '' })] : [];
       for (const s of more) s.setAttribute('aria-hidden', 'true');
       b.replaceChildren(text, ...key, ...more);
-      if (item.key) b.setAttribute('aria-keyshortcuts', item.key.startsWith('shift+') ? `Shift+${item.key.slice(6).toUpperCase()}` : item.key.toUpperCase()); else b.removeAttribute('aria-keyshortcuts');
+      if (item.key) b.setAttribute('aria-keyshortcuts', keyAria(item.key, os)); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
       if (off) b.title = why(item); else b.removeAttribute('title');

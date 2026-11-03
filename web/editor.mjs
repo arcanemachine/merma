@@ -15,8 +15,8 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveNode, moveSubgraph,
-  nodeIdFromSvgId, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
+  addConnected, addNode, addSubgraph, arrowType, connect, copiedText, copyNode, deleteEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveNode, moveSubgraph,
+  nodeIdFromSvgId, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
@@ -67,7 +67,7 @@ const END_RUN = 3;
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -131,6 +131,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   /** @type {Item | null} while the label box is open over it */
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
+  /** @type {{ copy: import('./patch/flowchart.mjs').Copied, name: string } | null} the node last copied, in this tab */
+  let copied = null;
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
@@ -298,6 +300,31 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     addAndName((text) => insertNode(text, id, { side }), null, 'node', true);
   }
 
+  /** Copy node: the selected node, as it is now, to the page's clipboard (and the system's, as Mermaid text). */
+  function copySelected() {
+    const sel = selection();
+    try { copied = { copy: copyNode(shownText, sel.id), name: named(sel) }; } catch (e) { refuse(e.message || String(e)); return; }
+    ui.copied(copiedText(copied.copy));
+    ui.announce(`Copied ${copied.name}`);
+  }
+
+  /**
+   * Paste node: a new copy of the node last copied, onto the selected edge (inserted on the tick's side, as Insert node
+   * does, with no other edges), inside the selected subgraph, in the block of the selected node, or at the top level.
+   * `withEdges`: it gets the original's edges too, except on an edge. The copy is selected after.
+   */
+  function paste(/** @type {boolean} */ withEdges) {
+    if (!copied) return;
+    const { copy, name } = copied;
+    const sel = selected;
+    const into = sel?.kind === 'edge' ? { kind: /** @type {const} */ ('edge'), svgId: sel.id, side: endSide === 'end' ? /** @type {const} */ ('first') : /** @type {const} */ ('second') }
+      : sel?.kind === 'subgraph' || sel?.kind === 'node' ? { kind: sel.kind, id: sel.id } : null;
+    editDrawn((text) => pasteNode(text, copy, into, withEdges), {
+      afterSave: () => ui.announce(`Pasted ${name}`),
+      after: (result) => ({ item: { kind: 'node', id: result.id } }),
+    });
+  }
+
   /** Whether the pick makes an edge: Connect to… or Connect from…. */
   const connecting = () => picking === 'connect' || picking === 'connect-from';
 
@@ -339,6 +366,9 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
     'insert-node': () => startInsert(),
+    'copy-node': () => copySelected(),
+    'paste-node': () => paste(true),
+    'paste-node-bare': () => paste(false),
     'reverse-edge': () => { const id = selection().id; editDrawn((text) => reverseEdge(text, id), { after: sameEdge(id) }); },
     'add-node': () => {
       const subgraph = selectedSubgraph();
@@ -428,6 +458,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       moveOutWhy: (selected?.kind === 'node' || selected?.kind === 'subgraph') && blockAround(selected) === null
         ? `This ${selected.kind} is already at the top level.` : null,
       locked,
+      copied: Boolean(copied),
     };
   }
 
@@ -1487,6 +1518,10 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     const key = e.key.toLowerCase();
     // Enter and Space on a focused button outside the diagram (the footer's, Help's) press it.
     if ((key === 'enter' || key === ' ') && /** @type {Element} */ (e.target).closest?.('button')) return;
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 'c' || key === 'v') && copyKey(key, e)) {
+      e.preventDefault();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && !e.altKey && key === 'z') {
       e.preventDefault();
       clearRefusal();
@@ -1509,6 +1544,36 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     if (name !== 'escape') clearRefusal();   // Escape's own steps take it first
     if (keys[name]()) e.preventDefault();
   });
+
+  /**
+   * Ctrl+C, Ctrl+V and Ctrl+Shift+V (⌘ on a Mac) on the diagram: copy and paste a node. Whether the page took the key:
+   * when it does nothing here (focus or a text selection elsewhere, nothing to copy or paste), the browser's own
+   * copy and paste go on. A paste the selection's menu grays is refused, saying why.
+   */
+  function copyKey(/** @type {string} */ key, /** @type {KeyboardEvent} */ e) {
+    const at = /** @type {Node} */ (e.target);
+    if (!(at === document.body || els.diagram.contains(at)) || !selectable || picking) return false;
+    if (!document.getSelection()?.isCollapsed) return false;
+    if (key === 'c') {
+      if (e.shiftKey || selected?.kind !== 'node') return false;
+      clearRefusal();
+      if (menuOpen()) closeMenus();
+      handlers['copy-node']();
+      return true;
+    }
+    if (!copied) return false;
+    clearRefusal();
+    const list = selected ? MENUS[isBox(selected) ? 'box' : selected.kind] : MENUS.space;
+    // On an edge there is only Paste node: the copy is inserted, with no other edges, either way.
+    const action = e.shiftKey && selected?.kind !== 'edge' ? 'paste-node-bare' : 'paste-node';
+    const item = list.find((i) => i.action === action);
+    if (!item) return false;
+    closeMenus();
+    const state = menuState();
+    if (!applies(item, state)) { refuse(whyNot(item, state)); return true; }
+    handlers[action]();
+    return true;
+  }
 
   // --- the label box: editing a label in place -----------------------------------------------------------------
 

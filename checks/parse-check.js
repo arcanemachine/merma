@@ -78,6 +78,14 @@
           }
           continue;
         }
+        if (c.kind === 'paste') {
+          /* The copy drawn as the original is (shape, label, classes), every other node where it was (above), and the edges merma reads all drawn. */
+          const o = before.getVertices().get(c.paste.of), n = after.getVertices().get(c.paste.id);
+          const look = (v) => JSON.stringify([v?.type ?? 'square', v?.text, [...(v?.classes ?? [])].sort()]);
+          if (look(n) !== look(o)) fails.push(`${c.name}: ${c.paste.id} drawn as ${look(n)}, expected ${look(o)}`);
+          if (after.getEdges().length !== c.paste.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.paste.edges}`);
+          continue;
+        }
         if (c.kind === 'merge') {
           /* The node gone, every other where it was (above), and the edges merma reads all drawn. */
           if (after.getVertices().has(c.merge.id)) fails.push(`${c.name}: ${c.merge.id} still drawn`);
