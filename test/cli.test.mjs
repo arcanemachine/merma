@@ -41,7 +41,7 @@ test('merma <file> serves that file, and only that file', async () => {
   assert.equal((await fetch(`${page.origin}/source?f=${encodeURIComponent(one)}`)).status, 200);
   const refused = await fetch(`${page.origin}/source?f=${encodeURIComponent(other)}`);
   assert.equal(refused.status, 403);
-  assert.match(await refused.text(), new RegExp(`run: merma ${other}`));
+  assert.match(await refused.text(), new RegExp(`run merma ${other}`));
 });
 
 test('merma <file> <port> points at the merma already serving that file there', async () => {
@@ -90,7 +90,7 @@ test('the refusal quotes a path a shell would split', async () => {
   const { url } = await run([file('quoted.mmd')]);
   const odd = join(DIR, "it's here.mmd");
   const res = await fetch(`${new URL(url).origin}/source?f=${encodeURIComponent(odd)}`);
-  assert.match(await res.text(), new RegExp(`run: merma '${DIR}/it'\\\\''s here\\.mmd'$`));
+  assert.match(await res.text(), new RegExp(`run merma '${DIR}/it'\\\\''s here\\.mmd'$`));
 });
 
 test('MERMA_IDLE: unset or 0, the server runs until stopped; N, it stops N seconds after the last request', async () => {

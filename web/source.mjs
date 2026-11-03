@@ -34,7 +34,7 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
       text = body;
       await onText(body);
     } catch (e) {
-      onError('Server unreachable: ' + (e.message || e));
+      onError('The server could not be reached.\n' + (e.message || e));
     }
   }
 
@@ -58,14 +58,14 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
           body: next,
         });
       } catch {
-        return { ok: false, message: 'server unreachable.' };
+        return { ok: false, message: 'The server could not be reached.' };
       }
       if (res.status === 409) {
         // Forget the text and its version, so the re-read asks for the whole file rather than a 304.
         text = null;
         version = null;
         queueMicrotask(poll);
-        return { ok: false, conflict: true, message: 'the file changed since this page last read it.' };
+        return { ok: false, conflict: true, message: 'The file changed since this page last read it.' };
       }
       if (!res.ok) return { ok: false, message: await res.text() };
       version = res.headers.get('ETag');

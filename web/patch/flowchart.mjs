@@ -122,7 +122,7 @@ export function setTitle(/** @type {string} */ text, /** @type {string} */ title
   const k = ls.findIndex((l, i) => i > 0 && i < end && /^title:/.test(l));
   if (k < 0) throw new Error('This diagram has no title in its frontmatter.');
   const m = /^title:[ \t]*(.*?)(\r?\n)?$/.exec(ls[k]);
-  if (!m || /^[|>]/.test(m[1])) throw new Error('This title is written over several lines; edit it in the file.');
+  if (!m || /^[|>]/.test(m[1])) throw new Error('This title is written over several lines. Edit it in the file.');
   // Plain when it cannot be read as anything else: no leading or trailing space, no quote, indicator or comment, and
   // not a number, a boolean or null (a null title is not drawn at all).
   const plain = /^[^\s'"#|>&*!%@`{}[\],?:-][^#]*$/.test(title) && !/:\s|:$|\s$/.test(title)
@@ -215,7 +215,7 @@ function escapeRe(/** @type {string} */ s) {
 }
 
 function assertId(/** @type {string} */ id) {
-  if (!new RegExp(`^${ID}$`, 'u').test(id)) throw new Error(`Not a node id this editor can change: ${id}`);
+  if (!new RegExp(`^${ID}$`, 'u').test(id)) throw new Error(`${id} is not a node id this editor can change.`);
 }
 
 function assertNode(/** @type {string} */ text, /** @type {string} */ id) {
@@ -481,7 +481,7 @@ export function relabel(/** @type {string} */ text, /** @type {string} */ id, /*
   }
 
   const bare = found.find(({ line }) => !NOT_A_STATEMENT.test(ls[line]));
-  if (!bare) throw new Error(`Node ${id} appears only in style or class lines; there is no place to label it.`);
+  if (!bare) throw new Error(`Node ${id} appears only in style or class lines, so there is no place to label it.`);
   const s = ls[bare.line];
   const at = bare.col + id.length;
   ls[bare.line] = s.slice(0, at) + `[${quoted}]` + s.slice(at);
@@ -554,7 +554,7 @@ export function shapeOf(/** @type {string} */ text, /** @type {string} */ id) {
  */
 export function setShape(/** @type {string} */ text, /** @type {string} */ id, /** @type {string} */ at) {
   assertNode(text, id);
-  if (!/^[a-z][a-z-]*$/.test(at)) throw new Error(`Not a shape name: ${at}`);
+  if (!/^[a-z][a-z-]*$/.test(at)) throw new Error(`${at} is not a shape name.`);
   const ls = lines(text);
   const to = BRACKETS[at];
   const m = shapedMention(text, id);
@@ -576,8 +576,8 @@ export function setShape(/** @type {string} */ text, /** @type {string} */ id, /
     }
     // These edits read `@{ … }` as ending at its first `}`, quoted or not; and Mermaid 12.2.0 draws a Markdown string
     // in `label:` as plain text, backticks and all.
-    if (label.includes('}')) throw new Error('its label has a } in it, which a shape with no brackets cannot hold here.');
-    if (/^"`/.test(label.trim())) throw new Error('its label is Markdown, which Mermaid does not draw in a shape with no brackets.');
+    if (label.includes('}')) throw new Error('The node\'s label has a } in it, which a shape with no brackets cannot hold here.');
+    if (/^"`/.test(label.trim())) throw new Error('The node\'s label is Markdown, which Mermaid does not draw in a shape with no brackets.');
     // An unquoted label is quoted as written, entity codes and markup kept; only a `"` (valid in `[/a"b/]`) is coded.
     const quoted = /^".*"$/s.test(label.trim()) ? label.trim() : `"${label.trim().replaceAll('"', '#quot;')}"`;
     const cls = CLASS_AT.exec(s.slice(span.end))?.[0] ?? '';
@@ -585,7 +585,7 @@ export function setShape(/** @type {string} */ text, /** @type {string} */ id, /
     return { text: ls.join('') };
   }
   const bare = mentions(text, id).find(({ line }) => !NOT_A_STATEMENT.test(ls[line]));
-  if (!bare) throw new Error(`Node ${id} appears only in style or class lines; there is no place to give it a shape.`);
+  if (!bare) throw new Error(`Node ${id} appears only in style or class lines, so there is no place to give it a shape.`);
   const s = ls[bare.line];
   let after = bare.col + id.length;
   if (!to) after += CLASS_AT.exec(s.slice(after))?.[0].length ?? 0;
@@ -830,7 +830,7 @@ export function setEdgeLabel(/** @type {string} */ text, /** @type {string} */ s
 
 /** Give an edge another arrow type (a key of ARROWS), keeping its label and its length. */
 export function setEdgeArrow(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {string} */ arrow) {
-  if (!ARROWS[arrow]) throw new Error(`Not an arrow type: ${arrow}`);
+  if (!ARROWS[arrow]) throw new Error(`${arrow} is not an arrow type.`);
   return {
     text: reconnect(text, svgId, (e) => ({
       arrow: ARROWS[arrow](Math.max(0, extraLength(e.arrow))),
@@ -1036,7 +1036,7 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
   const changes = [];
   const touched = all.filter((s) => s.start === at || (gone && !s.keyword && s.groups.flat().some((r) => r.id === gone)));
   for (const s of touched) {
-    if (!s.complete) throw new Error(`Line ${s.line + 1} is not one this editor can change; edit it in the file.`);
+    if (!s.complete) throw new Error(`Line ${s.line + 1} is not one this editor can change. Edit it in the file.`);
   }
 
   // A node left out of a rewritten statement is kept as a bare statement if dropping it would lose it, or lose its
@@ -1103,7 +1103,7 @@ function check(/** @type {string} */ text, /** @type {string} */ out, /** @type 
   const after = nodes(out);
   const lost = [...nodes(text)].some((n) => n !== gone && !skip.has(n) && !after.has(n));
   if (edges(out).map(sig).join('\n') !== want.join('\n') || lost) {
-    throw new Error('This edit could not be made safely; nothing was changed.');
+    throw new Error('This edit could not be made safely, so nothing was changed.');
   }
 }
 

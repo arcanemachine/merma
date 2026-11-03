@@ -170,7 +170,7 @@ another click on it closes it.
   outside it (or to one in a subgraph inside it): only a subgraph whose nodes link among themselves can run its own way.
   Grayed on a collapsed box too. A change to its own `direction` line in the file drops its turn.
 
-Deleting a subgraph is not supported yet: Delete or Backspace on one says so. Edit it in the file.
+Deleting a subgraph isn't supported yet. Delete or Backspace on one says so. Edit it in the file.
 
 ### Title menu
 
@@ -179,7 +179,7 @@ The diagram's title is the frontmatter's `title:`, drawn over the diagram; a dia
   `title: "Step: one"` where YAML would read the plain words otherwise. A title cannot be empty, as for a subgraph. A
   title written over several lines (`title: >`) is refused: edit it in the file.
 
-Removing the title is not supported: Delete or Backspace on it says so.
+Removing the title isn't supported. Delete or Backspace on it says so.
 
 ### Empty space
 

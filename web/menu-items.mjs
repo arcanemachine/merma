@@ -100,7 +100,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
 /** Why a node cannot be inserted into an edge whose line is in a collapsed subgraph: the node would be hidden. */
 export const INSERT_COLLAPSED = 'This edge is inside a collapsed subgraph. Expand it first (H) to insert a node.';
-const EXPAND_FIRST = 'This subgraph is collapsed: expand it first (H) to add to it.';
+const EXPAND_FIRST = 'This subgraph is collapsed. Expand it first (H) to add to it.';
 
 /**
  * Rotate and Flip, page-only: the whole diagram from the empty-space menu, a subgraph on its own from its menu, where

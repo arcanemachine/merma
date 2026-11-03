@@ -290,7 +290,7 @@ async function draw(/** @type {string} */ text) {
     warning = "Couldn't collapse or turn the diagram: showing the file as written.";
   }
   if (!shown.ok) {
-    showError('Syntax error; showing the last good render.\n' + shown.error);
+    showError('The file has a syntax error, so the last good render is shown.\n' + shown.error);
     editor?.failed();
     return;
   }
@@ -326,7 +326,7 @@ for (const id of ['path', 'host']) {
   el(id).addEventListener('click', async () => {
     const text = el(id).dataset.copy;
     if (!text) return;
-    try { await copyText(text); } catch { ui.notice('Not copied: the browser refused.', 'error'); return; }
+    try { await copyText(text); } catch { ui.notice('The browser refused to copy the code.', 'error'); return; }
     toast('Copied!');
   });
 }
@@ -363,7 +363,7 @@ const exports = {
   'copy-svg': async () => {
     const markup = viewer.svgMarkup();
     if (!markup) return;
-    try { await copyText(markup); } catch { ui.notice('Not copied: the browser refused. Use Download SVG instead.', 'error'); return; }
+    try { await copyText(markup); } catch { ui.notice('The browser refused to copy the SVG. Use Download SVG instead.', 'error'); return; }
     toast('SVG copied!');
   },
   'download-svg': () => {

@@ -156,7 +156,7 @@ test('a label word that matches an id is not taken for the node', () => {
 test('edits refuse unknown nodes and odd ids', () => {
   assert.throws(() => addConnected(fixture('01-basic.mmd'), 'Z'), /not in the file/);
   assert.throws(() => connect(fixture('01-basic.mmd'), 'A', 'Z'), /not in the file/);
-  assert.throws(() => relabel(fixture('01-basic.mmd'), 'A B', 'x'), /Not a node id/);
+  assert.throws(() => relabel(fixture('01-basic.mmd'), 'A B', 'x'), /is not a node id/);
 });
 
 test('isFlowchart sees through frontmatter, directives and comments', () => {
@@ -490,7 +490,7 @@ test('setEdgeArrow keeps the label and the length', () => {
   assert.equal(setEdgeArrow('flowchart LR\n  A -- "quoted" --> B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|"quoted"| B\n');
   assert.equal(setEdgeArrow('flowchart LR\n  A -->|yes| B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|yes| B\n');
   assert.equal(setEdgeArrow('flowchart LR\n  A e1@--> B\n', 'e1', '--x').text, 'flowchart LR\n  A e1@--x B\n');
-  assert.throws(() => setEdgeArrow('flowchart LR\n  A --> B\n', 'L_A_B_0', '-->>'), /Not an arrow type/);
+  assert.throws(() => setEdgeArrow('flowchart LR\n  A --> B\n', 'L_A_B_0', '-->>'), /is not an arrow type/);
 });
 
 test('arrowType names an arrow at any length, and ARROWS gives each back', () => {
@@ -855,7 +855,7 @@ test('shapeOf reads brackets, @{ shape }, and bare nodes as rect; a name merma d
 });
 
 test('setShape refuses what is not a shape name', () => {
-  assert.throws(() => setShape(fixture('01-basic.mmd'), 'A', 'doc }'), /Not a shape name/);
+  assert.throws(() => setShape(fixture('01-basic.mmd'), 'A', 'doc }'), /is not a shape name/);
 });
 
 // --- properties over every node of every fixture -------------------------------------------------------------

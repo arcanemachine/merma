@@ -213,6 +213,10 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const shownShape = (/** @type {string} */ id) => { try { return shapeOf(shownText, id); } catch { return null; } };
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
+  /** What a press says while another edit is still saving. */
+  const BUSY = 'Another edit is still saving. Try again once it has saved.';
+  /** The start of what a refused save says; the reason follows, as a sentence of its own. */
+  const NOT_SAVED = 'Your change was not saved. ';
   /** Say why something was refused. Under the lock its notice already says why, so the refusal is shorter. */
   const refuse = (/** @type {string} */ why) => ui.notice(why === LOCKED ? "The diagram can't be edited while the code is being edited." : why, 'warning');
   /** Say why nothing happens while the code panel holds the lock; false when it does not. */
@@ -430,9 +434,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   }
   /** Why the selected subgraph cannot be turned on its own, or null when it can (turn.mjs turnable). */
   function turnWhy(/** @type {string} */ id) {
-    if (isBox({ kind: 'subgraph', id })) return 'This subgraph is collapsed: expand it first (H) to turn it.';
+    if (isBox({ kind: 'subgraph', id })) return 'This subgraph is collapsed. Expand it first (H) to turn it.';
     if (!collapse.subs.some((s) => s.id === id)) return NO_SUBGRAPH_MATCH;
-    return turnable(id, collapse.subs, edges(shownText)) ? null : "Mermaid ignores this subgraph's direction: a node inside links outside it.";
+    return turnable(id, collapse.subs, edges(shownText)) ? null : "Mermaid ignores this subgraph's direction, because a node inside it links outside it.";
   }
 
   // --- selection -----------------------------------------------------------------------------------------------
@@ -769,7 +773,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     picking = null;
     ui.mode(null);
     if (!to) { deselect(); return; }
-    if (to.kind !== 'node') { ui.notice('Merge into a node: a subgraph cannot take a node\'s place.', 'warning'); select(from); return; }
+    if (to.kind !== 'node') { ui.notice("A node can only be merged into another node, not into a subgraph.", 'warning'); select(from); return; }
     // Onto itself: nothing to merge (the candidate starts there).
     if (same(to, from)) { select(from); return; }
     const names = [named(from), named(to)];
@@ -853,7 +857,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function editDrawn(change, options = {}) {
     const drawnFrom = shownText;
     return edit((text) => {
-      if (text !== drawnFrom) throw new Error('the diagram changed; select it again.');
+      if (text !== drawnFrom) throw new Error('The diagram changed. Select it again.');
       return change(text);
     }, options);
   }
@@ -862,8 +866,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function deleteSelected() {
     const sel = selected;
     if (!sel || refuseLocked()) return;
-    if (sel.kind === 'subgraph') { ui.notice('Deleting a subgraph is not supported yet; edit it in the file.', 'warning'); return; }
-    if (sel.kind === 'title') { ui.notice('Removing the title is not supported; edit it in the file.', 'warning'); return; }
+    if (sel.kind === 'subgraph') { ui.notice("Deleting a subgraph isn't supported yet. Edit it in the file.", 'warning'); return; }
+    if (sel.kind === 'title') { ui.notice("Removing the title isn't supported. Edit it in the file.", 'warning'); return; }
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
     const name = sel.kind === 'node' && named(sel);
@@ -1596,7 +1600,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     if (!labelling) return;
     // Refused already by this press: its own focus move blurs the box a second time.
     if (swallowClick) { input.focus(); return; }
-    if (busy) { ui.notice('Not saved: another edit is still saving; try again.', 'error'); keepBox(); return; }
+    if (busy) { ui.notice(BUSY, 'error'); keepBox(); return; }
     const kept = keepEmptied();
     if (!submitLabel(kept)) keepBox();
     else if (kept) keptClick = true;
@@ -1608,7 +1612,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function keepEmptied() {
     if (!labelling || labelling.kind === 'edge' || input.value.trim() || input.value === input.dataset.initial) return null;
     input.value = input.dataset.initial ?? '';
-    return labelling.kind === 'node' ? 'Label kept: a label cannot be empty.' : 'Title kept: a title cannot be empty.';
+    return labelling.kind === 'node' ? 'The label was kept, because a label cannot be empty.' : 'The title was kept, because a title cannot be empty.';
   }
   function keepBox() {
     swallowClick = true;
@@ -1648,8 +1652,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * file is still as the add left it; otherwise the item stays, named as it was added.
    */
   function cancelAdd(/** @type {NonNullable<typeof naming>} */ added) {
-    if (busy) { ui.notice('Not cancelled: another edit is still saving; try again.', 'error'); return; }
-    const what = added.kind === 'node' ? 'Node' : 'Subgraph';
+    if (busy) { ui.notice(BUSY, 'error'); return; }
+    const what = added.kind === 'node' ? 'node' : 'subgraph';
     closeLabelBox();
     naming = null;
     els.diagram.focus();
@@ -1657,7 +1661,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const base = source.snapshot();
       if (base.text !== added.entry.after) {
-        ui.notice(`${what} kept: the file has changed since it was added.`, 'warning');
+        ui.notice(`The ${what} was kept, because the file has changed since it was added.`, 'warning');
         select(added);
         return;
       }
@@ -1703,7 +1707,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     };
     // A shape the label cannot take is refused before the box closes, so what was typed is kept to try another.
     if (shape) {
-      try { renamed(source.snapshot().text ?? ''); } catch (err) { ui.notice('Not saved: ' + err.message, 'error'); return false; }
+      try { renamed(source.snapshot().text ?? ''); } catch (err) { ui.notice(NOT_SAVED + err.message, 'error'); return false; }
     }
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
@@ -1747,7 +1751,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     edgesOk = ids.length === lines.length && lines.every((p, k) => p.dataset.id === ids[k]);
     if (!edgesOk) {
       ui.notice("merma can't match this diagram's edges to its text, so edges can't be selected and nodes can't be "
-        + 'deleted here; edit those in the file.', 'warning');
+        + 'deleted here. Edit those in the file.', 'warning');
       return;
     }
     for (const p of lines) {
@@ -1804,7 +1808,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       try {
         result = change(base.text);
       } catch (e) {
-        ui.notice('Not saved: ' + (e.message || e), 'error');
+        ui.notice(NOT_SAVED + (e.message || e), 'error');
         return;
       }
       if (!(await save(result.text, base.version))) return;
@@ -1837,8 +1841,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const redoing = history.peekRedo(base.text);
       if (redoing.ok === false) {
-        if (redoing.reason === 'empty') ui.notice('Nothing to redo.', 'info');
-        else ui.notice('Cannot redo: the file has changed since.', 'error');
+        if (redoing.reason === 'empty') ui.notice('There is nothing to redo.', 'info');
+        else ui.notice("Redo isn't possible, because the file has changed since.", 'error');
         return;
       }
       const entry = history.nextRedo;
@@ -1867,8 +1871,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       ui.hideNotice();
       const undoing = history.peek(base.text);
       if (undoing.ok === false) {
-        if (undoing.reason === 'empty') ui.notice('Nothing to undo.', 'info');
-        else ui.notice('Cannot undo: the file has changed since that edit.', 'error');
+        if (undoing.reason === 'empty') ui.notice('There is nothing to undo.', 'info');
+        else ui.notice("Undo isn't possible, because the file has changed since that edit.", 'error');
         return;
       }
       const entry = history.newest;
@@ -1892,12 +1896,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     try {
       await parse(text);
     } catch (e) {
-      ui.notice((says.invalid ?? 'Not saved: the edit would make the diagram invalid.') + '\n' + (e.message || e), 'error');
+      ui.notice((says.invalid ?? 'Your change was not saved, because it would make the diagram invalid.') + '\n' + (e.message || e), 'error');
       return false;
     }
     const saved = await source.save(text, base);
     if (saved.ok === false) {
-      ui.notice((saved.conflict && says.conflict) || 'Not saved: ' + saved.message + (saved.conflict ? ' Showing the new version; try again.' : ''), 'error');
+      ui.notice((saved.conflict && says.conflict) || NOT_SAVED + saved.message + (saved.conflict ? ' The new version is shown now. Try again.' : ''), 'error');
       return false;
     }
     return true;
@@ -2008,7 +2012,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     lockForCode() {
       if (labelling || picking) { ui.notice('Finish editing the diagram first.', 'warning'); return false; }
       // A press that started a save as its click away (the label box's) does not wait for it, as for Undo.
-      if (busy) { ui.notice('Not started: another edit is still saving; try again.', 'error'); return false; }
+      if (busy) { ui.notice(BUSY, 'error'); return false; }
       locked = true;
       setEditable();
       ui.mode(LOCKED);
@@ -2029,8 +2033,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       let ok = false;
       await exclusively(async () => {
         if (!(await save(text, base.version, {
-          invalid: 'Not saved: the code is not valid Mermaid.',
-          conflict: 'Not saved: the file changed since Edit. Cancel shows it as it is now.',
+          invalid: 'The code was not saved, because it is not valid Mermaid.',
+          conflict: 'The code was not saved, because the file changed after you pressed Edit. Cancel shows the file as it is now.',
         }))) return;
         ok = true;
         history.record(base.text, text, null);
@@ -2055,8 +2059,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
      * Undo or redo from a button. Unlike the keys, which a held key repeats, a press while an edit saves says why it did
      * nothing: most often the label box's own save, which the press started by clicking away from it.
      */
-    undo: () => (busy ? ui.notice('Not undone: another edit is still saving; try again.', 'error') : undo()),
-    redo: () => (busy ? ui.notice('Not redone: another edit is still saving; try again.', 'error') : redo()),
+    undo: () => (busy ? ui.notice(BUSY, 'error') : undo()),
+    redo: () => (busy ? ui.notice(BUSY, 'error') : redo()),
 
     /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
     idle: () => !busy && !labelling && !picking && !locked,

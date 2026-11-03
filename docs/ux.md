@@ -376,7 +376,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   addressed to the reader.
 - A message is made of full sentences, as a person would say them (the user): it names what it is about and says
   what happened, rather than a clipped label or a verb with nothing in front of it.
-- One thought, one sentence: no colon, semicolon or dash joining two clauses; write two sentences (the user).
+- One thought, one sentence. Two clauses become two sentences, never joined by a colon, semicolon or dash (the user). Text
+  merma did not write, such as Mermaid's parse error, goes on a line of its own under the message, as it came.
 - Everyday words, the ones a person would say aloud. The passive voice is fine where it reads more naturally (the
   user).
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
@@ -390,13 +391,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   notice does, so the notice yields while find is open and comes back as it closes. A screen reader hears each
   refusal, a repeat too, and not the mode's notice again when the row goes.
 - A notice is one of three kinds, by what it means for you; each fits one case only:
-  - **info** (blue): nothing you asked for was refused: what to do next ("Click the node the edge goes to"), or
-    nothing to do ("Nothing to undo").
+  - **info** (blue): nothing you asked for was refused: what to do next ("Pick the node or subgraph to connect to."),
+    or nothing to do ("There is nothing to undo.").
   - **warning** (amber): you asked, and it was refused, or kept back, with nothing lost (the user: trying something
     not allowed is not just information): a grayed item's key or click, Enter on an edge in Connect to…, "Deleting a
-    subgraph is not supported yet", an emptied label kept on a click away, a node kept because the file changed;
+    subgraph isn't supported yet.", an emptied label kept on a click away, a node kept because the file changed;
     merma unable to match the edges, so an edit could hit the wrong one (the file at risk).
-  - **error** (red): something you tried did not happen: "Not saved: …", an undo refused because the file changed, an
+  - **error** (red): something you tried did not happen: "Your change was not saved. …", an undo refused because the file changed, an
     empty label on Enter, a press while another edit saves.
 - The colors come in pairs, a background and a text color that reads on it (Accessibility: contrast), one pair per
   kind; `success` (green) is the toasts'. GLOSSARY names them.
