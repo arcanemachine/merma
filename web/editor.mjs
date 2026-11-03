@@ -708,7 +708,17 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       else pick(item?.kind === 'edge' ? null : item);
       return;
     }
-    if (item) { select(item); if (!Number.isNaN(x)) countFromClick(target, x, y); } else { deselect(); cleared = null; clearedCursor = null; if (!keptClick) ui.hideNotice(); }
+    // Said aloud as the keys' selection is (the user: screen readers within reason); a click away, only when it let go.
+    if (item) {
+      select(item);
+      if (!Number.isNaN(x)) countFromClick(target, x, y);
+      ui.announce(`${named(item)} selected`);
+    } else {
+      const had = Boolean(selected);
+      deselect(); cleared = null; clearedCursor = null;
+      if (!keptClick) ui.hideNotice();
+      if (had) ui.announce('Nothing selected');
+    }
     keptClick = false;
   }
 
@@ -900,7 +910,12 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const ESCAPE = [
     ['pick', () => Boolean(picking) && (cancelPick(), true)],
     // Both go in one press.
-    ['selection and notice', () => { const had = letGo(); return (!locked && ui.hideNotice()) || had; }],
+    ['selection and notice', () => {
+      const had = letGo();
+      const hid = !locked && ui.hideNotice();
+      if (had) ui.announce('Nothing selected');   // after hideNotice, which empties the live regions
+      return hid || had;
+    }],
     ['code panel', () => ui.escape()],
   ];
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */

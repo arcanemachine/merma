@@ -410,9 +410,10 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   control to stop it to end within 5 s.
 - Reduced motion: under the system's reduced-motion setting nothing moves on its own: find's match does not blink, and
   Follow selection scrolls the code at once rather than smoothly.
-- Screen readers hear the changes that keys and edits make:
+- Screen readers hear the changes that keys, clicks and edits make:
   - each item reached by the keys, or as a pick's candidate, is read out with what it is ('the edge "no" from "In
-    stock?" to "Wait for stock"');
+    stock?" to "Wait for stock"'), and so is each item selected by a click or tap, with "Nothing selected" for a click
+    away or Escape that lets go of one;
   - each edit that worked is read out as a line, since the redraw cannot be heard ('Connected "Take order" to "Order
     log"');
   - an error is heard at once, interrupting (an `alert`), and the other messages when the reader is free (a `status`),
