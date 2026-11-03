@@ -9,15 +9,18 @@
 // `focus` returns there; a pick moves that place to the picked entry. A picker in a menu always starts at the current one.
 
 import { move } from './grid.mjs';
-import { watchShift } from './shift.mjs';
 
 // While Shift is held, the digits Shift picks show dark and the plain ones gray, and the other way round when it is not:
 // the page marks the root, which every picker's digits read (style.css).
+// Listened for from the first picker made, not on import, so a test can import this module without a page.
 let watchingShift = false;
-function watchShiftDigits() {
+function watchShift() {
   if (watchingShift) return;
   watchingShift = true;
-  watchShift((on) => document.documentElement.toggleAttribute('data-shift', on));
+  const shiftHeld = (/** @type {boolean} */ on) => document.documentElement.toggleAttribute('data-shift', on);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Shift') shiftHeld(true); });
+  document.addEventListener('keyup', (e) => { if (e.key === 'Shift') shiftHeld(false); });
+  window.addEventListener('blur', () => shiftHeld(false));
 }
 
 /**
@@ -44,7 +47,7 @@ const label = (/** @type {PickerEntry} */ entry) => entry.name
  * @param {boolean} [options.hosted] under a text field: its buttons never take focus
  */
 export function createPicker({ title, entries, onPick, columns = 5, hosted = false }) {
-  watchShiftDigits();
+  watchShift();
   const el = document.createElement('div');
   el.className = 'picker';
   el.setAttribute('role', 'group');
