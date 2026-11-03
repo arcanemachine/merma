@@ -659,8 +659,14 @@ test('moveSubgraph moves each linkStyle number with its edge when the edges chan
 test('moveSubgraph refuses a move into itself, and one that would move another node with it', () => {
   assert.throws(() => moveSubgraph('flowchart TD\n  subgraph a [A1]\n    subgraph c [C1]\n      P\n    end\n  end\n', 'a', 'c'), /into itself/);
   // b claims Y while it closes before a; moved into t, which closes after a, it no longer does.
-  assert.throws(() => moveSubgraph('flowchart TD\n  subgraph b [B1]\n    Y\n  end\n  subgraph a [A1]\n    P --> Y\n  end\n  subgraph t [T]\n    R\n  end\n', 'b', 't'),
+  assert.throws(() => moveSubgraph('flowchart TD\n  subgraph b [B1]\n    Y\n  end\n  subgraph a [A1]\n    P --> Y\n    Y\n  end\n  subgraph t [T]\n    R\n  end\n', 'b', 't'),
     /would move Y as well/);
+});
+
+test('moveSubgraph lifts an edge that would claim one of its nodes from the block it leaves', () => {
+  // Out of ship, box closes after ship, whose edge would then claim tape: that edge goes after the last edge.
+  assert.equal(moveSubgraph('flowchart TD\n  subgraph ship [Ship]\n    pack --> tape\n    subgraph box [Box]\n      tape --> weigh\n    end\n  end\n', 'box', null).text,
+    'flowchart TD\n  subgraph ship [Ship]\n    pack\n  end\n  subgraph box [Box]\n    tape --> weigh\n  end\n  pack --> tape\n');
 });
 
 for (const [name, nodes] of Object.entries(NODE_IDS)) {

@@ -15,7 +15,7 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, deleteNode, edges, insertNode, isFlowchart, mergeNode,
+  addConnected, addNode, addSubgraph, arrowType, connect, deleteEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveNode, moveSubgraph,
   nodeIdFromSvgId, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
@@ -86,8 +86,9 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   /**
    * The pick of a node or subgraph (clicked, or Enter on the candidate), and what it does:
    * Connect to… makes an edge to it, Connect from… one from it to the selection; Reassign edge… moves that end of the
-   * selected edge there (`start` or `end`, which Space swaps); Merge into… merges the selected node into it.
-   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge'}
+   * selected edge there (`start` or `end`, which Space swaps); Merge into… merges the selected node into it; Move into…
+   * (`into`) moves the selected node or subgraph into it, a subgraph.
+   * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge' | 'into'}
    */
   let picking = null;
   /** @type {Item | null} while picking by keys: the node or subgraph the arrows have reached, which Enter picks */
@@ -316,7 +317,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
    * lasts.
    */
   function pickNotice() {
-    const what = picking === 'merge' ? `node to merge ${named(selection())} into` : PICKED[picking ?? 'connect'];
+    const what = picking === 'merge' ? `node to merge ${named(selection())} into`
+      : picking === 'into' ? `subgraph to move ${named(selection())} into` : PICKED[picking ?? 'connect'];
     ui.mode(`Pick the ${what}. Press Escape or click away to cancel.`);
   }
 
@@ -327,6 +329,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'connect-from': () => startConnect('connect-from'),
     'reassign-edge': () => startMove(endSide ?? 'start'),
     'merge-into': () => startMerge(),
+    'move-into': () => { picking = 'into'; moves.forgetCandidate(); markCandidate(selection(), { quiet: true }); pickNotice(); },
+    'move-out': () => moveOut(),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -419,6 +423,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
       turn: ui.turned(selectedSubgraph()),
       turnWhy: selected?.kind === 'subgraph' ? turnWhy(selected.id) : null,
       insertWhy: selected?.kind === 'edge' ? insertWhy(selected.id) : null,
+      moveOutWhy: (selected?.kind === 'node' || selected?.kind === 'subgraph') && blockAround(selected) === null
+        ? `This ${selected.kind} is already at the top level.` : null,
       locked,
     };
   }
@@ -764,7 +770,71 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   function pick(/** @type {Item | null} */ to) {
     if (connecting()) connectTo(to);
     else if (picking === 'start' || picking === 'end') moveTo(to);
+    else if (picking === 'into') intoTo(to);
     else mergeTo(to);
+  }
+
+  /** Where the selected node or subgraph is drawn: the subgraph around it, or null at the top level. */
+  function blockAround(/** @type {Item} */ item) {
+    const sgs = subgraphs(shownText);
+    if (item.kind === 'node') return blockOf(shownText, item.id, sgs)?.id ?? null;
+    const sg = sgs.find((g) => g.id === item.id && g.end !== null);
+    return sg?.parent == null ? null : sgs[sg.parent].id;
+  }
+  /** The text with `item` moved into subgraph `to`, or out to the top level (null). */
+  const relocate = (/** @type {string} */ text, /** @type {Item} */ item, /** @type {string | null} */ to) => {
+    const name = (/** @type {string} */ id) => named({ kind: 'node', id });
+    return item.kind === 'node' ? moveNode(text, item.id, to, name) : moveSubgraph(text, item.id, to, name);
+  };
+  /** After a move: the item again, found by its title when it is a subgraph Mermaid names by its place. */
+  const relocated = (/** @type {Item} */ item) => {
+    const sg = item.kind === 'subgraph' ? subgraphs(shownText).find((g) => g.id === item.id) : null;
+    const title = sg && !sg.written ? shownText.slice(sg.title.start, sg.title.end) : null;
+    /** @type {(result: { text: string }) => { item: Item } | null} */
+    const next = (result) => {
+      if (title === null) return { item };
+      const now = subgraphs(result.text).find((g) => !g.written && result.text.slice(g.title.start, g.title.end) === title);
+      return now ? { item: /** @type {Item} */ ({ kind: 'subgraph', id: /** @type {string} */ (now.id) }) } : null;
+    };
+    return next;
+  };
+  /** Whether subgraph `id` is inside subgraph `outer`. */
+  const inside = (/** @type {string} */ id, /** @type {string} */ outer) => {
+    const sgs = subgraphs(shownText);
+    const a = sgs.find((g) => g.id === id), b = sgs.find((g) => g.id === outer);
+    return Boolean(a && b && b.end !== null && a.start > b.start && a.start < b.end);
+  };
+  /** End Move into… on `to`: a subgraph, else refused with the pick going on (a click away, null, cancels). */
+  function intoTo(/** @type {Item | null} */ to) {
+    const from = selection();
+    if (to && to.kind !== 'subgraph') { ui.notice("A node can't hold another node. Pick a subgraph.", 'warning'); return; }
+    if (to && from.kind === 'subgraph' && !same(to, from) && inside(to.id, from.id)) {
+      ui.notice("A subgraph can't be moved into itself. Pick a subgraph outside it.", 'warning');
+      return;
+    }
+    picking = null;
+    ui.mode(null);
+    if (!to) { deselect(); return; }
+    // Onto itself or where it already is: nothing to move (the candidate starts there).
+    if (same(to, from) || blockAround(from) === to.id) { select(from); return; }
+    const box = isBox(to);
+    const name = `${named(from)} into ${named(to)}${box ? ' (collapsed)' : ''}`;
+    editDrawn((text) => relocate(text, from, to.id), {
+      afterSave: () => ui.announce(`Moved ${name}`),
+      // Into a collapsed subgraph, the node is hidden there: its box is selected, and nothing is expanded.
+      after: box ? () => ({ item: to }) : relocated(from),
+    });
+  }
+  /** Move out: the selected node or subgraph one level up, into the subgraph around the one it is in, or to the top. */
+  function moveOut() {
+    const item = selection();
+    const around = blockAround(item);
+    if (around === null) return;
+    const sgs = subgraphs(shownText);
+    const sg = sgs.find((g) => g.id === around && g.end !== null);
+    const to = sg?.parent == null ? null : /** @type {string} */ (sgs[sg.parent].id);
+    const name = `${named(item)} out of ${named({ kind: 'subgraph', id: around })}`;
+    editDrawn((text) => relocate(text, item, to), { afterSave: () => ui.announce(`Moved ${name}`), after: relocated(item) });
   }
 
   /** End Merge into… on `to`: the selected node merged into it, or nothing for null. */
@@ -981,12 +1051,15 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     'shift+r': () => spaceKey('flip') || itemKey('flip'),
     // E reassigns a selected edge's counted end, or merges a selected node, as their menus' E does.
     e: () => edgeKey('reassign-edge') || itemKey('merge-into'),
+    v: () => itemKey('move-into'),
+    'shift+v': () => itemKey('move-out'),
     enter: () => {
       // Enter on the edge being reassigned: nothing to do, as Enter at once on a node's own pick writes nothing.
       if (movingEnd() && candidate && same(candidate, selection())) return true;
       if (picking && candidate?.kind === 'edge') {
         ui.notice(connecting() ? 'An edge cannot be connected to.'
           : picking === 'merge' ? "An edge cannot take a node's place."
+            : picking === 'into' ? "An edge can't hold a node. Pick a subgraph."
             : 'An edge cannot be attached to another edge.', 'warning');
         return true;
       }
@@ -1148,6 +1221,8 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
     const what = item.kind === 'edge' ? (movingEnd() && same(item, selection()) ? 'the edge being reassigned'
       : movingEnd() ? 'an edge cannot be attached to another edge' : 'an edge, cannot be connected to')
       : picking === 'start' || picking === 'end' ? `press Enter to move the edge's ${picking} here`
+        : picking === 'into' ? (same(item, selection()) ? 'itself: pick a subgraph' : item.kind !== 'subgraph'
+          ? 'a node, which cannot hold another' : 'press Enter to move here')
         : !connecting() ? (same(item, selection()) ? 'itself: pick another node' : 'press Enter to merge into this')
         : same(item, selection()) ? 'press Enter to connect to itself' : 'press Enter to connect';
     // At the start the notice says it all; a screen reader hears that one line.

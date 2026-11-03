@@ -58,6 +58,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign edge… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
+  | Move | puts a thing in another subgraph, its edges kept | Move into…, Move out |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |

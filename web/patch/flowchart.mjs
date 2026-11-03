@@ -908,9 +908,11 @@ export function retarget(/** @type {string} */ text, /** @type {string} */ svgId
  * Take the edge Mermaid drew as `svgId` out of its statement (a chain or an `&` group split around it, each other node
  * kept where it is declared) and write it again at the top level after the last edge, with its edge id and settings,
  * its ends changed to `ends` where given; `linkStyle` numbers follow it to the last place. An edge line pulls both its
- * ends into the block it is in, so this is how an edge leaves one. Returns { text, index }: where it is in edges().
+ * ends into the block it is in, so this is how an edge leaves one; `release`, an end let go of there, with no line of
+ * its own kept for it. Returns { text, index }: where it is in edges().
  */
-function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {{ from?: string, to?: string }} */ ends = {}) {
+function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @type {{ from?: string, to?: string }} */ ends = {},
+  /** @type {string | null} */ release = null) {
   const { e, s, key } = locate(text, svgId);
   const sgs = subgraphs(text);
   const link = s.links[e.step];
@@ -921,7 +923,7 @@ function liftEdge(/** @type {string} */ text, /** @type {string} */ svgId, /** @
     && x.groups[0].length === 1 && x.groups[0][0].id === userId && text.startsWith(userId + '@{', x.groups[0][0].start))
     .map((x) => text.slice(x.start, x.end)) : [];
   const moved = { from: ends.from ?? e.from, to: ends.to ?? e.to, arrow: e.arrow, label: e.label };
-  const dropped = transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), moved: e,
+  const dropped = transform(text, { at: s.start, pairs: new Map([[key, { drop: true }]]), moved: e, release,
     expect: (x) => (x.index === e.index ? null : x) });
   const line = `${moved.from} ${userId ? userId + '@' : ''}${connector} ${moved.to}`;
   const out = afterLastEdge(dropped, [line, ...settings]);
@@ -1091,8 +1093,31 @@ export function moveSubgraph(/** @type {string} */ text, /** @type {string} */ i
   if (at === rest.length && rest.length && !rest[rest.length - 1].endsWith('\n')) rest[rest.length - 1] += '\n';
   let out = [...rest.slice(0, at), ...moved, ...rest.slice(at)].join('');
   out = followLinkStyles(text, out);
+  out = keepBlocks(text, out);
   checkBlocks(text, out, null, null, name);
   return { text: out };
+}
+
+/**
+ * `out` with each node drawn where `text` draws it again, where a moved block changed which block closes first among
+ * those naming it: the edges naming it in the block that now claims it are written after the last edge (liftEdge).
+ * A node that block names alone is left for checkBlocks to refuse.
+ */
+function keepBlocks(/** @type {string} */ text, /** @type {string} */ out) {
+  const before = subgraphs(text);
+  const lineOf = (/** @type {string} */ t, /** @type {number} */ at) => t.slice(0, at).split('\n').length - 1;
+  for (let guard = edges(out).length + 1; guard > 0; guard--) {
+    const after = subgraphs(out);
+    const stray = [...nodeIds(text)].map((n) => ({ n, claim: blockOf(out, n, after) }))
+      .find(({ n, claim }) => blockKey(out, claim) !== blockKey(text, blockOf(text, n, before)));
+    if (!stray?.claim) return out;
+    const claim = stray.claim;
+    const e = edges(out).find((x) => (x.from === stray.n || x.to === stray.n)
+      && subgraphsAt(out, lineOf(out, x.statement.start), after).filter((g) => g.end !== null).at(-1)?.start === claim.start);
+    if (!e) return out;
+    out = liftEdge(out, e.svgId, {}, stray.n).text;
+  }
+  return out;
 }
 
 /** `out` with each `linkStyle` number moved to where its edge of `text` is now, edges matched in order by their ends, arrow and label. */
@@ -1203,8 +1228,9 @@ function afterLastEdge(/** @type {string} */ text, /** @type {string[]} */ body)
  * @param {Edge[]} [options.removed]
  * @param {Edge | null} [options.moved]
  * @param {((e: Edge) => EdgeSig | null) | null} [options.expect]
+ * @param {string | null} [options.release] a node left out of the statement with no line of its own kept for it
  */
-function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], moved = null, expect = null }) {
+function transform(text, { at = -1, pairs = new Map(), gone = null, removed = [], moved = null, expect = null, release = null }) {
   const all = statements(text);
   /** @type {Change[]} */
   const changes = [];
@@ -1223,7 +1249,7 @@ function transform(text, { at = -1, pairs = new Map(), gone = null, removed = []
   const elsewhere = all.filter((s) => !s.keyword && !touched.includes(s)).map((s) => ({ scope: scopeOf(s), ids: named(s) }));
   for (const s of touched) {
     const scope = scopeOf(s);
-    const stays = (/** @type {string} */ nodeId) => blocks.has(nodeId) || elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
+    const stays = (/** @type {string} */ nodeId) => nodeId === release || blocks.has(nodeId) || elsewhere.some((o) => o.ids.has(nodeId) && (scope === null || o.scope === scope));
     const parts = rewrite(text, s, { pairs: s.start === at ? pairs : new Map(), gone, stays });
     changes.push({ s, parts });
     elsewhere.push({ scope, ids: new Set(parts.flatMap((p) => p.ids ?? [])) });

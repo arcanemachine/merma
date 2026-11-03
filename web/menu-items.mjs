@@ -18,6 +18,8 @@ export const GLOBAL_KEYS = {
   'shift+c': ['connect-from'],
   r: ['reverse-edge', 'rotate'],
   'shift+r': ['flip'],
+  v: ['move-into'],
+  'shift+v': ['move-out'],
   e: ['reassign-edge', 'merge-into'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
@@ -66,6 +68,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} [insertWhy] why a node cannot be inserted into the selected edge
+ * @property {string | null} [moveOutWhy] why the selected node or subgraph cannot be moved out, or null
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
@@ -124,6 +127,8 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
     { action: 'merge-into', label: 'Merge into…', key: 'e', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
+    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
+    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'edit-node', label: 'Edit node' },
     { action: 'delete-node', label: 'Delete node', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
@@ -143,6 +148,8 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
+    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
@@ -154,6 +161,8 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
+    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
+    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', separated: true, view: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),

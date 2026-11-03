@@ -18,7 +18,9 @@ its old `linkStyle` style; for an edge edit, that every edge is in its place wit
 has the arrow type and drawn label asked for; for a move, that the moved edge has its new end, its type, label and
 `linkStyle` style, at its place (where it was, or last), and the others are in order with theirs; for a move of a node's edges, that the
 edges are the same ones, those ends moved, each with its type, label and style; for a merge, that the node is gone
-and Mermaid draws as many edges as merma reads; for a shape, that the node has it, with its label and classes, and that
+and Mermaid draws as many edges as merma reads; for a move into or out of a subgraph (moveNode, moveSubgraph), that
+it is where it was sent and the edges are the same, each with its style; that blockOf reads where Mermaid draws every
+node of every fixture; for a shape, that the node has it, with its label and classes, and that
 no other node changed.
 
 1. Start merma with a root you can write to, and open any diagram in that root in a browser.

@@ -97,6 +97,12 @@ another click on it closes it.
   its edges glow pale blue; by keyboard, the blue outline starts on the node and moves as in Connect to…, and Enter
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
   last edge when the other node is named outside it, as Reassign edge… says.
+- **Move into…** (V), then a click on a subgraph, moves the node into it, its edges kept: it is declared before the
+  subgraph's `end`, and its edges written in another subgraph that would hold it there are moved after the last edge,
+  so that subgraph's lines change. By keyboard, the blue outline starts on the node and moves as in Connect to…, and
+  Enter picks. A node is refused, and the pick goes on. Into a collapsed subgraph it stays collapsed, its box selected.
+  **Move out** (Shift+V) moves it one level up, into the subgraph around the one it is in, or to the top level; grayed
+  at the top level.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
@@ -159,6 +165,10 @@ another click on it closes it.
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
   keeps the title as it was.
+- **Move into…** (V) and **Move out** (Shift+V) move the subgraph with everything in it, its lines as written, as
+  they move a node. Into itself, or a subgraph inside it, is refused. A move that would make another subgraph draw one
+  of its nodes moves that subgraph's edges naming it after the last edge; when that cannot keep it, the move is
+  refused, naming the node to move first.
 - **Collapse subgraph** (H) draws it as one box with its title and "•••", and **Expand subgraph** (H) on the box
   opens it again. Only this tab's view changes, never the file: other tabs, agents and the code panel still see the file
   as written, and a reload of this tab keeps it (a new tab starts from the file). Edges to what it holds end at the box.
@@ -258,6 +268,7 @@ here does just what it does in the selected item's menu:
 | R with an edge selected | Reverse it |
 | E with an edge selected | Reassign edge… (Space in it: the other end) |
 | E with a node selected | Merge into… |
+| V with a node or subgraph selected | Move into… (Shift+V: Move out) |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
