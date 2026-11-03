@@ -214,7 +214,7 @@ export function createEditor({ source, viewer, parse, display, ui, els }) {
   const input = /** @type {HTMLTextAreaElement} */ (els.labelBox);
 
   /** Say why something was refused. Under the lock its notice already says why, so the refusal is shorter. */
-  const refuse = (/** @type {string} */ why) => ui.notice(why === LOCKED ? 'Not while the code is being edited.' : why, 'warning');
+  const refuse = (/** @type {string} */ why) => ui.notice(why === LOCKED ? "The diagram can't be edited while the code is being edited." : why, 'warning');
   /** Say why nothing happens while the code panel holds the lock; false when it does not. */
   function refuseLocked() {
     if (locked) refuse(LOCKED);

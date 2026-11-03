@@ -373,6 +373,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   to do things is Help's and the guide's.
 - A message is written the way a person would write it (the user): plain words, and what to do in the imperative mood,
   addressed to the reader.
+- A message is a full sentence, never a fragment or a clipped label, and never reads like a machine wrote it (the
+  user). The passive voice is fine where it reads more naturally.
 - merma refuses only what it cannot write correctly, or what would break the file (a subgraph with no id that the file
   already names by Mermaid's name for it, `style subGraph1 …`, which an edge would have to name); a legal edit that Mermaid draws badly is yours to make, with Undo as the net (the
   user: "is it really our place to refuse legitimate actions?"). A subgraph connected to itself is allowed, though
