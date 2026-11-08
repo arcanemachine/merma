@@ -53,7 +53,7 @@ export function createCodePanel(els, file, hooks) {
   const { main, panel, code, dock: dockSelect, handle, close, toggle, diagram, edit, save, cancel, status, follow, band } = els;
   const local = store(() => localStorage);
   const session = store(() => sessionStorage);
-  const openKey = 'merma:code:' + file;
+  let openKey = 'merma:code:' + file;
   const dockKey = 'merma:code-dock';
   const sizeKey = (/** @type {'x' | 'y'} */ a) => 'merma:code-size-' + a;
 
@@ -439,6 +439,17 @@ export function createCodePanel(els, file, hooks) {
       code.value = next;
       if (open) { code.scrollTop = scroll.top; code.scrollLeft = scroll.left; }
       refollow(false);
+    },
+    /**
+     * The page now shows file `next`: the panel opens or closes as this tab last had it for that file, and its code is
+     * empty until the file's text is shown. Never while editing: the page refuses a switch then.
+     */
+    setFile(/** @type {string} */ next) {
+      openKey = 'merma:code:' + next;
+      shown = '';
+      code.value = '';
+      scroll = { top: 0, left: 0 };
+      setOpen(session.get(openKey) === '1');
     },
     /** The selection changed: `find` gives its lines in a text, or there is none (null). */
     follow(/** @type {((text: string) => { from: number, to: number } | null) | null} */ find) {

@@ -350,6 +350,14 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 
+    /** Empty the stage, for another file: its next render is a first one again, fitted, the view no longer touched. */
+    clear() {
+      stage.replaceChildren();
+      renderId = null;
+      size = { w: 0, h: 0 };
+      touched = false;
+    },
+
     /**
      * A flowchart's subgraphs as Mermaid reads `text`, without drawing it: each with its members (nodes and nested
      * subgraphs, by Mermaid's own rule of which block a node belongs to) and its view in the file. [] for another type,

@@ -18,12 +18,16 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
   /** @type {ReturnType<typeof setInterval> | undefined} */
   let timer;
   let saves = 0;   // bumped as a save starts and ends, so a poll that overlaps one is dropped
+  // Set by stop(): a poll still in flight then calls no hook, so a source left behind by a switch to another file
+  // never draws over it.
+  let stopped = false;
 
   async function poll() {
     const started = saves;
     try {
       const res = await fetch('/source?f=' + q, { cache: 'no-store', headers: version ? { 'If-None-Match': version } : {} });
       const body = await res.text();
+      if (stopped) return;
       const build = res.headers.get('X-Merma-Build');
       if (build) onBuild(build);
       if (started !== saves) return;
@@ -34,7 +38,7 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
       text = body;
       await onText(body);
     } catch (e) {
-      onError('The server could not be reached.\n' + (e.message || e));
+      if (!stopped) onError('The server could not be reached.\n' + (e.message || e));
     }
   }
 
@@ -83,8 +87,8 @@ export function createSource(file, { onText, onError, onBuild = () => {} }) {
     snapshot: () => ({ text, version }),
     poll,
     save,
-    start() { poll(); if (!timer) timer = setInterval(poll, 1000); },
-    stop() { clearInterval(timer); timer = undefined; },
+    start() { stopped = false; poll(); if (!timer) timer = setInterval(poll, 1000); },
+    stop() { stopped = true; clearInterval(timer); timer = undefined; },
     async hostPath() { return (await fetch('/hostpath?f=' + q)).text(); },
   };
 }

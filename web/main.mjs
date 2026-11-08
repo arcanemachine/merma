@@ -16,14 +16,16 @@ import { hide as hideTop, mode as modeNotice, NONE, show as showNotice } from '.
 // Every id the page asks for is in index.html.
 const el = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
-// With no ?f=, show the scratch diagram (the server creates it if missing).
-const file = new URLSearchParams(location.search).get('f') || '/tmp/mermaid-diagrams/scratch.mmd';
+// The file shown: the address's ?f=, or with none the scratch diagram (the server creates it if missing). Another
+// file can be opened in place (openFile, below), so everything kept per file is read again then.
+const fileIn = (/** @type {string} */ search) => new URLSearchParams(search).get('f') || '/tmp/mermaid-diagrams/scratch.mmd';
+let file = fileIn(location.search);
 
 // The build of merma this page was served from. When the server reports another, the page reloads to run it, once
 // nothing is in progress that a reload would lose. Zoom and pan survive the reload: they are kept for this tab in
 // sessionStorage, which is the browser's, never the file's.
 const loadedBuild = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="merma-build"]')).content;
-const viewKey = 'merma:view:' + file;
+const viewKey = () => 'merma:view:' + file;
 function reloadWhenIdle() {
   if (editor && !editor.idle()) { setTimeout(reloadWhenIdle, 500); return; }
   location.reload();
@@ -37,20 +39,20 @@ function noteBuild(/** @type {string} */ id) {
 function keepView() {
   const v = viewer.getView();
   try {
-    if (v.touched) sessionStorage.setItem(viewKey, JSON.stringify({ x: v.x, y: v.y, k: v.k }));
-    else sessionStorage.removeItem(viewKey);
+    if (v.touched) sessionStorage.setItem(viewKey(), JSON.stringify({ x: v.x, y: v.y, k: v.k }));
+    else sessionStorage.removeItem(viewKey());
   } catch { /* storage unavailable: the view just is not kept */ }
 }
 function restoreView() {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? 'null');
+    const saved = JSON.parse(sessionStorage.getItem(viewKey()) ?? 'null');
     if (saved) viewer.setView(saved);
   } catch { /* nothing kept, or unreadable */ }
 }
 
 // Collapsed subgraphs (collapse.mjs): the page's own views, never the file's, kept for this tab per file in
 // sessionStorage, so the page's reload for a new build keeps them.
-const collapseKey = 'merma:collapse:' + file;
+const collapseKey = () => 'merma:collapse:' + file;
 /** @type {import('./collapse.mjs').Overrides} */
 let overrides = new Map();
 /** @type {{ kind: string, id: string } | null} the item the code panel follows */
@@ -87,35 +89,36 @@ function setPart(/** @type {string | null} */ id) {
   viewer.fit();
   checkPart();
 }
-window.addEventListener('popstate', () => {
-  part = new URLSearchParams(location.search).get('part');
-  partGone = false;
-  viewer.fit();
-  checkPart();
-});
-try { overrides = new Map(JSON.parse(sessionStorage.getItem(collapseKey) ?? '[]')); } catch { /* nothing kept */ }
+window.addEventListener('popstate', followAddress);
 function keepOverrides() {
   try {
-    if (overrides.size) sessionStorage.setItem(collapseKey, JSON.stringify([...overrides]));
-    else sessionStorage.removeItem(collapseKey);
+    if (overrides.size) sessionStorage.setItem(collapseKey(), JSON.stringify([...overrides]));
+    else sessionStorage.removeItem(collapseKey());
   } catch { /* storage unavailable: the views just are not kept */ }
 }
 
 // Rotate and flip (turn.mjs): the page's own, as collapses are, kept for this tab per file: the whole diagram's turn
 // and each subgraph's own. `base` is the direction the file had when turned: a file whose own direction changes since
 // (an agent turned it) is not turned again. A subgraph with no id keeps its title, as a collapse does (collapse.mjs).
-const turnKey = 'merma:turn:' + file;
+const turnKey = () => 'merma:turn:' + file;
 /** @typedef {{ rotate: boolean, flip: boolean, base: string | null }} Turned */
 /** @typedef {Turned & { title: string | null }} SubTurned */
 /** @type {Turned & { subs: [string, SubTurned][] }} */
 let turn = { rotate: false, flip: false, base: null, subs: [] };
-try { turn = { ...turn, ...JSON.parse(sessionStorage.getItem(turnKey) ?? '{}') }; } catch { /* nothing kept */ }
+/** Read this tab's collapses and turns for the file shown. */
+function readKept() {
+  overrides = new Map();
+  turn = { rotate: false, flip: false, base: null, subs: [] };
+  try { overrides = new Map(JSON.parse(sessionStorage.getItem(collapseKey()) ?? '[]')); } catch { /* nothing kept */ }
+  try { turn = { ...turn, ...JSON.parse(sessionStorage.getItem(turnKey()) ?? '{}') }; } catch { /* nothing kept */ }
+}
+readKept();
 const isOn = (/** @type {{ rotate: boolean, flip: boolean }} */ t) => t.rotate || t.flip;
 function keepTurn() {
   turn.subs = turn.subs.filter(([, t]) => isOn(t));
   try {
-    if (isOn(turn) || turn.subs.length) sessionStorage.setItem(turnKey, JSON.stringify(turn));
-    else sessionStorage.removeItem(turnKey);
+    if (isOn(turn) || turn.subs.length) sessionStorage.setItem(turnKey(), JSON.stringify(turn));
+    else sessionStorage.removeItem(turnKey());
   } catch { /* storage unavailable: the turn just is not kept */ }
 }
 /**
@@ -303,22 +306,26 @@ const codePanel = createCodePanel({
   unlock: () => editor?.unlock(),
   save: async (text, base) => (await editor?.saveCode(text, base)) ?? false,
 });
-el('code-file').textContent = /** @type {string} */ (file.split('/').pop());
 
 // Show a version of the file: a new one polled from the server, or one the editor just saved. The code panel shows
 // it whether or not it parses, so a broken file can be read there. One at a time, in the order asked, so an older
 // version never lands over a newer one.
 let drawing = Promise.resolve();
 function display(/** @type {string} */ text) {
-  const done = drawing.then(() => draw(text));
+  // A version still waiting its turn when another file is opened is not drawn over it.
+  const of = file;
+  const done = drawing.then(() => (of === file ? draw(text) : undefined));
   drawing = done.catch(() => {});
   return done;
 }
 async function draw(/** @type {string} */ text) {
+  // Another file opened while this was drawing: this file's drawing must not land on its stage, or fit it.
+  const of = file;
   codePanel.show(text);
   // The page's collapses are drawn only when Mermaid's subgraphs are the ones merma reads in the text: an id they
   // disagree on would collapse, or tag, the wrong one.
   let subs = await viewer.subgraphs(text);
+  if (of !== file) return;   // before anything below writes this file's collapses or turns under the new file's keys
   const scanned = new Set(scannedSubgraphs(text).map((s) => s.id));
   const agree = subs.length === scanned.size && subs.every((s) => scanned.has(s.id));
   let warning = '';
@@ -336,12 +343,18 @@ async function draw(/** @type {string} */ text) {
   const drawn = agree ? viewText(turned, overrides, subs) : turned;
   drawingSubs = subs;
   let shown = await viewer.show(drawn);
-  if (!shown.ok && drawn !== text && (shown = await viewer.show(text)).ok) {
-    overrides = new Map();
-    keepOverrides();
-    turn = { rotate: false, flip: false, base: null, subs: [] };
-    keepTurn();
-    warning = "Couldn't collapse or turn the diagram: showing the file as written.";
+  // Drawn as the other file opened: clear it again, so that file's first drawing, queued after this one, is fitted.
+  if (of !== file) { viewer.clear(); return; }
+  if (!shown.ok && drawn !== text) {
+    shown = await viewer.show(text);
+    if (of !== file) { viewer.clear(); return; }
+    if (shown.ok) {
+      overrides = new Map();
+      keepOverrides();
+      turn = { rotate: false, flip: false, base: null, subs: [] };
+      keepTurn();
+      warning = "Couldn't collapse or turn the diagram: showing the file as written.";
+    }
   }
   if (!shown.ok) {
     showError(shown.limit ? limitSentence(shown.limit, limits, false)
@@ -359,10 +372,112 @@ async function draw(/** @type {string} */ text) {
   checkPart();
 }
 
-const source = createSource(file, { onText: display, onError: showError, onBuild: noteBuild });
+/**
+ * A source for file `f`. While it is the file being opened (`opening`), its first text opens it and its first error
+ * refuses it; once it is the page's source, it draws and reports as any source does. A source left behind does
+ * nothing: stopped, it calls no hook (source.mjs).
+ */
+function sourceFor(/** @type {string} */ f) {
+  const s = createSource(f, {
+    onText: (text) => (s === source ? display(text) : opened(s, text)),
+    onError: (message) => {
+      if (s === source) showError(message);
+      else if (s === opening?.source) { s.stop(); opening = null; ui.notice(message, 'error'); }
+    },
+    onBuild: noteBuild,
+  });
+  return s;
+}
+let source = sourceFor(file);
+/** @type {{ source: ReturnType<typeof createSource>, file: string, part: string | null } | null} a file asked for */
+let opening = null;
+
+/**
+ * Open `next` in this page, fitted to subgraph `nextPart` if given: a new history entry, so Back comes back here. Only
+ * once the server has given its text: a file it refuses (missing, outside MERMA_ROOTS) changes nothing but a notice.
+ */
+function openFile(/** @type {string} */ next, /** @type {string | null} */ nextPart = null) {
+  const refused = editor?.switchRefused();
+  if (refused) { ui.notice(refused, 'warning'); return; }
+  if (next === file) { setPart(nextPart); return; }
+  opening?.source.stop();
+  const s = sourceFor(next);
+  opening = { source: s, file: next, part: nextPart };
+  s.start();
+}
+/** The file being opened has been read: show it, unless something was started here meanwhile. */
+function opened(/** @type {ReturnType<typeof createSource>} */ s, /** @type {string} */ text) {
+  if (s !== opening?.source) return undefined;
+  const { file: next, part: nextPart } = opening;
+  opening = null;
+  const refused = editor?.switchRefused();
+  if (refused) { s.stop(); ui.notice(refused, 'warning'); return undefined; }
+  const url = new URL(location.href);
+  url.searchParams.set('f', next);
+  if (nextPart === null) url.searchParams.delete('part'); else url.searchParams.set('part', nextPart);
+  history.pushState(null, '', url);
+  showFile(s, next, nextPart);
+  return display(text);
+}
+/**
+ * Back or Forward: the address names the file to show, already. Another file is shown at once, as a load shows it (one
+ * that cannot be read shows the error over an empty stage), once nothing is under way that the switch would lose; the
+ * same file only changes its part.
+ */
+/** @type {ReturnType<typeof setTimeout> | undefined} */
+let followTimer;
+let followWaiting = false;
+function followAddress() {
+  clearTimeout(followTimer);
+  const f = fileIn(location.search);
+  const nextPart = new URLSearchParams(location.search).get('part');
+  if (f === file) {
+    followWaiting = false;
+    part = nextPart;
+    partGone = false;
+    viewer.fit();
+    checkPart();
+    return;
+  }
+  if (editor && !editor.idle()) {
+    // A save is over in a moment; a code draft can take minutes, so the page says why it has not followed yet.
+    if (!followWaiting && editor.codeLocked()) ui.notice('The code is being edited. The diagram changes when it is saved or canceled.', 'info');
+    followWaiting = true;
+    followTimer = setTimeout(followAddress, 500);
+    return;
+  }
+  followWaiting = false;
+  opening?.source.stop();
+  opening = null;
+  const s = sourceFor(f);
+  showFile(s, f, nextPart);
+  s.start();
+}
+/** Show file `f`, read by `s`, in place of the one shown: everything kept per file is that file's from here on. */
+function showFile(/** @type {ReturnType<typeof createSource>} */ s, /** @type {string} */ f, /** @type {string | null} */ nextPart) {
+  source.stop();
+  source = s;
+  file = f;
+  readKept();
+  part = nextPart;
+  partGone = false;
+  shownSubs = [];
+  drawingSubs = [];
+  shownOnce = false;
+  ui.hideNotice();
+  showError('');
+  clearTimeout(toastTimer);
+  el('toast').classList.remove('show');
+  /** @type {HTMLButtonElement} */ (el('export')).disabled = true;
+  // Before the stage is cleared: the editor lets go of what is selected while it is still drawn.
+  editor?.switchFile(s, f);
+  viewer.clear();
+  codePanel.setFile(f);
+  showHeader();
+}
 
 editor = createEditor({
-  source, viewer, parse, limits, display, ui,
+  source, file, viewer, parse, limits, display, ui,
   els: { stage: el('stage'), diagram: el('diagram'), labelBox: el('label-box'), find: el('find'), findBox: el('find-box'),
     findCount: el('find-count'), findPrev: el('find-prev'), findNext: el('find-next'), findCancel: el('find-cancel'),
     findToggle: el('find-toggle') },
@@ -375,9 +490,19 @@ function showPath(/** @type {string} */ id, /** @type {string} */ text, /** @typ
   el(id).dataset.copy = path;
   el(id).title = `${path}\nClick to copy`;
 }
-showPath('path', file, file);
-document.title = file.split('/').pop() + ' · merma';
-source.hostPath().then((host) => { if (host) showPath('host', 'host: ' + host, host); });
+/** The header and the titles for the file shown. Its host path comes later, if the server knows one. */
+function showHeader() {
+  const f = file;
+  const name = /** @type {string} */ (f.split('/').pop());
+  el('code-file').textContent = name;
+  showPath('path', f, f);
+  el('host').replaceChildren();
+  delete el('host').dataset.copy;
+  el('host').removeAttribute('title');
+  document.title = name + ' · merma';
+  source.hostPath().then((host) => { if (host && f === file) showPath('host', 'host: ' + host, host); });
+}
+showHeader();
 for (const id of ['path', 'host']) {
   el(id).addEventListener('click', async () => {
     const text = el(id).dataset.copy;
@@ -503,7 +628,15 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 
-// For tests: hold polling to set up a stale save, or save text directly to exercise the parse check.
-window.merma = { start: source.start, stop: source.stop, save: editor.save, state: () => ({ ...editor.state(), version: source.version }) };
+// For tests: hold polling to set up a stale save, save text directly to exercise the parse check, or open another
+// file in place, as a link will. Each acts on the file shown when it is called.
+const edits = editor;
+window.merma = {
+  start: () => source.start(),
+  stop: () => source.stop(),
+  save: (/** @type {string} */ text) => edits.save(text),
+  state: () => ({ ...edits.state(), version: source.version }),
+  open: openFile,
+};
 
 source.start();

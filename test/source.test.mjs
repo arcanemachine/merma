@@ -120,3 +120,24 @@ test('after a conflict the re-read asks for the whole file, not a 304', async ()
   await new Promise((r) => setTimeout(r, 0));
   assert.equal(requests.at(-1).ifNoneMatch, undefined);
 });
+
+test('a poll in flight when the source is stopped calls no hook, so a file left for another never draws over it', async () => {
+  const { s, seen, builds } = source();
+  let release;
+  hold = new Promise((r) => { release = r; });
+  const polled = s.poll();
+  s.stop();
+  release();
+  await polled;
+  assert.deepEqual(seen, []);
+  assert.deepEqual(builds, []);
+});
+
+test('a stopped source that is started again reports as before', async () => {
+  const { s, seen } = source();
+  s.stop();
+  s.start();
+  await new Promise((r) => setTimeout(r, 0));
+  s.stop();
+  assert.deepEqual(seen, ['v1']);
+});

@@ -63,6 +63,7 @@ const END_RUN = 3;
 /**
  * @param {object} deps
  * @param {ReturnType<typeof import('./source.mjs').createSource>} deps.source
+ * @param {string} deps.file the file `source` reads, which its undo history belongs to
  * @param {ReturnType<typeof import('./viewer.mjs').createViewer>} deps.viewer
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
@@ -71,7 +72,7 @@ const END_RUN = 3;
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
-export function createEditor({ source, viewer, parse, limits, display, ui, els }) {
+export function createEditor({ source, file, viewer, parse, limits, display, ui, els }) {
   // What is drawn may be selected and edited (a flowchart that rendered). While the code panel holds the lock (its code
   // being edited) it may still be selected, walked and found, but not edited (the user). Both set only by setEditable().
   let drawnEditable = false;
@@ -110,7 +111,9 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
    * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string, far?: boolean, came?: import('./navigate.mjs').Fan | null } | null}
    */
   let pending = null;
-  const history = createHistory();
+  let history = createHistory();
+  /** @type {Map<string, ReturnType<typeof createHistory>>} each file's undo history, kept for the page's life */
+  const histories = new Map([[file, history]]);
   /**
    * For each history entry, what was selected just before its edit, and what its edit selected after (with where to go
    * instead): undo selects the first, redo the second, each against exactly the text it puts back. An edge keeps its
@@ -2359,6 +2362,35 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     failed() { drawnEditable = false; setEditable(); },
 
     /**
+     * The page now shows `next`, read by `nextSource`: what was selected, found, cut or set aside goes, and the undo
+     * history is that file's, as it was when the page last left it. Only called when idle(): nothing is being saved,
+     * named or picked. The copy stays, so it can be pasted into the new file.
+     */
+    switchFile(/** @type {typeof source} */ nextSource, /** @type {string} */ next) {
+      source = nextSource;
+      drawnEditable = false;
+      setEditable();   // closes find and the menus, and lets go of the selection
+      clearTimeout(blinkTimer);
+      dropCut();
+      cleared = null;
+      clearedCursor = null;
+      spaceAt = null;
+      pending = null;
+      naming = null;
+      viewBack = null;
+      settled = null;
+      refused = false;
+      clickedMeanwhile = null;
+      moves.forget();
+      shownText = '';
+      collapse = { subs: [], overrides: new Map() };
+      edgesOk = false;
+      history = histories.get(next) ?? createHistory();
+      histories.set(next, history);
+      historyChanged();
+    },
+
+    /**
      * The code panel starts editing the code: nothing else edits the file until unlock(). Refused, saying why, while an
      * edit here is under way.
      */
@@ -2414,6 +2446,17 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
      */
     undo: () => (busy ? ui.notice(BUSY, 'error') : undo()),
     redo: () => (busy ? ui.notice(BUSY, 'error') : redo()),
+
+    /** Whether the code panel holds the lock: its code is being edited. */
+    codeLocked: () => locked,
+
+    /** Why another file cannot be opened now, or null: it would lose what is under way here. */
+    switchRefused() {
+      if (busy) return BUSY;
+      if (locked) return 'The code is being edited. Save or cancel it to open another diagram.';
+      if (labelling || picking) return 'Finish editing the diagram first.';
+      return null;
+    },
 
     /** Nothing in progress that a reload would lose: no edit being saved, no label box open, no connection half made. */
     idle: () => !busy && !labelling && !picking && !locked,
