@@ -584,19 +584,19 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   };
   const unmark = () => {
     clearMarks('data-page-selected', 'data-page-candidate', 'data-page-source');
-    for (const e of drawn('[data-page-end], [data-page-halo]')) e.remove();
+    for (const e of drawn('[data-page-end], [data-page-glow]')) e.remove();
     candidate = null;
   };
   /**
    * During a pick, what it will change (the user: solid is where the keys are, marked is what changes):
-   * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move haloed, a
+   * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move glows, a
    * wide pale line under it, so its own dashes and arrowheads still read; in Reassign edge…, the tick dashed at the
-   * end that moves. A collapsed box's halo is only on its own
+   * end that moves. A collapsed box's glow is only on its own
    * edges, the ones that move.
    */
   function markSource() {
     clearMarks('data-page-source');
-    for (const e of drawn('[data-page-end], [data-page-halo]')) e.remove();
+    for (const e of drawn('[data-page-end], [data-page-glow]')) e.remove();
     if (!picking || !selected) return;
     const sel = selected, which = picking;
     for (const e of elsOf(sel)) { e.removeAttribute('data-page-selected'); mark(e, 'data-page-source'); }
@@ -606,11 +606,11 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     for (const id of moving) {
       const path = edgeEls(id).find((x) => x.matches('path:not([data-page-only])'));
       if (!path) continue;
-      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      halo.setAttribute('d', path.getAttribute('d') ?? '');
-      halo.setAttribute('data-page-halo', '');
-      halo.setAttribute('data-page-only', '');   // the SVG export leaves it out
-      path.before(halo);
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      glow.setAttribute('d', path.getAttribute('d') ?? '');
+      glow.setAttribute('data-page-glow', '');
+      glow.setAttribute('data-page-only', '');   // the SVG export leaves it out
+      path.before(glow);
     }
     if (movingEnd()) markEnd();
   }

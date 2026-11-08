@@ -105,7 +105,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   never from the letter's case, so Caps Lock does not count.
 - In a pick, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
   move, Enter picks and which is selected after, is drawn as the selection is. What the pick will change is marked
-  instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go haloed, a wide pale
+  instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go glows, a wide pale
   line under it (not dashed: a dashed edge reads as Mermaid's dotted arrow, and vanishes on one).
 - The diagram comes first in Tab order, whatever the dock (the user): the diagram, the code panel's handle, the panel,
   its bar, the code, then the footer, and round to the diagram. The diagram has no focus ring (Accessibility), so the
