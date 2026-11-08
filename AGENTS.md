@@ -50,13 +50,14 @@ how to write a diagram merma edits). A change to any of those updates it in the 
   `checks/README.md`, "Accessibility"). After a change to
   `web/patch/`, run the browser parse check as well.
 - Say why in a comment when a reader new to merma's code could not work it out; nothing more.
-- Conventional commits (`feat:`, `fix:`, `docs:`…), one commit per feature.
+- Conventional commits (`feat:`, `fix:`, `docs:`…), one commit per feature, with a short subject (at most 72
+  characters).
 
 ## Checks
 
 - `prek install` once per clone: the pre-commit hook runs end-of-file and whitespace fixes, JSON and merge-conflict
-  checks, ESLint on the staged files, and `npm test` (about a second) when code, fixtures or docs change
-  (`prek.toml`).
+  checks, ESLint on the staged files, and `npm test` (about a second) when code, fixtures or docs change; the
+  commit-msg hook refuses a subject that is not a conventional commit of at most 72 characters (`prek.toml`).
 - `npm run lint`, `npm run typecheck` and `npm test` before calling work done; `npm publish` runs all three first
   (`prepublishOnly`). Types are JSDoc in the plain JavaScript, checked by `tsc` with no build step: the page
   (`web/tsconfig.json`) gets the DOM and no Node types, the server and command line (`tsconfig.json`) the reverse.
