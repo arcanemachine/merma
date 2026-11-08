@@ -1185,6 +1185,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   ];
   /** @type {Record<string, () => unknown>} what each key does, by name (below); truthy when it was used */
   const keys = {
+    // S adds a subgraph: inside a selected subgraph, or with nothing selected at the top level, as their menus' S does.
+    s: () => itemKey('add-subgraph') || spaceKey('add-subgraph'),
     n: () => {
       if (picking) return false;
       if (selected?.kind === 'edge') return edgeKey('insert-node');

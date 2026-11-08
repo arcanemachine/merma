@@ -187,7 +187,7 @@ another click on it closes it.
 ### Subgraph menu
 
 - **Add node** adds a new node inside the subgraph, before its `end`, then opens the node panel on it.
-- **Add subgraph** adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
+- **Add subgraph** (S) adds an empty subgraph inside this one (`subgraph s1 ["New subgraph"]` and its `end`), then opens
   the label box on its title (Escape there takes the add back, as for a node). Mermaid draws an empty subgraph as its
   title alone, until it has nodes.
 - **Connect to…**, then a click on a node or another subgraph, adds an edge from this subgraph, as from a node, and by
@@ -241,7 +241,7 @@ Removing the title isn't supported. Delete or Backspace on it says so.
 
 ### Empty space
 
-Right-click empty space (or press . with nothing selected) for **Add node** and **Add subgraph**, which add them at the
+Right-click empty space (or press . with nothing selected) for **Add node** (N) and **Add subgraph** (S), which add them at the
 top level, at the end of the file, and **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V), which
 add a new node (or, with a subgraph copied, a new subgraph) from the copy there, as the node menu's do. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 **Find…** (/) opens the find (below). **Fit to window** fits the whole diagram to the window, as F does with
@@ -314,6 +314,7 @@ here does just what it does in the selected item's menu:
 | Key | Does |
 |---|---|
 | N | Add a node: connected to the selected node, inside the selected subgraph, or into the selected edge |
+| S | Add a subgraph: inside the selected subgraph, or with nothing selected at the top level |
 | R with an edge selected | Reverse it |
 | M with a node selected | Merge into… |
 | C with a node or subgraph selected | Connect to… |
