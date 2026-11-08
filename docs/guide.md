@@ -115,7 +115,7 @@ another click on it closes it.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
   `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
-  editor or a message. Nothing in the file changes.
+  editor or a message. Nothing in the file changes. Ctrl+C on a subgraph or an edge says that only a node can be copied.
 - **Paste node** (Ctrl+V) adds a new node from the copy, under a new id (`n1`), and selects it: in the block this node
   is drawn in, so Ctrl+C then Ctrl+V duplicates a node beside it. The new node gets every edge the copied node had, its
   own id in place of the copied one's (a self-loop stays one), written after the last edge; an edge whose other end is
@@ -327,7 +327,7 @@ here does just what it does in the selected item's menu:
 | + (or =) and - | Zoom in and out, keeping the middle of the view where it is (in any diagram) |
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel (asking to save a changed draft first) |
-| Ctrl \| ⌘+C with a node selected | Copy node |
+| Ctrl \| ⌘+C with a node selected | Copy node (on a subgraph or an edge, it says only a node can be copied) |
 | Ctrl \| ⌘+X with a node selected | Cut node: mark it, to move it with Ctrl+V |
 | Ctrl \| ⌘+V, or with Shift | Paste node, or Paste node without edges (with a node cut: move it here): into the selected edge, inside the selected subgraph, beside the selected node, or with nothing selected at the top level. With nothing copied, or text selected on the page, the browser's own copy and paste |
 | Ctrl \| ⌘+Z | Undo the page's last edit |

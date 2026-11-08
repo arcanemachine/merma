@@ -1640,8 +1640,11 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     if (!(at === document.body || els.diagram.contains(at)) || !selectable || picking) return false;
     if (!document.getSelection()?.isCollapsed) return false;
     if (key === 'c' || key === 'x') {
-      if (e.shiftKey || selected?.kind !== 'node') return false;
+      if (e.shiftKey || !selected) return false;
       clearRefusal();
+      // Said, not left to the browser's copy, which would copy nothing (the user wants a message).
+      if (key === 'c' && selected.kind !== 'node') { refuse('Only a node can be copied, for now.'); return true; }
+      if (selected.kind !== 'node') return false;
       if (menuOpen()) closeMenus();
       handlers[key === 'c' ? 'copy-node' : 'cut-node']();
       return true;
