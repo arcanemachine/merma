@@ -362,8 +362,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 ## Grayed out or left out
 
 - A menu shows the items for that kind of thing (node, edge, subgraph, empty space). An item of that kind that does
-  not apply right now is grayed out, not hidden, so items keep their place and their keys. It says why on hover, and
-  in the notice when its key is pressed or it is tapped.
+  not apply right now is grayed out, its key with it, not hidden, so items keep their place and their keys. It says
+  why on hover, and in the notice when its key is pressed or it is tapped.
 - An item for another kind of thing is left out.
 - Items run make, change, rearrange, delete: Add and Connect, then Edit and Remove, then Reverse and Move, then Delete,
   last and set apart. A view action (Fit to window), which changes nothing in the file, goes last and set apart in the

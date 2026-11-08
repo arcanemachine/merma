@@ -282,6 +282,7 @@ main:has(#find:not([hidden])) #notice { display: none; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }
 /* An item that does not apply now: grayed, still focusable, its reason in its title. */
 .menu button[aria-disabled="true"] { color: #aaa; cursor: default; }
+.menu button[aria-disabled="true"] :is(.key, .more) { color: inherit; }
 /* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
 .picker { padding: 2px; }
 .picker-title { font-size: 12px; color: #666; padding: 2px 4px 4px; }
