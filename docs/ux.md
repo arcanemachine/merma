@@ -99,8 +99,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   click away, is the one way out of every pick; C while connecting does nothing. A find opened inside a pick (Connect
   to…, a move) is a step of it (the user): Enter in the find only moves the candidate, Escape closes the find
   first and the pick after, so the candidate stays the one thing Enter picks.
-- Shift with an item's letter does that item the other way round (the user): Shift+C is Connect from…, C's edge the
-  other way; Shift+R flips the diagram as R rotates it. A Shift key exists only beside its plain letter in the same
+- Shift with an item's letter does its counterpart: the other way round, or the same thing further (the user; the
+  reviewer's wording). Shift+C is Connect from…, C's edge the other way; Shift+R flips the diagram as R rotates it;
+  Shift+F fits the selection, which F only centers. A Shift key exists only beside its plain letter in the same
   menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
   never from the letter's case, so Caps Lock does not count.
 - In a pick, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
@@ -271,11 +272,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     otherwise). With nothing to bring back, Enter selects the middle node.
   - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an edge's
     source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, an edge with
-    its tick where it was, so you see what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
-    you away).
+    its tick where it was, so you see what came back; redo selects what the edit selected only if you have not moved
+    since (the user: it should not pull you away).
   - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, as
     Center in window does in its menu. A fit is a true reset (the user): F with nothing selected, Fit to window and a double-click
-    on empty space always fit the whole diagram, whatever the view was. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
+    on empty space always fit the whole diagram, whatever the view was, and leave a part. Shift+F fits the selection
+    instead (the user): a subgraph as the part, a node or an edge zoomed to it, up to twice actual size, the address
+    unchanged and the view kept as the user's, so a window resize does not undo it. 0 zooms to actual size, as a browser's Ctrl+0 does; not =, which is the unshifted + on
     a US keyboard.
   - Connect to… moves its outline by these same rules, through edges, which Enter refuses (the user); it starts on the
     item itself, so Enter at once makes a self-loop.
@@ -289,8 +292,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
   for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
   Alt+Left and Alt+Right move the diagram rather than go back or forward.
-- A part (Fit to subgraph) is a place, not a mode: the address holds it, so a link, a reload and an embed agree, and
-  entering or leaving one is a history entry, so Back leaves it. Nothing is hidden or redrawn for it (the user picked
+- A part (Fit to subgraph, Shift+F) is a place, not a mode: the address holds it, so a link, a reload and an embed
+  agree, and entering or leaving one is a history entry, so Back leaves it. F with nothing selected leaves it: one
+  plain way back to the whole (the user), with no key of its own. Nothing is hidden or redrawn for it (the user picked
   zooming over collapsing the rest or drawing the part alone): it changes only what a fit fits, so every edit and key
   works as in the whole. No Escape step. It may zoom in up to twice actual size, the whole diagram never past actual
   size, so a small subgraph fills the window.
@@ -350,8 +354,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Editing the code is a lock (the user: simple, built as a whole rather than gaps plugged): while a draft is open the
   diagram can be looked through, not edited (the user: "just because I am editing doesn't mean I don't want to
   navigate it"). Selecting, the keys that move about, and find work; every edit, Undo and Redo included, is refused
-  with a warning saying why, and a menu opens with its edits grayed for the same reason (Center in window and Find…
-  work). The diagram's background turns muted gray (the user), as the read-only code's is: whichever side is
+  with a warning saying why, and a menu opens with its edits grayed for the same reason (Center in window, the fits
+  and Find… work). The diagram's background turns muted gray (the user), as the read-only code's is: whichever side is
   read-only is gray, a second cue to the notice. The selection stays blue (the user chose the background alone over
   a gray selection). Each edit mode is its own lock, so Edit waits for a label box, Connect to… or a save to finish. The lock is this page's only:
   an agent, an editor or another tab can still write the file. That is what saving over the version Edit started from

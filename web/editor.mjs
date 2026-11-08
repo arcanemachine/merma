@@ -67,7 +67,7 @@ const END_RUN = 3;
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void, part(): string | null }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -443,10 +443,13 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     // Page-only (collapse.mjs): the file is not written, and no undo step is made.
     'collapse-subgraph': () => { const { id } = selection(); ui.setView(id, 'collapsed').then(() => ui.announce(`Collapsed ${named({ kind: 'subgraph', id })}`)); },
     'expand-subgraph': () => { const { id } = selection(); ui.setView(id, 'expanded').then(() => ui.announce(`Expanded ${named({ kind: 'subgraph', id })}`)); },
-    'fit-view': () => viewer.fit(),
-    // Page-only, as the address's part (main.mjs): every fit fits it, until Fit to whole diagram.
+    // The whole diagram, leaving a part (main.mjs) if one is shown: F is the way back (the user).
+    'fit-view': () => ui.showPart(null),
+    // Page-only, as the address's part (main.mjs): every refit fits it, until F fits the whole diagram.
     'fit-subgraph': () => ui.showPart(selection().id),
-    'fit-whole': () => ui.showPart(null),
+    // A node or an edge (with its label) fitted to the window, the address unchanged: only a subgraph is a part.
+    'fit-node': () => viewer.fitRects(elsOf(selection()).map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height)),
+    'fit-edge': () => viewer.fitRects(elsOf(selection()).map((e) => e.getBoundingClientRect()).filter((r) => r.width || r.height)),
     // Page-only (turn.mjs), as collapse is: the whole diagram, or the selected subgraph on its own. A turn is for
     // fitting the window (the user), so it fits after.
     'rotate': () => turnIt('rotate'),
@@ -526,7 +529,6 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       copied: Boolean(copied),
       cut: Boolean(cut),
       cutWhy: cutWhy(),
-      part: Boolean(ui.part()),
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
     };
   }
@@ -1202,9 +1204,11 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     // F fits the diagram; with an item selected, it centers it at the zoom it has instead (the user). The title, at
     // the diagram's top, is fitted with it.
     f: () => {
-      if (!selected || selected.kind === 'title') viewer.fit(); else handlers['center-view']();
+      if (!selected || selected.kind === 'title') handlers['fit-view'](); else handlers['center-view']();
       return true;
     },
+    // Shift+F fits the selection, which F only centers: a subgraph as the part, as their menus' Shift+F does.
+    'shift+f': () => edgeKey('fit-edge') || itemKey('fit-node') || itemKey('fit-subgraph'),
     ...Object.fromEntries(['Up', 'Down', 'Left', 'Right'].flatMap((d) => {
       const key = `Arrow${d}`, name = key.toLowerCase();
       return [[name, () => arrow(key, 'plain')], [`ctrl+${name}`, () => arrow(key, 'ctrl')], [`shift+${name}`, () => arrow(key, 'shift')]];
@@ -1261,7 +1265,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     // only when it let go of something, so that otherwise the browser's own use of it goes ahead.
     escape: () => ESCAPE.some(([, step]) => step()),
   };
-  const VIEW_KEYS = ['f', 'escape', '+', '=', '-', '0',
+  const VIEW_KEYS = ['f', 'shift+f', 'escape', '+', '=', '-', '0',
     ...['up', 'down', 'left', 'right'].flatMap((d) => [`arrow${d}`, `ctrl+arrow${d}`, `shift+arrow${d}`])];
   for (const k of Object.keys(GLOBAL_KEYS)) if (!keys[k]) throw new Error(`No handler for the key ${k}`);
   const editLabelOrTitle = (/** @type {Item} */ sel) => (sel.kind === 'subgraph' ? editTitle(sel) : openLabelBox(sel));

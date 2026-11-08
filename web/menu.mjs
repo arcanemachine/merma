@@ -81,7 +81,6 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       b.replaceChildren(text, ...key, ...more);
       if (item.key) b.setAttribute('aria-keyshortcuts', keyAria(item.key, os)); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
-      b.hidden = Boolean(item.shown && !item.shown(state));
       b.setAttribute('aria-disabled', String(off));
       if (off) b.title = why(item); else b.removeAttribute('title');
     });
@@ -165,13 +164,11 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     const item = items[at];
     const key = e.key.toLowerCase();
     // Shift with a letter is its own key only where an item has it (Connect from…), so Caps Lock never counts.
-    const live = items.filter((_, i) => !buttons[i].hidden);
-    const byKey = (e.shiftKey && live.find((i) => i.key === `shift+${key}`)) || live.find((i) => i.key && i.key === key);
+    const byKey = (e.shiftKey && items.find((i) => i.key === `shift+${key}`)) || items.find((i) => i.key && i.key === key);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
-      const shown = buttons.filter((b) => !b.hidden);
-      const here = shown.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
-      shown[(here + (e.key === 'ArrowDown' ? 1 : shown.length - 1)) % shown.length].focus();
+      const here = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+      buttons[(here + (e.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus();
     } else if (e.key === 'ArrowRight' && item?.submenu) {
       e.preventDefault();
       if (openSub !== item) toggleSub(item); else submenus[item.submenu].focus();
@@ -216,7 +213,7 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       if (isOpen()) return;
       el.showPopover();
       reposition(at, true);
-      (buttons.find((b, i) => !b.hidden && applies(items[i])) ?? buttons.find((b) => !b.hidden) ?? buttons[0]).focus();
+      (buttons.find((_, i) => applies(items[i])) ?? buttons[0]).focus();
     },
     reposition,
     close,

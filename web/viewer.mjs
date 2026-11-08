@@ -82,14 +82,14 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
    * Show every rect (client coordinates) at once, as a fit puts the diagram: centered at the zoom the view has, or
    * zoomed out just enough, never in; below `clear` px of the area's top (what lies over it), else its padding.
    */
-  function frameRects(/** @type {import('./frame.mjs').Box[]} */ rects, clear = 0) {
+  function frameRects(/** @type {import('./frame.mjs').Box[]} */ rects, clear = 0, k = view.k) {
     const box = diagram.getBoundingClientRect();
     const top = Math.max(clear, parseFloat(getComputedStyle(diagram).paddingTop) || 0);
     const boxes = rects.map((r) => {
       const a = toStage(r.left, r.top), b = toStage(r.right, r.bottom);
       return { left: a.x, top: a.y, right: b.x, bottom: b.y };
     });
-    const to = frameView(boxes, { width: box.width, height: box.height, top }, PAD, view.k);
+    const to = frameView(boxes, { width: box.width, height: box.height, top }, PAD, k);
     if (!to) return;
     Object.assign(view, to);
     touched = true;
@@ -323,6 +323,10 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     },
 
     frame: frameRects,
+
+    /** Fit the rects (client coordinates) to the window, as a part is: zoomed in up to twice actual size. It counts as
+     * the user's view, so a refit (window resize) leaves it alone. */
+    fitRects: (/** @type {import('./frame.mjs').Box[]} */ rects) => frameRects(rects, 0, PART_MAX),
 
     /** Move the view so the point (`x`, `y`, client coordinates) is in the middle of the diagram area, below its top
      * padding, at the zoom it has. */

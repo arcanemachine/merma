@@ -261,7 +261,6 @@ const ui = {
   /** Fit to subgraph `id`, or to the whole diagram (null), as the address's part. */
   showPart: (/** @type {string | null} */ id) => setPart(id),
   /** The subgraph fitted as the part, if any. */
-  part: () => part,
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -283,7 +282,8 @@ const meta = (/** @type {string} */ name) => /** @type {HTMLMetaElement} */ (doc
 const limits = readLimits(meta('merma-max-edges'), meta('merma-max-text'));
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage'), limits }, {
   onClick: (target, x, y) => { clickedAway(target); editor?.clicked(target, x, y); },
-  onDoubleClick: (target) => editor?.doubleClicked(target) ?? false,
+  // On empty space it fits the whole diagram, leaving a part, as F does.
+  onDoubleClick: (target) => editor?.doubleClicked(target) || (setPart(null), true),
   onContextMenu: (target, x, y, byKey) => editor?.contextMenu(target, x, y, byKey) ?? false,
   onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },
   fitTo: partRect,

@@ -147,7 +147,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'cut-node', 'expand-subgraph', 'find', 'fit-subgraph', 'fit-view', 'fit-whole', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'cut-node', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -228,10 +228,14 @@ test('every key the page answers outside menus is in Help', () => {
   }
 });
 
-test('Fit to whole diagram is in the empty-space menu only while a part is fitted; Fit to subgraph is grayed on one with no id', () => {
-  const whole = MENUS.space.find((i) => i.action === 'fit-whole');
-  assert.equal(whole?.shown?.({ edgesOk: true, selfLoop: false, nameWhy: null }), false);
-  assert.equal(whole?.shown?.({ edgesOk: true, selfLoop: false, nameWhy: null, part: true }), true);
+test('Shift+F fits the selection, just after Center in window (F) in its menu; Fit to subgraph is grayed on one with no id', () => {
+  const fits = { node: 'fit-node', edge: 'fit-edge', subgraph: 'fit-subgraph', box: 'fit-subgraph' };
+  for (const [menu, action] of Object.entries(fits)) {
+    const at = MENUS[menu].findIndex((i) => i.action === 'center-view');
+    assert.equal(MENUS[menu][at + 1]?.action, action, menu);
+    assert.equal(MENUS[menu][at + 1]?.key, 'shift+f', menu);
+  }
+  assert.deepEqual(GLOBAL_KEYS['shift+f'].sort(), ['fit-edge', 'fit-node', 'fit-subgraph']);
   for (const menu of ['subgraph', 'box']) {
     const fit = MENUS[menu].find((i) => i.action === 'fit-subgraph');
     assert.equal(applies(fit, { edgesOk: true, selfLoop: false, nameWhy: null, partWhy: null }), true, menu);
