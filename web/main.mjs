@@ -484,6 +484,7 @@ function closeHelp() {
   help.hidePopover();
   helpOpener.focus({ preventScroll: true });
 }
+/** @type {HTMLElement} */ (help.querySelector('.help-close')).addEventListener('click', closeHelp);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !help.matches(':popover-open')) return;
   e.preventDefault();

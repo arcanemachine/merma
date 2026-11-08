@@ -69,7 +69,7 @@
       <button popovertarget="help" title="How to use this page (?)">Help</button>
     </div>
   </footer>
-  <div id="help" popover="manual" tabindex="-1">
+  <div id="help" popover="manual" tabindex="-1" role="dialog" aria-label="Help">
     <table>
       <tr><th colspan="2" class="section">Viewing</th></tr>
       <tr><th scope="row">Wheel or pinch</th><td>Zoom in or out</td></tr>
@@ -78,66 +78,76 @@
       <tr><th colspan="2" class="section">Editing <span class="note">flowcharts</span></th></tr>
       <tr><th scope="row">Click</th><td>Select node, edge or subgraph</td></tr>
       <tr><th scope="row">Right-click or long-press</th><td>Open menu</td></tr>
-      <tr><th scope="row">Double-click a node</th><td>Edit node</td></tr>
-      <tr><th scope="row">Double-click an edge</th><td>Edit label</td></tr>
-      <tr><th scope="row">Double-click a subgraph or the title</th><td>Edit title</td></tr>
+      <tr><th scope="row">Double-click node</th><td>Edit node</td></tr>
+      <tr><th scope="row">Double-click edge</th><td>Edit label</td></tr>
+      <tr><th scope="row">Double-click subgraph or title</th><td>Edit title</td></tr>
       <tr><th colspan="2" class="section">Keys</th></tr>
       <tr><td colspan="2" class="hint">Keyboard shortcuts are case-insensitive.</td></tr>
-      <tr><th scope="row"><kbd>+</kbd> or <kbd>-</kbd></th><td>Zoom in or out</td></tr>
-      <tr><th scope="row"><kbd>0</kbd></th><td>Zoom to actual size</td></tr>
-      <tr><th scope="row"><kbd>F</kbd></th><td>Fit to window, or center the selection</td></tr>
-      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>F</kbd> on a node, edge or subgraph</th><td>Fit it to window</td></tr>
+      <tr><th scope="row"><kbd>+</kbd></th><td>Zoom in</td></tr>
+      <tr><th scope="row"><kbd>-</kbd></th><td>Zoom out</td></tr>
+      <tr><th scope="row"><kbd>.</kbd> (period)</th><td>Open menu</td></tr>
       <tr><th scope="row"><kbd>/</kbd></th><td>Find in diagram</td></tr>
-      <tr><th scope="row"><kbd>`</kbd> (backtick)</th><td>Go to code panel, or back to diagram</td></tr>
-      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>`</kbd></th><td>Close code panel</td></tr>
+      <tr><th scope="row"><kbd>0</kbd></th><td>Zoom to actual size</td></tr>
       <tr><th scope="row"><kbd>?</kbd></th><td>Open or close Help</td></tr>
-      <tr><th scope="row"><kbd>.</kbd> (period) or <kbd>Shift</kbd>+<kbd>F10</kbd></th><td>Open menu</td></tr>
-      <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel or deselect; then close the code panel</td></tr>
-      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>C</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>C</kbd></span> on a node or subgraph</th><td>Copy node or subgraph</td></tr>
-      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>X</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>X</kbd></span> on a node or subgraph</th><td>Cut node or subgraph</td></tr>
-      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>V</kbd></span></th><td>Paste what was copied, or move what was cut here (with <kbd>Shift</kbd>: without edges going outside it)</td></tr>
+      <tr><th scope="row"><kbd>`</kbd> (backtick)</th><td>Switch to code panel or diagram</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>`</kbd></th><td>Close code panel</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>C</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>C</kbd></span> on node or subgraph</th><td>Copy it</td></tr>
+      <tr><th scope="row"><kbd>F</kbd></th><td>Fit to window, or center selection</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>F</kbd> on node, edge or subgraph</th><td>Fit it to window</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>V</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>V</kbd></span></th><td>Paste, or move what was cut here</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></span></th><td>Paste or move without outside edges</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>X</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>X</kbd></span> on node or subgraph</th><td>Cut it</td></tr>
+      <tr data-os="pc"><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Y</kbd></span></th><td>Redo</td></tr>
       <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Z</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>Z</kbd></span></th><td>Undo</td></tr>
-      <tr><th scope="row" class="wrap"><span data-os="pc"><span class="combo"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span> or <span class="combo"><kbd>Ctrl</kbd>+<kbd>Y</kbd></span></span><span data-os="mac" class="combo"><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span></th><td>Redo</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span><span data-os="mac"><kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></span></th><td>Redo</td></tr>
+      <tr><th scope="row"><kbd>Esc</kbd></th><td>Cancel or deselect, then close code panel</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>F10</kbd></th><td>Open menu</td></tr>
       <tr><th colspan="2" class="section">Keys with nothing selected</th></tr>
-      <tr><th scope="row">Arrows, with <span data-os="pc"><kbd>Ctrl</kbd></span><span data-os="mac"><kbd>⌥</kbd></span> or <kbd>Shift</kbd></th><td>Move diagram (further, or less)</td></tr>
-      <tr><th scope="row"><kbd>Enter</kbd></th><td>Select last item, or middle node</td></tr>
       <tr><th scope="row"><kbd>N</kbd></th><td>Add node</td></tr>
+      <tr><th scope="row"><kbd>R</kbd></th><td>Rotate diagram</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>R</kbd></th><td>Flip diagram</td></tr>
       <tr><th scope="row"><kbd>S</kbd></th><td>Add subgraph</td></tr>
+      <tr><th scope="row">Arrows with <span data-os="pc"><kbd>Ctrl</kbd></span><span data-os="mac"><kbd>⌥</kbd></span> or <kbd>Shift</kbd></th><td>Move diagram, further or less</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd></th><td>Select last item, or middle node</td></tr>
       <tr><th colspan="2" class="section">Keys with something selected</th></tr>
-      <tr><th scope="row">Arrows on a node or subgraph</th><td>Go in, select edge leaving that way, or select next item</td></tr>
-      <tr><th scope="row">Arrows on an edge</th><td>Follow edge, or step to edge beside it</td></tr>
-      <tr><th scope="row">The opposite arrow</th><td>Go back</td></tr>
-      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd></span><span data-os="mac"><kbd>⌥</kbd></span>+Arrows</th><td>Skip edge, or select next item that way</td></tr>
-      <tr><th scope="row"><kbd>Space</kbd> on an edge</th><td>Walk other end's edges</td></tr>
-      <tr><th scope="row"><kbd>O</kbd></th><td>Select enclosing subgraph, or nothing</td></tr>
-      <tr><th scope="row"><kbd>I</kbd> on a subgraph</th><td>Select item inside</td></tr>
-      <tr><th scope="row"><kbd>H</kbd> on a subgraph</th><td>Collapse or expand subgraph</td></tr>
-      <tr><th scope="row"><kbd>Up</kbd> on a node in the top row</th><td>Select title</td></tr>
-      <tr><th scope="row"><kbd>N</kbd> on a node</th><td>Add connected node</td></tr>
-      <tr><th scope="row"><kbd>N</kbd> on a subgraph</th><td>Add node</td></tr>
-      <tr><th scope="row"><kbd>N</kbd> on an edge</th><td>Insert node</td></tr>
-      <tr><th scope="row"><kbd>S</kbd> on a subgraph</th><td>Add subgraph inside</td></tr>
-      <tr><th scope="row"><kbd>C</kbd> on a node or subgraph</th><td>Connect to…</td></tr>
-      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>C</kbd> on a node or subgraph</th><td>Connect from…</td></tr>
-      <tr><th scope="row"><kbd>C</kbd> on an edge</th><td>Reassign end… (<kbd>Space</kbd>: the other end)</td></tr>
-      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>C</kbd> on an edge</th><td>Reassign start… (<kbd>Space</kbd>: the other end)</td></tr>
-      <tr><th scope="row"><kbd>R</kbd> on an edge</th><td>Reverse edge</td></tr>
-      <tr><th scope="row"><kbd>R</kbd> with nothing selected</th><td>Rotate diagram</td></tr>
-      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>R</kbd> with nothing selected</th><td>Flip diagram</td></tr>
-      <tr><th scope="row"><kbd>R</kbd> or <kbd>Shift</kbd>+<kbd>R</kbd> on a subgraph</th><td>Rotate or flip its inside</td></tr>
-      <tr><th scope="row"><kbd>M</kbd> on a node</th><td>Merge into…</td></tr>
-      <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> on a node</th><td>Edit node</td></tr>
-      <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> on an edge</th><td>Edit label</td></tr>
-      <tr><th scope="row"><kbd>Enter</kbd> or <kbd>F2</kbd> on a subgraph or the title</th><td>Edit title</td></tr>
-      <tr><th scope="row"><kbd>Delete</kbd> or <kbd>Backspace</kbd></th><td>Delete node or edge</td></tr>
-      <tr><th scope="row">Arrows, then <kbd>Enter</kbd>, in Connect to… or a move</th><td>Pick node or subgraph</td></tr>
-      <tr><th scope="row"><kbd>Down</kbd> in a node's label</th><td>Go to shape picker</td></tr>
+      <tr><th scope="row"><kbd>C</kbd> on node or subgraph</th><td>Connect to…</td></tr>
+      <tr><th scope="row"><kbd>C</kbd> on edge</th><td>Reassign end… (<kbd>Space</kbd>: other end)</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>C</kbd> on node or subgraph</th><td>Connect from…</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>C</kbd> on edge</th><td>Reassign start… (<kbd>Space</kbd>: other end)</td></tr>
+      <tr><th scope="row"><kbd>H</kbd> on subgraph</th><td>Collapse or expand</td></tr>
+      <tr><th scope="row"><kbd>I</kbd> on subgraph</th><td>Select item inside</td></tr>
+      <tr><th scope="row"><kbd>M</kbd> on node</th><td>Merge into…</td></tr>
+      <tr><th scope="row"><kbd>N</kbd> on node</th><td>Add connected node</td></tr>
+      <tr><th scope="row"><kbd>N</kbd> on edge</th><td>Insert node</td></tr>
+      <tr><th scope="row"><kbd>N</kbd> on subgraph</th><td>Add node</td></tr>
+      <tr><th scope="row"><kbd>O</kbd></th><td>Select outer subgraph, or nothing</td></tr>
+      <tr><th scope="row"><kbd>R</kbd> on edge</th><td>Reverse edge</td></tr>
+      <tr><th scope="row"><kbd>R</kbd> on subgraph</th><td>Rotate its inside</td></tr>
+      <tr><th scope="row"><kbd>Shift</kbd>+<kbd>R</kbd> on subgraph</th><td>Flip its inside</td></tr>
+      <tr><th scope="row"><kbd>S</kbd> on subgraph</th><td>Add subgraph inside</td></tr>
+      <tr><th scope="row">Arrows on node or subgraph</th><td>Go in, or along an edge or to the next item</td></tr>
+      <tr><th scope="row">Arrows on edge</th><td>Follow edge, or step beside it</td></tr>
+      <tr><th scope="row">Opposite arrow</th><td>Go back</td></tr>
+      <tr><th scope="row">Arrows, then <kbd>Enter</kbd>, in Connect to… or move</th><td>Pick node or subgraph</td></tr>
+      <tr><th scope="row"><span data-os="pc"><kbd>Ctrl</kbd></span><span data-os="mac"><kbd>⌥</kbd></span>+Arrows</th><td>Skip edge, or next item that way</td></tr>
+      <tr><th scope="row"><kbd>Backspace</kbd></th><td>Delete node or edge</td></tr>
+      <tr><th scope="row"><kbd>Delete</kbd></th><td>Delete node or edge</td></tr>
+      <tr><th scope="row"><kbd>Down</kbd> in node's label</th><td>Go to shape picker</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> on node</th><td>Edit node</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> on edge</th><td>Edit label</td></tr>
+      <tr><th scope="row"><kbd>Enter</kbd> on subgraph or title</th><td>Edit title</td></tr>
+      <tr><th scope="row"><kbd>F2</kbd> on node</th><td>Edit node</td></tr>
+      <tr><th scope="row"><kbd>F2</kbd> on edge</th><td>Edit label</td></tr>
+      <tr><th scope="row"><kbd>F2</kbd> on subgraph or title</th><td>Edit title</td></tr>
+      <tr><th scope="row"><kbd>Space</kbd> on edge</th><td>Walk other end's edges</td></tr>
+      <tr><th scope="row"><kbd>Up</kbd> on node in top row</th><td>Select title</td></tr>
     </table>
     <div class="help-foot">
       <div class="os-toggle" role="group" aria-label="Keys for">
         <button type="button" data-os-pick="pc">Windows, Linux</button><button type="button" data-os-pick="mac">macOS</button>
       </div>
       <p class="note">For more info, see <code>docs/guide.md</code></p>
+      <button type="button" class="help-close">Close</button>
     </div>
   </div>
   <script type="module" src="/main.mjs"></script>

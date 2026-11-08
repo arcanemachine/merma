@@ -351,7 +351,8 @@ here does just what it does in the selected item's menu:
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 
 Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS. Help shows the keys for your system; a toggle at its bottom
-switches between Windows and Linux, and macOS.
+switches between Windows and Linux, and macOS. Its **Close** button, also at its bottom, closes it, as a click away,
+Escape and ? do.
 
 A double-click on a node or an edge edits its label too, and one on a subgraph its title.
 

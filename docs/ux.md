@@ -43,10 +43,17 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit label").
   When a gesture or key does different things depending on what it is on or what is selected, it gets a row per case,
-  and the case is named on the left ("Double-click empty space", "N on a node"). One action whatever the target ("Open
+  and the case is named on the left ("Double-click empty space", "N on node"). One action whatever the target ("Open
   menu": the target's own menu) is one row, and so is a key that backs out of whatever is open ("Cancel or deselect").
   Keys that depend on the selection go under "Keys with nothing selected" and "Keys with something selected": the
   page names the two cases, never a mode the user must keep track of (the user).
+- Help's keys go by the key within each section, so a key is found by its letter (the user): punctuation and digits,
+  then letters, then named keys (Arrows, Backspace, Delete, Down, Enter, Esc, F2, F10, Space, Up), each key's forms
+  together, plain, Shift, Ctrl, Ctrl+Shift. One row per shortcut ("Delete" and "Backspace" are two rows), each saying
+  what it does in at most 45 characters, so every row fits on one line; the panel is as wide as its rows, and at most
+  half the window's height (800px on a tall one), scrolling inside, or the whole screen on a phone; its Close button
+  stays in view at the bottom, since on a phone there is nothing outside it to tap. The tests in
+  `test/menu-items.test.mjs` hold the order and the length.
 
 - Mermaid's word wherever it has one: node, edge, label, shape, subgraph, title, direction, arrow type, length. A word
   of merma's own needs a reason, given in `GLOSSARY.md`. Readers who know Mermaid should not have to translate.

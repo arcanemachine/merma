@@ -171,6 +171,7 @@ const HELP_ONLY = {
   '?': 'main.mjs answers it',
   'ctrl+c': 'copy, handled before the key map',
   'ctrl+v': 'paste, handled before the key map',
+  'ctrl+shift+v': 'paste without edges, handled before the key map',
   'ctrl+x': 'cut, handled before the key map',
   'ctrl+z': 'undo, handled before the key map',
   'ctrl+shift+z': 'redo, handled before the key map',
@@ -180,25 +181,25 @@ const HELP_ONLY = {
 // '=' is + unshifted on a US keyboard (docs/ux.md): the guide lists it, Help shows +.
 const NOT_IN_HELP = ['='];
 // Rows under a Keys section that name no key of their own.
-const KEYLESS_ROWS = ['The opposite arrow'];
+const KEYLESS_ROWS = ['Opposite arrow'];
 const ARROW_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
 const NAMES = { esc: 'escape', space: ' ', up: 'arrowup', down: 'arrowdown', left: 'arrowleft', right: 'arrowright' };
 
-/** Each row under one of Help's Keys sections: its text, and the keys it names. */
+/** Each row under one of Help's Keys sections: its section, its text, the keys it names, and what it says they do. */
 const helpKeyRows = () => {
   const html = readFileSync(join(import.meta.dirname, '..', 'web', 'index.html'), 'utf8');
   const help = html.slice(html.indexOf('<div id="help"'), html.indexOf('</table>'));
   const rows = [];
-  let inKeys = false;
-  for (const [, tr] of help.matchAll(/<tr>(.*?)<\/tr>/g)) {
+  let inKeys = false, sectionName = '';
+  for (const [, tr] of help.matchAll(/<tr[^>]*>(.*?)<\/tr>/g)) {
     const section = tr.match(/class="section">([^<]*)/);
-    if (section) { inKeys = section[1].startsWith('Keys'); continue; }
-    const th = tr.match(/<th scope="row"[^>]*>(.*)<\/th><td>/);
+    if (section) { inKeys = section[1].startsWith('Keys'); sectionName = section[1]; continue; }
+    const th = tr.match(/<th scope="row"[^>]*>(.*)<\/th><td>(.*)<\/td>/);
     if (!inKeys || !th) continue;
     const pc = th[1].replace(/<span data-os="mac"[^>]*>.*?<\/span>/g, '').replace(/<\/?span[^>]*>/g, '');
     const text = pc.replace(/<[^>]+>/g, '');
     const keys = [];
-    if (text === 'Arrows, with Ctrl or Shift') keys.push(...ARROW_KEYS, ...ARROW_KEYS.map((a) => 'ctrl+' + a), ...ARROW_KEYS.map((a) => 'shift+' + a));
+    if (text === 'Arrows with Ctrl or Shift') keys.push(...ARROW_KEYS, ...ARROW_KEYS.map((a) => 'ctrl+' + a), ...ARROW_KEYS.map((a) => 'shift+' + a));
     else if (text.startsWith('Ctrl+Arrows')) keys.push(...ARROW_KEYS.map((a) => 'ctrl+' + a));
     else {
       if (/\bArrows\b/.test(text)) keys.push(...ARROW_KEYS);
@@ -206,7 +207,7 @@ const helpKeyRows = () => {
         keys.push([...run.matchAll(/<kbd>([^<]*)<\/kbd>/g)].map(([, k]) => NAMES[k.toLowerCase()] ?? k.toLowerCase()).join('+'));
       }
     }
-    rows.push({ text, keys });
+    rows.push({ section: sectionName, text, keys, does: th[2].replace(/<[^>]+>/g, '') });
   }
   return rows;
 };
@@ -219,6 +220,37 @@ test("every row under Help's Keys sections names a key, and each is one the page
     assert.ok(keys.length, `${text}: no key read`);
     for (const k of keys) assert.ok(k in GLOBAL_KEYS || k in HELP_ONLY, `${text}: ${k} is not in GLOBAL_KEYS`);
   }
+});
+
+// Within a Keys section, rows go by the key: punctuation and digits, then letters, then named keys (Arrows, Backspace,
+// Delete, …), each key's forms together in the order plain, Shift, Ctrl, Ctrl+Shift.
+const NAMED = ['arrows', 'backspace', 'delete', 'arrowdown', 'enter', 'escape', 'f2', 'f10', ' ', 'arrowup'];
+const sortKey = (/** @type {string} */ shortcut) => {
+  const [, mods, base] = /** @type {RegExpMatchArray} */ (shortcut.match(/^((?:ctrl\+)?(?:shift\+)?)(.+)$/));
+  const form = ['', 'shift+', 'ctrl+', 'ctrl+shift+'].indexOf(mods);
+  const group = NAMED.includes(base) ? 2 : /[a-z]/.test(base) ? 1 : 0;
+  const within = group === 2 ? NAMED.indexOf(base) : base.codePointAt(0);
+  return [group, within, form];
+};
+
+test("Help's Keys sections go by the key, each key's forms together; a row names one shortcut", () => {
+  const rows = helpKeyRows().filter((r) => !KEYLESS_ROWS.includes(r.text));
+  for (const r of rows) {
+    // A row of arrows names the four as one shortcut (with Ctrl and Shift, the diagram's moves; then Enter, a pick).
+    const arrows = r.keys.filter((k) => /arrow(up|down|left|right)$/.test(k)).length >= 4;
+    if (!arrows) assert.equal(r.keys.length, 1, `${r.text} names ${r.keys.length} shortcuts`);
+  }
+  const keyOf = (/** @type {{ keys: string[] }} */ r) => (r.keys.length >= 4 ? r.keys[0].replace(/arrow\w+$/, 'arrows') : r.keys[0]);
+  for (let k = 1; k < rows.length; k++) {
+    if (rows[k].section !== rows[k - 1].section) continue;
+    const [a, b] = [sortKey(keyOf(rows[k - 1])), sortKey(keyOf(rows[k]))];
+    const order = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+    assert.ok(order <= 0, `${rows[k].text} comes before ${rows[k - 1].text} in ${rows[k].section}`);
+  }
+});
+
+test("each row under Help's Keys sections says what it does in at most 45 characters", () => {
+  for (const { text, does } of helpKeyRows()) assert.ok(does.length <= 45, `${text}: ${does.length} characters`);
 });
 
 test('every key the page answers outside menus is in Help', () => {
