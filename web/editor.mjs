@@ -15,8 +15,8 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, copiedText, copyNode, deleteEdge, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
-  nodeIdFromSvgId, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
+  addConnected, addNode, addSubgraph, arrowType, connect, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
+  nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
@@ -133,7 +133,11 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   /** @type {Item | null} while the label box is open over it */
   let labelling = null;
   let refused = false;        // the notice shows why a menu item does not apply
-  /** @type {{ copy: import('./patch/flowchart.mjs').Copied, name: string } | null} the node last copied, in this tab */
+  /**
+   * The node or subgraph last copied, in this tab.
+   * @type {{ kind: 'node', copy: import('./patch/flowchart.mjs').Copied, name: string }
+   *   | { kind: 'subgraph', copy: import('./patch/flowchart.mjs').CopiedSubgraph, name: string } | null}
+   */
   let copied = null;
   /**
    * The node or subgraph cut, in this tab: the paste items move it. A subgraph with no id in the file keeps its
@@ -311,12 +315,18 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     addAndName((text) => insertNode(text, id, { side }), null, 'node', true);
   }
 
-  /** Copy node: the selected node, as it is now, to the page's clipboard (and the system's, as Mermaid text). */
+  /**
+   * Copy node or Copy subgraph: the selection, as it is now, to the page's clipboard (and the system's, as Mermaid
+   * text).
+   */
   function copySelected() {
     const sel = selection();
-    try { copied = { copy: copyNode(shownText, sel.id), name: named(sel) }; } catch (e) { refuse(e.message || String(e)); return; }
+    try {
+      copied = sel.kind === 'subgraph' ? { kind: 'subgraph', copy: copySubgraph(shownText, sel.id), name: named(sel) }
+        : { kind: 'node', copy: copyNode(shownText, sel.id), name: named(sel) };
+    } catch (e) { refuse(e.message || String(e)); return; }
     dropCut();
-    ui.copied(copiedText(copied.copy));
+    ui.copied(copied.kind === 'subgraph' ? copiedSubgraphText(copied.copy) : copiedText(copied.copy));
     ui.announce(`Copied ${copied.name}`);
   }
 
@@ -433,8 +443,17 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   function paste(/** @type {boolean} */ withEdges) {
     if (cut) { moveCutHere(withEdges); return; }
     if (!copied) return;
-    const { copy, name } = copied;
     const sel = selected;
+    if (copied.kind === 'subgraph') {
+      const { copy, name } = copied;
+      const into = sel?.kind === 'subgraph' || sel?.kind === 'node' ? { kind: sel.kind, id: sel.id } : null;
+      editDrawn((text) => pasteSubgraph(text, copy, into, withEdges), {
+        afterSave: () => ui.announce(`Pasted ${name}`),
+        after: (result) => ({ item: { kind: 'subgraph', id: result.id } }),
+      });
+      return;
+    }
+    const { copy, name } = copied;
     const into = sel?.kind === 'edge' ? { kind: /** @type {const} */ ('edge'), svgId: sel.id, side: endSide === 'end' ? /** @type {const} */ ('first') : /** @type {const} */ ('second') }
       : sel?.kind === 'subgraph' || sel?.kind === 'node' ? { kind: sel.kind, id: sel.id } : null;
     editDrawn((text) => pasteNode(text, copy, into, withEdges), {
@@ -483,6 +502,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'delete-edge': () => deleteSelected(),
     'insert-node': () => startInsert(),
     'copy-node': () => copySelected(),
+    'copy-subgraph': () => copySelected(),
     'cut-node': () => cutSelected(),
     'cut-subgraph': () => cutSelected(),
     'paste-node': () => paste(true),
@@ -581,7 +601,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       turnWhy: selected?.kind === 'subgraph' ? turnWhy(selected.id) : null,
       insertWhy: selected?.kind === 'edge' ? insertWhy(selected.id) : null,
       locked,
-      copied: Boolean(copied),
+      copied: copied?.kind ?? null,
       cut: cut?.kind ?? null,
       cutWhy: cutWhy(),
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
@@ -1652,7 +1672,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   });
 
   /**
-   * Ctrl+C, Ctrl+V and Ctrl+Shift+V (⌘ on a Mac) on the diagram: copy and paste a node. Whether the page took the key:
+   * Ctrl+C, Ctrl+V and Ctrl+Shift+V (⌘ on a Mac) on the diagram: copy and paste a node or a subgraph. Whether the page took the key:
    * when it does nothing here (focus or a text selection elsewhere, nothing to copy or paste), the browser's own
    * copy and paste go on. A paste the selection's menu grays is refused, saying why.
    */
@@ -1664,13 +1684,12 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       if (e.shiftKey || !selected) return false;
       clearRefusal();
       // Said, not left to the browser's copy, which would copy nothing (the user wants a message).
-      if (key === 'c' && selected.kind !== 'node') { refuse('Only a node can be copied, for now.'); return true; }
-      if (key === 'x' && selected.kind !== 'node' && selected.kind !== 'subgraph') {
-        refuse('Only a node or a subgraph can be cut.');
+      if (selected.kind !== 'node' && selected.kind !== 'subgraph') {
+        refuse(`Only a node or a subgraph can be ${key === 'c' ? 'copied' : 'cut'}.`);
         return true;
       }
       if (menuOpen()) closeMenus();
-      handlers[key === 'c' ? 'copy-node' : selected.kind === 'node' ? 'cut-node' : 'cut-subgraph']();
+      handlers[`${key === 'c' ? 'copy' : 'cut'}-${selected.kind}`]();
       return true;
     }
     if (!copied && !cut) return false;

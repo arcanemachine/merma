@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, moveCut, moveIntoEdge, hasNode,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, moveCut, moveIntoEdge, hasNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1104,6 +1104,91 @@ test('pasteNode leaves out an edge whose other end is gone, keeps one to a subgr
   assert.deepEqual(edges(text).filter((e) => e.from === 'n1' || e.to === 'n1').map((e) => `${e.from} ${e.to}`), ['n1 s']);
   assert.ok(text.endsWith('\n  class n1 hot\n  style n1 fill:#eef\n'), text);
 });
+
+const PAY = 'flowchart TD\n  A[Start] --> B\n  subgraph pay [Payment]\n    direction LR\n    B{Paid?} -->|yes| C[Receipt]\n'
+  + '    subgraph card ["Card check"]\n      D([Check card])\n    end\n    C --> D\n  end\n  C --> E[Done]\n  A --> pay\n'
+  + '  style C fill:#f9f\n  class D hot\n';
+
+test('copySubgraph holds what Mermaid draws in it: its nodes and nested subgraphs, and every edge with an end among them', () => {
+  const c = copySubgraph(PAY, 'pay');
+  assert.deepEqual(c.ids, ['pay', 'B', 'C', 'card', 'D']);
+  assert.equal(c.block.title, '"Payment"');
+  assert.equal(c.block.dir, 'LR');
+  assert.deepEqual(c.block.nodes.map((n) => n.id + n.shape), ['B{Paid?}', 'C[Receipt]']);
+  assert.deepEqual(c.block.blocks.map((b) => [b.id, b.title, b.nodes.map((n) => n.id)]), [['card', '"Card check"', ['D']]]);
+  assert.deepEqual(c.edges.map((e) => `${e.from} ${e.connector} ${e.to}`), ['A --> B', 'B -->|yes| C', 'C --> D', 'C --> E', 'A --> pay']);
+  // A node another block claims first is not the copy's, though an edge in this block names it.
+  const claimed = 'flowchart TD\n  subgraph a [A]\n    X\n  end\n  subgraph b [B]\n    X --> Y\n  end\n';
+  assert.deepEqual(copySubgraph(claimed, 'b').ids, ['b', 'Y']);
+});
+
+test('copiedSubgraphText is the copy as Mermaid under its own ids: the block, its edges, then its settings', () => {
+  assert.equal(copiedSubgraphText(copySubgraph(PAY, 'pay')), 'subgraph pay ["Payment"]\n  direction LR\n  B{Paid?}\n  C[Receipt]\n'
+    + '  subgraph card ["Card check"]\n    D([Check card])\n  end\nend\nA --> B\nB -->|yes| C\nC --> D\nC --> E\nA --> pay\n'
+    + 'style C fill:#f9f\nclass D hot\n');
+});
+
+test('pasteSubgraph at the top level: fresh ids for every node and subgraph, the block last, its edges after the last edge', () => {
+  const { text, id } = pasteSubgraph(PAY, copySubgraph(PAY, 'pay'), null);
+  assert.equal(id, 's1');
+  assert.equal(text, PAY.replace('  style C', '  A --> n1\n  n1 -->|yes| n2\n  n2 --> n3\n  n2 --> E\n  A --> s1\n  style C')
+    + '  subgraph s1 ["Payment"]\n    direction LR\n    n1{Paid?}\n    n2[Receipt]\n    subgraph s2 ["Card check"]\n'
+    + '      n3([Check card])\n    end\n  end\n  style n2 fill:#f9f\n  class n3 hot\n');
+});
+
+test('pasteSubgraph without outside edges keeps the edges among its own items; pasted twice, it makes two', () => {
+  const c = copySubgraph(PAY, 'pay');
+  const once = pasteSubgraph(PAY, c, null, false).text;
+  const added = (/** @type {string} */ t, /** @type {string} */ from) => edges(t).slice(edges(from).length).map((e) => `${e.from} ${e.to}`);
+  assert.deepEqual(added(once, PAY), ['n1 n2', 'n2 n3']);
+  const twice = pasteSubgraph(once, c, null, false);
+  assert.equal(twice.id, 's3');
+  assert.deepEqual(added(twice.text, once), ['n4 n5', 'n5 n6']);
+});
+
+test('pasteSubgraph into a subgraph, or the block a selected node is drawn in; its nodes are drawn in their new blocks', () => {
+  const c = copySubgraph(PAY, 'pay');
+  for (const into of [{ kind: /** @type {const} */ ('subgraph'), id: 'pay' }, { kind: /** @type {const} */ ('node'), id: 'C' }]) {
+    const { text, id } = pasteSubgraph(PAY, c, into);
+    const sgs = subgraphs(text);
+    assert.equal(sgs[/** @type {number} */ (sgs.find((g) => g.id === id)?.parent)].id, 'pay', into.kind);
+    assert.deepEqual(['n1', 'n2', 'n3'].map((n) => blockOf(text, n)?.id), ['s1', 's1', 's2'], into.kind);
+    for (const n of ['A', 'B', 'C', 'D', 'E']) assert.equal(blockOf(text, n)?.id, blockOf(PAY, n)?.id, n);
+  }
+});
+
+test('pasteSubgraph leaves out an outside edge whose far end is gone, keeps its own edges where the original is gone, and writes an id and a quoted title for one with none', () => {
+  const c = copySubgraph(PAY, 'pay');
+  const { text } = pasteSubgraph(deleteNode(PAY, 'E').text, c, null);
+  assert.ok(!edges(text).some((e) => e.to === 'E'), text);
+  // A snapshot: pasted into a file the original has left, it keeps its own edges and drops those to the rest.
+  const elsewhere = pasteSubgraph('flowchart TD\n  Z\n', c, null).text;
+  assert.deepEqual(edges(elsewhere).map((e) => `${e.from} ${e.to}`), ['n1 n2', 'n2 n3']);
+  const bare = 'flowchart TD\n  subgraph Payment stage\n    X\n  end\n  Y --> subGraph0\n';
+  const pasted = pasteSubgraph(bare, copySubgraph(bare, 'subGraph0'), null);
+  assert.equal(pasted.text, bare + '  Y --> s1\n  subgraph s1 ["Payment stage"]\n    n1["X"]\n  end\n');
+});
+
+for (const [name, ids] of Object.entries(SUBGRAPH_IDS)) {
+  const src = fixture(name);
+  for (const id of ids) {
+    test(`${name} ${id}: pasteSubgraph moves no edge and no node, and the pasted subgraph holds what the copy did`, () => {
+      const c = copySubgraph(src, id);
+      const pasted = pasteSubgraph(src, c, null);
+      const text = pasted.text;
+      const sig = (/** @type {any} */ e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      assert.deepEqual(edges(text).slice(0, edges(src).length).map(sig), edges(src).map(sig));
+      // Copied again, the paste holds the same shapes, titles and directions, nested the same way, and as many edges.
+      const shape = (/** @type {any} */ b) => [b.title, b.dir, b.nodes.map((/** @type {any} */ n) => n.shape), b.blocks.map(shape)];
+      const again = copySubgraph(text, pasted.id);
+      assert.deepEqual(shape(again.block), shape(c.block));
+      assert.equal(again.edges.length, c.edges.length);
+      const key = (/** @type {string} */ t, /** @type {any} */ g) => (!g ? null : g.written ? g.id : t.slice(g.title.start, g.title.end));
+      const before = new Map([...edges(src)].flatMap((e) => [e.from, e.to]).map((n) => [n, key(src, blockOf(src, n))]));
+      for (const [n, b] of before) assert.equal(key(text, blockOf(text, n)), b, n);
+    });
+  }
+}
 
 for (const [name, ids] of Object.entries(NODE_IDS)) {
   const src = fixture(name);

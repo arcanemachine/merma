@@ -1274,16 +1274,21 @@ export function copyNode(/** @type {string} */ text, /** @type {string} */ id) {
       for (const c of text.slice(r.start, r.end).matchAll(new RegExp(`:::(${ID})`, 'gu'))) classes.add(c[1]);
     }
   }
+  const own = edges(text).filter((e) => e.from === id || e.to === id).map((e) => ({
+    from: e.from, to: e.to, connector: text.slice(e.link.start, e.link.end).replace(new RegExp(`^${ID}@`, 'u'), ''),
+  }));
+  return { id, shape, classes: [...classes], settings: settingsOf(text, id), edges: own };
+}
+
+/** The `style`, `class` and `click` lines naming `id`: what follows the ids in each. */
+function settingsOf(/** @type {string} */ text, /** @type {string} */ id) {
   const settings = [];
   for (const s of statements(text)) {
     if (!['style', 'class', 'click'].includes(s.keyword ?? '')) continue;
     const st = text.slice(s.start, s.end).match(/^(\w+)\s+(\S+)(.*)$/s);
     if (st && st[2].split(',').includes(id)) settings.push({ keyword: st[1], rest: st[3] });
   }
-  const own = edges(text).filter((e) => e.from === id || e.to === id).map((e) => ({
-    from: e.from, to: e.to, connector: text.slice(e.link.start, e.link.end).replace(new RegExp(`^${ID}@`, 'u'), ''),
-  }));
-  return { id, shape, classes: [...classes], settings, edges: own };
+  return settings;
 }
 
 /** A copy as Mermaid text, under its own id: for the system clipboard. */
@@ -1328,6 +1333,133 @@ export function pasteNode(text, c, into, withEdges = true) {
     text = appendLine(text, line);
   }
   return { text, id };
+}
+
+/**
+ * A subgraph in a copy: its title as written, quoted, its own `direction` and settings, and what is drawn in it.
+ * @typedef {object} CopiedBlock
+ * @property {string} id
+ * @property {string} title
+ * @property {string | null} dir
+ * @property {{ keyword: string, rest: string }[]} settings
+ * @property {Copied[]} nodes the nodes drawn directly in it (each one's `edges` unused: the copy holds them)
+ * @property {CopiedBlock[]} blocks the subgraphs nested in it
+ */
+/**
+ * What a copy of a subgraph carries, read at copy time as a node's is: every node drawn in it or in a subgraph
+ * nested in it, by Mermaid's rule (blockOf), those subgraphs, and every edge with an end among them.
+ * @typedef {object} CopiedSubgraph
+ * @property {string} id
+ * @property {CopiedBlock} block
+ * @property {string[]} ids every id in the copy, its nodes' and its subgraphs'
+ * @property {{ from: string, to: string, connector: string }[]} edges
+ */
+
+/** A copy of subgraph `id`. */
+export function copySubgraph(/** @type {string} */ text, /** @type {string} */ id) {
+  const sgs = subgraphs(text);
+  const top = sgs.find((g) => g.id === id && g.end !== null);
+  if (!top) throw new Error('That subgraph is not in the file.');
+  const dirs = new Map(directions(text)?.blocks.map((b) => [b.id, b.dir]) ?? []);
+  /** @type {Map<string, Subgraph>} */
+  const members = new Map();
+  for (const n of nodeIds(text)) {
+    const g = blockOf(text, n, sgs);
+    if (g) members.set(n, g);
+  }
+  /** @type {string[]} */
+  const ids = [];
+  /** @returns {CopiedBlock} */
+  function read(/** @type {Subgraph} */ g) {
+    const sgId = /** @type {string} */ (g.id);
+    ids.push(sgId);
+    const raw = text.slice(g.title.start, g.title.end);
+    /** @type {CopiedBlock} */
+    const b = { id: sgId, title: /^".*"$/.test(raw) ? raw : `"${raw}"`, dir: dirs.get(sgId) ?? null,
+      settings: settingsOf(text, sgId), nodes: [], blocks: [] };
+    for (const [n, at] of members) if (at === g) { ids.push(n); b.nodes.push(copyNode(text, n)); }
+    for (const child of sgs) if (child.end !== null && child.parent !== null && sgs[child.parent] === g) b.blocks.push(read(child));
+    return b;
+  }
+  const block = read(top);
+  const inCopy = new Set(ids);
+  const own = edges(text).filter((e) => inCopy.has(e.from) || inCopy.has(e.to)).map((e) => ({
+    from: e.from, to: e.to, connector: text.slice(e.link.start, e.link.end).replace(new RegExp(`^${ID}@`, 'u'), ''),
+  }));
+  return { id, block, ids, edges: own };
+}
+
+/**
+ * The lines of a copied subgraph and what it holds, each id as `as` names it, indented a step per level.
+ * @returns {string[]}
+ */
+function blockLines(/** @type {CopiedBlock} */ b, /** @type {(id: string) => string} */ as) {
+  return [
+    `subgraph ${as(b.id)} [${b.title}]`,
+    ...(b.dir ? [`  direction ${b.dir}`] : []),
+    ...b.nodes.map((n) => `  ${as(n.id)}${n.shape}`),
+    ...b.blocks.flatMap((c) => blockLines(c, as).map((l) => `  ${l}`)),
+    'end',
+  ];
+}
+
+/**
+ * Every class and setting line of a copied subgraph and what it holds, each id as `as` names it.
+ * @returns {string[]}
+ */
+function blockSettings(/** @type {CopiedBlock} */ b, /** @type {(id: string) => string} */ as) {
+  return [
+    ...b.settings.map((s) => `${s.keyword} ${as(b.id)}${s.rest}`),
+    ...b.nodes.flatMap((n) => [...n.classes.map((k) => `class ${as(n.id)} ${k}`), ...n.settings.map((s) => `${s.keyword} ${as(n.id)}${s.rest}`)]),
+    ...b.blocks.flatMap((c) => blockSettings(c, as)),
+  ];
+}
+
+/** A subgraph's copy as Mermaid text, under its own ids: for the system clipboard. */
+export function copiedSubgraphText(/** @type {CopiedSubgraph} */ c) {
+  const as = (/** @type {string} */ x) => x;
+  return [...blockLines(c.block, as), ...c.edges.map((e) => `${e.from} ${e.connector} ${e.to}`), ...blockSettings(c.block, as)].join('\n') + '\n';
+}
+
+/**
+ * Paste copy `c` as a new subgraph, every node and subgraph in it under a fresh id: inside subgraph `into.id`, in the
+ * block node `into.id` is drawn in, or at the top level (null). Its edges among its own items always come, and with
+ * `withEdges` those to items outside it too, their outside end left as it was; an edge whose outside end is no longer
+ * in the file is left out. Every edge goes after the last edge, so no `linkStyle` number changes. Returns { text, id }.
+ * @param {string} text
+ * @param {CopiedSubgraph} c
+ * @param {{ kind: 'subgraph' | 'node', id: string } | null} into
+ * @param {boolean} [withEdges]
+ */
+export function pasteSubgraph(text, c, into, withEdges = true) {
+  if (into?.kind === 'node') assertNode(text, into.id);
+  const parent = into?.kind === 'subgraph' ? into.id : into?.kind === 'node' ? blockOf(text, into.id)?.id ?? null : null;
+  // Each fresh id is taken against the text and those taken before it, so no two are the same.
+  const fresh = new Map();
+  let taken = text;
+  const take = (/** @type {CopiedBlock} */ b) => {
+    for (const [old, prefix] of [[b.id, 's'], ...b.nodes.map((n) => [n.id, 'n'])]) {
+      const id = freeId(taken, prefix);
+      taken += `\n${id}`;
+      fresh.set(old, id);
+    }
+    b.blocks.forEach(take);
+  };
+  take(c.block);
+  const as = (/** @type {string} */ x) => fresh.get(x) ?? x;
+  const body = blockLines(c.block, as);
+  if (parent) {
+    text = insideSubgraph(text, parent, body);
+  } else {
+    const indent = statementIndent(text);
+    text = insertAfter(text, lastContentLine(text), body.join(`\n${indent}`), indent);
+  }
+  const there = (/** @type {string} */ n) => fresh.has(n) || mentions(text, n).length > 0;
+  const own = c.edges.filter((e) => (withEdges || (fresh.has(e.from) && fresh.has(e.to))) && there(e.from) && there(e.to))
+    .map((e) => `${as(e.from)} ${e.connector} ${as(e.to)}`);
+  if (own.length) text = afterLastEdge(text, own);
+  for (const line of blockSettings(c.block, as)) text = appendLine(text, line);
+  return { text, id: as(c.id) };
 }
 
 /**

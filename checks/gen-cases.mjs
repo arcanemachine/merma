@@ -11,12 +11,14 @@
 // into subgraph `to` (null: the top level), the edges the same, each with its style. `blocks`: for each node, the
 // subgraph blockOf says Mermaid draws it in (null: the top level). `cut`: a node moved by a cut (moveIntoEdge, or
 // moveCut without edges), with `relocate` where it should be drawn and `edges` how many edges Mermaid should draw. `paste`: { id, of, edges } node `of` copied and pasted
-// as `id` (pasteNode): drawn with its shape, label and classes, and `edges` edges in all.
+// as `id` (pasteNode): drawn with its shape, label and classes, and `edges` edges in all. `pasteSubgraph`: { pairs, blocks,
+// edges } a subgraph copied and pasted (pasteSubgraph): each [original, copy] node pair drawn alike, each new node in
+// the subgraph `blocks` names, and `edges` edges in all.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, deleteEdge, deleteNode, edges, freeId, quoteLabel,
-  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, copySubgraph, deleteEdge, deleteNode, edges, freeId, quoteLabel,
+  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -163,6 +165,23 @@ for (const [name, list, src] of sources) {
     pasted(`into ${sg.id}`, list[0], pasteNode(src, first, { kind: 'subgraph', id: /** @type {string} */ (sg.id) }), sg.id);
   }
   for (const e of edges(src)) pasted(`onto ${e.svgId}`, list[0], pasteNode(src, first, { kind: 'edge', svgId: e.svgId, side: 'first' }), null);
+}
+// Each subgraph copied and pasted: at the top level with its edges, and into each subgraph without its outside edges.
+for (const [name, , src] of sources) {
+  const all = subgraphs(src).filter((s) => s.end !== null);
+  for (const sg of all) {
+    const c = copySubgraph(src, /** @type {string} */ (sg.id));
+    /** @type {(b: any) => string[]} */
+    const nodesOf = (b) => [...b.nodes.map((/** @type {any} */ n) => n.id), ...b.blocks.flatMap(nodesOf)];
+    for (const [what, into, withEdges] of /** @type {const} */ ([['at the top level', null, true],
+      ...all.map((t) => [`into ${t.id}`, { kind: 'subgraph', id: t.id }, false])])) {
+      const r = pasteSubgraph(src, c, /** @type {any} */ (into), withEdges);
+      const news = nodesOf(copySubgraph(r.text, r.id).block);
+      cases.push({ name: `${name} paste subgraph ${sg.id} ${what}`, kind: 'paste-subgraph', src, out: r.text,
+        pasteSubgraph: { pairs: nodesOf(c.block).map((n, k) => [n, news[k]]),
+          blocks: Object.fromEntries(news.map((n) => [n, blockOf(r.text, n)?.id ?? null])), edges: edges(r.text).length } });
+    }
+  }
 }
 // Each node cut and moved: into every edge not its own (drawn in the block the edge's first half is written in), and
 // everywhere it can go without its edges.

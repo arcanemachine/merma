@@ -91,6 +91,15 @@
           if (after.getEdges().length !== c.paste.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.paste.edges}`);
           continue;
         }
+        if (c.kind === 'paste-subgraph') {
+          /* Each copy drawn as its original is, in the subgraph blockOf says, every other node where it was (above), and the edges merma reads all drawn. */
+          const look = (v) => JSON.stringify([v?.type ?? 'square', v?.text, [...(v?.classes ?? [])].sort()]);
+          const o = before.getVertices(), n = after.getVertices();
+          for (const [of, id] of c.pasteSubgraph.pairs) if (look(n.get(id)) !== look(o.get(of))) fails.push(`${c.name}: ${id} drawn as ${look(n.get(id))}, expected ${look(o.get(of))}`);
+          for (const [id, sg] of Object.entries(c.pasteSubgraph.blocks)) if (now[id] !== (sg === null ? undefined : name(sg))) fails.push(`${c.name}: ${id} is in ${now[id]}, blockOf says ${sg}`);
+          if (after.getEdges().length !== c.pasteSubgraph.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.pasteSubgraph.edges}`);
+          continue;
+        }
         if (c.kind === 'merge') {
           /* The node gone, every other where it was (above), and the edges merma reads all drawn. */
           if (after.getVertices().has(c.merge.id)) fails.push(`${c.name}: ${c.merge.id} still drawn`);
