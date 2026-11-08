@@ -270,8 +270,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
     with it (the user: the tick moved); a click on empty space forgets it (the user: you lose your place
     otherwise). With nothing to bring back, Enter selects the middle node.
   - After a delete, the keyboard keeps its place: the item you came from by the arrows, the first still drawn; an edge's
-    source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, so you see
-    what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
+    source for an edge clicked; nothing for a node clicked. Undo selects what was selected before the edit, an edge with
+    its tick where it was, so you see what came back; redo selects what the edit selected only if you have not moved since (the user: it should not pull
     you away).
   - F fits the diagram; with an item selected it centers it at the zoom it has (the user), the title excepted, as
     Center in window does in its menu. A fit is a true reset (the user): F with nothing selected, Fit to window and a double-click

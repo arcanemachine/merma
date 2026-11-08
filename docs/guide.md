@@ -425,9 +425,9 @@ node or subgraph picks it at once.
 
 Undo takes back the page's last edit (adding a node or a subgraph and naming it count as one), as long as the file has not changed
 since; it is refused otherwise, so it never throws away someone else's change. Redo puts an undone edit back, on the
-same terms. Undo selects what was selected before the edit, so you see what came back; Redo selects what the edit
-selected, unless you have moved since, when your selection stays. After a delete, the item you came from by the arrows
-is selected (an edge's source, for one you clicked). **Undo** and **Redo** in the footer do the same, and are grayed when there is nothing to undo or redo. A
+same terms. Undo selects what was selected before the edit (an edge with its tick where it was), so you see what came
+back; Redo selects what the edit selected, unless you have moved since, when your selection stays. After a delete,
+the item you came from by the arrows is selected (an edge's source, for one you clicked). **Undo** and **Redo** in the footer do the same, and are grayed when there is nothing to undo or redo. A
 press on either while an edit is still saving (a label box's own save, started by that press as a click away) does
 nothing but say so: press again.
 

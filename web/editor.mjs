@@ -107,14 +107,16 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
    * whose menu opens even though the edit closed every menu. `others`: where to go instead, in order, when `item` is
    * not drawn; `reveal`: brought into view and read out, as a key's selection is, after `say` (what was done) in one
    * line.
-   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string, far?: boolean } | null}
+   * @type {{ text: string, item: Item, label?: boolean, menu?: boolean, clicked?: boolean, others?: Item[], reveal?: boolean, say?: string, far?: boolean, came?: import('./navigate.mjs').Fan | null } | null}
    */
   let pending = null;
   const history = createHistory();
   /**
    * For each history entry, what was selected just before its edit, and what its edit selected after (with where to go
-   * instead): undo selects the first, redo the second, each against exactly the text it puts back.
-   * @type {WeakMap<import('./history.mjs').Entry, { before: Item | null, after: { item: Item, others?: Item[] } | null }>}
+   * instead): undo selects the first, redo the second, each against exactly the text it puts back. An edge keeps its
+   * counted end with it (`came`), so the tick comes back where it was.
+   * @typedef {{ item: Item, came?: import('./navigate.mjs').Fan | null }} Kept
+   * @type {WeakMap<import('./history.mjs').Entry, { before: Kept | null, after: (Kept & { others?: Item[], far?: boolean }) | null }>}
    */
   const selections = new WeakMap();
   /** @type {Item | null} what the last edit, undo or redo left selected: redo moves the selection only from there */
@@ -2021,6 +2023,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   function edit(change, { afterSave, into = null, after, keep = false } = {}) {
     return exclusively(async () => {
       const was = selected;
+      const wasCame = was?.kind === 'edge' ? moves.came() : undefined;
       ui.hideNotice();
       // After an edit there is no trail back, and I forgets where you were (the user), even with the same item selected.
       moves.forget();
@@ -2045,8 +2048,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       pending = next ? { text: result.text, ...next } : null;
       // An edit that completes another (naming an add) keeps that one's selection before.
       selections.set(entry, {
-        before: selections.get(entry)?.before ?? was,
-        after: next && !clickedAway ? { item: next.item, others: 'others' in next ? next.others : undefined } : null,
+        before: selections.get(entry)?.before ?? (was && { item: was, came: wasCame }),
+        after: next && !clickedAway ? { item: next.item, others: 'others' in next ? next.others : undefined, far: 'far' in next ? next.far : undefined } : null,
       });
       ui.announce('Saved');   // what afterSave announces, if anything, replaces it
       afterSave?.(result, entry);
@@ -2104,7 +2107,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       deselect();
       closeLabelBox();
       const sel = entry && selections.get(entry)?.before;
-      pending = sel ? { text: undoing.text, item: sel, reveal: true, say: 'Undone' } : null;
+      pending = sel ? { text: undoing.text, item: sel.item, came: sel.came, reveal: true, say: 'Undone' } : null;
       await display(undoing.text);
       if (!selected) ui.announce('Undone');
       settled = selected;
@@ -2216,6 +2219,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
         if (next.reveal) selectByKey(item, next.say);
         else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
         if (next.far && item.kind === 'edge') { moves.countFrom(otherEnd(layout(), item.id, null)); markEnd(); }
+        else if (next.came !== undefined && item === next.item && item.kind === 'edge') { moves.countFrom(next.came); markEnd(); }
         if (next.label) { openLabelBox(item); revealLabelBox(item); }
         return;
       }
