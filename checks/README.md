@@ -66,7 +66,9 @@ it).
 
 **The scan**, after any change under `web/`: `checks/a11y-scan.js` runs axe-core (WCAG 2.2 A and AA, and axe's best
 practices) on what the page shows now, leaving out the diagram, and lists each violation as `[rule, impact, count,
-first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=checks/a11y-scan.js`. Scan it in each of
+first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=checks/a11y-scan.js`. Check the state is
+really shown before scanning (Help: `#help:popover-open`; a menu: its items drawn): a scan of the closed page passes
+and proves nothing. Scan it in each of
 these states, since each shows other elements and colors: nothing open; a node menu; an edge menu with a grayed
 item; a subgraph menu; the empty-space menu; the arrow type picker; the node panel; the node panel with focus in
 the shape picker's grid; each notice kind (Connect to… for info, an emptied label kept on a click away for warning, an empty label on Enter for error); the
