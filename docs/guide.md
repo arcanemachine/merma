@@ -127,6 +127,7 @@ another click on it closes it.
   the block of the selected node, inside the selected subgraph (a collapsed one too, its box selected after), to the
   top level with nothing selected, or into the selected edge (below). It keeps its edges, or with Ctrl+Shift+V they
   are deleted; where it was, nothing joins up the ends its edges had. One edit, one undo; the node stays selected.
+  Undo leaves the node cut again, to move it somewhere else; Redo moves it and drops the cut.
   Grayed where it already is ("It is already in this subgraph."). Escape drops the cut, before it lets go of the
   selection. A cut and a copy replace each other: there is one clipboard. Nothing in the file changes until the move.
 - **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in

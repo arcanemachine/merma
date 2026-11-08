@@ -137,6 +137,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   let copied = null;
   /** @type {{ id: string, name: string } | null} the node cut, in this tab: the paste items move it */
   let cut = null;
+  /** The cut each move of a cut node used: undoing the move cuts it again, redoing it drops that cut (the user). */
+  const cutsMoved = /** @type {WeakMap<import('./history.mjs').Entry, { id: string, name: string }>} */ (new WeakMap());
   let swallowClick = false;   // a click away from the label box that could not save it: the click does nothing
   let keptClick = false;      // a click away that kept an emptied label: its notice outlasts the click
   /** @type {{ item: Item, menu: boolean, clicked: true } | null} an item clicked while an edit saves: selected once drawn */
@@ -361,7 +363,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     }
     const box = sel?.kind === 'subgraph' && isBox(sel) ? sel : null;
     editDrawn(change, {
-      afterSave: () => { dropCut(); ui.announce(`Moved ${name} ${where}`); },
+      afterSave: (_, entry) => { cutsMoved.set(entry, { id, name }); dropCut(); ui.announce(`Moved ${name} ${where}`); },
       after: box ? () => ({ item: box }) : () => ({ item: node }),
     });
   }
@@ -2074,6 +2076,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       const entry = history.nextRedo;
       if (!(await save(redoing.text, base.version))) return;
       history.redone();
+      const moved = entry && cutsMoved.get(entry);
+      if (moved && cut?.id === moved.id) cut = null;
       // Redo selects what its edit did only if you have not moved since (the user: it does not pull you away); else
       // your selection stays, or, when the redo takes it away, goes where the edit's would.
       const sel = entry && selections.get(entry)?.after;
@@ -2104,6 +2108,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       const entry = history.newest;
       if (!(await save(undoing.text, base.version))) return;
       history.pop();
+      const moved = entry && cutsMoved.get(entry);
+      if (moved) { cut = moved; copied = null; }
       deselect();
       closeLabelBox();
       const sel = entry && selections.get(entry)?.before;
