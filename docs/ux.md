@@ -62,7 +62,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign edge… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
-  | Move | puts a thing in another subgraph, its edges kept | Move into…, Move out |
+  | Move | puts a thing in another subgraph, its edges kept | Move node here, Move subgraph here (after a cut) |
   | Find | looks through the diagram | Find… |
   | Fit, Center | change the view, not the file | Fit to window, Center in window |
   | Collapse, Expand | change how a subgraph is drawn in this tab, not the file | Collapse subgraph, Expand subgraph |
@@ -301,12 +301,13 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Alt does not stand in, as
   everywhere else, since Alt+C and Alt+V are no copy or paste). The page takes them only when it acts, on the diagram
   with no text selected: Ctrl+C with a node selected, Ctrl+V with a node copied. Otherwise the browser's own copy and
-  paste go on. Cut (Ctrl+X) is a pick spread over time: the node is marked dashed while you select where it goes,
-  a click away keeps it (clicking around is how you get there), and Escape drops it first, before the selection.
-  Undoing the move cuts the node again and redoing it drops the cut (the user), so a move put in the wrong place is
-  undone and pasted again.
-  A move that would change nothing is grayed with its reason, never silent. The page's clipboard is its own, per tab: Copy also writes the node's Mermaid text to the system
-  clipboard, but the page never reads it (no permission prompt, and no foreign text to make sense of).
+  paste go on. Moving a node or a subgraph into or out of a subgraph is cut and paste, with no move items of its own
+  (the user: V for a move reads as paste). Cut (Ctrl+X) is a pick spread over time: the node or subgraph is marked
+  dashed while you select where it goes, a click away keeps it (clicking around is how you get there), and Escape
+  drops it first, before the selection. Undoing the move cuts it again and redoing it drops the cut (the user), so a
+  move put in the wrong place is undone and pasted again. A move that would change nothing is grayed with its
+  reason, never silent. The page's clipboard is its own, per tab: Copy also writes the node's Mermaid text to the
+  system clipboard, but the page never reads it (no permission prompt, and no foreign text to make sense of).
 
 ## The code panel
 

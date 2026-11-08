@@ -19,8 +19,6 @@ export const GLOBAL_KEYS = {
   'shift+c': ['connect-from'],
   r: ['reverse-edge', 'rotate'],
   'shift+r': ['flip'],
-  v: ['move-into'],
-  'shift+v': ['move-out'],
   e: ['reassign-edge', 'merge-into'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
@@ -70,14 +68,13 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {boolean} edgesOk the drawn edges match the file's (an edge match)
  * @property {boolean} selfLoop the selected edge goes from a node back to itself
  * @property {string | null} [insertWhy] why a node cannot be inserted into the selected edge
- * @property {string | null} [moveOutWhy] why the selected node or subgraph cannot be moved out, or null
  * @property {string | null} nameWhy why the selected subgraph cannot be given an id, or null
  * @property {string | null} [collapseWhy] why the selected subgraph cannot be collapsed or expanded, or null
  * @property {{ rotate: boolean, flip: boolean }} [turn] how the page turns the diagram, or the selected subgraph
  * @property {string | null} [turnWhy] why the selected subgraph cannot be turned on its own, or null
  * @property {boolean} [copied] a node has been copied, so there is something to paste
- * @property {boolean} [cut] a node has been cut: the paste items move it
- * @property {string | null} [cutWhy] why the cut node cannot be moved to the selection, or null
+ * @property {'node' | 'subgraph' | null} [cut] what has been cut, if anything: the paste items move it
+ * @property {string | null} [cutWhy] why the cut node or subgraph cannot be moved to the selection, or null
  * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
  */
 
@@ -104,7 +101,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [view] it changes only the view (or nothing: Copy node), so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
  * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
- * @property {string} [labelBack]
+ * @property {string | ((state: MenuState) => string)} [labelBack]
  */
 
 /** Why an item that adds to a subgraph does nothing while it is collapsed: what it adds would be hidden. */
@@ -118,20 +115,26 @@ const fitPart = { action: 'fit-subgraph', label: 'Fit to subgraph', view: true, 
   applies: (/** @type {MenuState} */ s) => !s.partWhy, why: (/** @type {MenuState} */ s) => s.partWhy ?? null };
 export const NOTHING_COPIED = 'Nothing has been copied. Copy a node first (Ctrl+C).';
 
+/** Why a cut subgraph is not moved without its edges: its edges never change in a move. */
+export const SUBGRAPH_BARE = 'A subgraph is moved with its edges.';
+
 /**
- * Paste node and Paste node without edges, or with a node cut Move node here and Move node here without edges: grayed
- * until a node is copied or cut, and where `why` (a copy's) or `cutWhy` (a cut node's) says.
+ * Paste node and Paste node without edges, or with a node or a subgraph cut Move node here (Move subgraph here) and
+ * the same without edges: grayed until a node is copied or something is cut, and where `why` (a copy's) or `cutWhy`
+ * (a cut's) says.
  */
 const pasteItems = (/** @type {(s: MenuState) => string | null} */ why = () => null,
   /** @type {(s: MenuState) => string | null} */ cutWhy = (s) => s.cutWhy ?? null) => {
   const reason = (/** @type {MenuState} */ s) => (s.cut ? cutWhy(s) : s.copied ? why(s) : NOTHING_COPIED);
-  const item = (/** @type {string} */ action, /** @type {string} */ label, /** @type {string} */ labelBack, /** @type {string} */ key) => ({
-    action, label, labelBack, key, back: (/** @type {MenuState} */ s) => Boolean(s.cut),
-    applies: (/** @type {MenuState} */ s) => !reason(s), why: reason,
+  const item = (/** @type {string} */ action, /** @type {string} */ label, /** @type {string} */ back, /** @type {string} */ key,
+    /** @type {(s: MenuState) => string | null} */ refuse = reason) => ({
+    action, label, labelBack: (/** @type {MenuState} */ s) => `Move ${s.cut ?? 'node'} here${back}`, key,
+    back: (/** @type {MenuState} */ s) => Boolean(s.cut), applies: (/** @type {MenuState} */ s) => !refuse(s), why: refuse,
   });
   return [
-    item('paste-node', 'Paste node', 'Move node here', 'ctrl+v'),
-    item('paste-node-bare', 'Paste node without edges', 'Move node here without edges', 'ctrl+shift+v'),
+    item('paste-node', 'Paste node', '', 'ctrl+v'),
+    item('paste-node-bare', 'Paste node without edges', ' without edges', 'ctrl+shift+v',
+      (s) => (s.cut === 'subgraph' ? SUBGRAPH_BARE : reason(s))),
   ];
 };
 
@@ -170,8 +173,6 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
     { action: 'merge-into', label: 'Merge into…', key: 'e', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
-    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
-    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
     { action: 'edit-node', label: 'Edit node' },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
@@ -197,8 +198,7 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
-    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
+    { action: 'cut-subgraph', label: 'Cut subgraph', key: 'ctrl+x', separated: true, view: true },
     ...pasteItems(),
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', view: true, separated: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
@@ -212,8 +212,7 @@ export const MENUS = {
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true, applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
     { action: 'edit-title', label: 'Edit title', applies: (s) => !s.nameWhy, why: (s) => s.nameWhy },
-    { action: 'move-into', label: 'Move into…', key: 'v', mode: true },
-    { action: 'move-out', label: 'Move out', key: 'shift+v', applies: (s) => !s.moveOutWhy, why: (s) => s.moveOutWhy ?? null },
+    { action: 'cut-subgraph', label: 'Cut subgraph', key: 'ctrl+x', separated: true, view: true },
     ...pasteItems(() => EXPAND_FIRST),
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', view: true, separated: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },

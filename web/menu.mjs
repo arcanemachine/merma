@@ -66,7 +66,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   function render() {
     items.forEach((item, i) => {
       const b = buttons[i];
-      const text = Object.assign(document.createElement('span'), { textContent: item.back?.(state) ? item.labelBack : item.label });
+      const back = typeof item.labelBack === 'function' ? item.labelBack(state) : item.labelBack;
+      const text = Object.assign(document.createElement('span'), { textContent: item.back?.(state) ? back : item.label });
       // The key is the button's shortcut, not part of its name: "Add node", not "Add node N".
       // `shift+c` shows as ⇧C, as the shape picker shows Shift with a digit; Ctrl as Help shows it for the system.
       const os = document.documentElement.dataset.os ?? 'pc';

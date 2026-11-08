@@ -106,12 +106,6 @@ another click on it closes it.
   its edges glow pale blue; by keyboard, the blue outline starts on the node and moves as in Connect to…, and Enter
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
   last edge when the other node is named outside it, as Reassign edge… says.
-- **Move into…** (V), then a click on a subgraph, moves the node into it, its edges kept: it is declared before the
-  subgraph's `end`, and its edges written in another subgraph that would hold it there are moved after the last edge,
-  so that subgraph's lines change. By keyboard, the blue outline starts on the node and moves as in Connect to…, and
-  Enter picks. A node is refused, and the pick goes on. Into a collapsed subgraph it stays collapsed, its box selected.
-  **Move out** (Shift+V) moves it one level up, into the subgraph around the one it is in, or to the top level; grayed
-  at the top level.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
   `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
@@ -126,7 +120,10 @@ another click on it closes it.
   keeps the cut), then Ctrl+V, whose items read **Move node here** and **Move node here without edges**. It goes in
   the block of the selected node, inside the selected subgraph (a collapsed one too, its box selected after), to the
   top level with nothing selected, or into the selected edge (below). It keeps its edges, or with Ctrl+Shift+V they
-  are deleted; where it was, nothing joins up the ends its edges had. One edit, one undo; the node stays selected.
+  are deleted; where it was, nothing joins up the ends its edges had. It is declared before the subgraph's `end`, and
+  its edges written in another subgraph that would hold it there are moved after the last edge, so that subgraph's
+  lines change. To move it out of the subgraph it is in, press O until the subgraph around that one is selected (or
+  nothing, for the top level), then Ctrl+V. One edit, one undo; the node stays selected.
   Undo leaves the node cut again, to move it somewhere else; Redo moves it and drops the cut.
   Grayed where it already is ("It is already in this subgraph."). Escape drops the cut, before it lets go of the
   selection. A cut and a copy replace each other: there is one clipboard. Nothing in the file changes until the move.
@@ -196,10 +193,14 @@ another click on it closes it.
   `subgraph pay ["New title"]`. A title that is also the id keeps it: `subgraph Payment` becomes
   `subgraph Payment ["New title"]`. A title cannot be empty: Enter on an emptied one is refused, and a click away or Tab
   keeps the title as it was.
-- **Move into…** (V) and **Move out** (Shift+V) move the subgraph with everything in it, its lines as written, as
-  they move a node. Into itself, or a subgraph inside it, is refused. A move that would make another subgraph draw one
-  of its nodes moves that subgraph's edges naming it after the last edge; when that cannot keep it, the move is
-  refused, naming the node to move first.
+- **Cut subgraph** (Ctrl+X) marks it dashed, to move it with everything in it, its lines as written, as a node's
+  cut does: select where it goes, then Ctrl+V (**Move subgraph here**) puts it inside the selected subgraph, in the
+  block of the selected node, or at the top level with nothing selected. Grayed into itself or a subgraph inside it,
+  on an edge, and without edges ("A subgraph is moved with its edges."). A move that would make another subgraph draw
+  one of its nodes moves that subgraph's edges naming it after the last edge; when that cannot keep it, the move is
+  refused, naming the node to move first. Into a collapsed subgraph it stays collapsed, its box selected. Undo leaves
+  it cut again. A subgraph with no id in the file can be cut too; the cut is dropped if a change from outside
+  renumbers it.
 - **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V) add a new node from the copy inside the
   subgraph, as the node menu's do. Grayed on a collapsed box.
 - **Collapse subgraph** (H) draws it as one box with its title and "•••", and **Expand subgraph** (H) on the box
@@ -302,7 +303,6 @@ here does just what it does in the selected item's menu:
 | R with an edge selected | Reverse it |
 | E with an edge selected | Reassign edge… (Space in it: the other end) |
 | E with a node selected | Merge into… |
-| V with a node or subgraph selected | Move into… (Shift+V: Move out) |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
@@ -329,8 +329,8 @@ here does just what it does in the selected item's menu:
 | 0 | Zoom to actual size, keeping the middle of the view where it is (in any diagram) |
 | Escape | Cancel Connect to…, or deselect (the arrows then move the diagram); Enter then selects it again. With nothing selected, hide the notice, then close the code panel (asking to save a changed draft first) |
 | Ctrl \| ⌘+C with a node selected | Copy node (on a subgraph or an edge, it says only a node can be copied) |
-| Ctrl \| ⌘+X with a node selected | Cut node: mark it, to move it with Ctrl+V |
-| Ctrl \| ⌘+V, or with Shift | Paste node, or Paste node without edges (with a node cut: move it here): into the selected edge, inside the selected subgraph, beside the selected node, or with nothing selected at the top level. With nothing copied, or text selected on the page, the browser's own copy and paste |
+| Ctrl \| ⌘+X with a node or a subgraph selected | Cut node or Cut subgraph: mark it, to move it with Ctrl+V (on an edge, it says only a node or a subgraph can be cut) |
+| Ctrl \| ⌘+V, or with Shift | Paste node, or Paste node without edges (with a node or a subgraph cut: move it here): into the selected edge, inside the selected subgraph, beside the selected node, or with nothing selected at the top level. With nothing copied, or text selected on the page, the browser's own copy and paste |
 | Ctrl \| ⌘+Z | Undo the page's last edit |
 | Ctrl \| ⌘+Shift+Z or Ctrl+Y | Redo |
 

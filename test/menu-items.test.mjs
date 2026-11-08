@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
-import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, PART_UNNAMED, VERBS, whyNot } from '../web/menu-items.mjs';
+import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, PART_UNNAMED, SUBGRAPH_BARE, VERBS, whyNot } from '../web/menu-items.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -147,7 +147,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'cut-node', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -243,15 +243,26 @@ test('Shift+F fits the selection, just after Center in window (F) in its menu; F
   }
 });
 
-test('with a node cut, the paste items read Move node here, gray by the cut\'s own reason, and a box takes it', () => {
-  const base = { edgesOk: true, selfLoop: false, nameWhy: null, cut: true };
-  for (const menu of ['node', 'edge', 'subgraph', 'box', 'space']) {
-    const item = MENUS[menu].find((i) => i.action === 'paste-node');
-    assert.equal(item?.back?.(base), true, menu);
-    assert.equal(item?.labelBack, 'Move node here', menu);
-    assert.equal(applies(item, base), true, menu);
-    assert.equal(whyNot(item, { ...base, cutWhy: 'It is already in this subgraph.' }), 'It is already in this subgraph.', menu);
+test('with a node or a subgraph cut, the paste items read Move … here, gray by the cut\'s own reason, and a box takes it', () => {
+  const label = (/** @type {any} */ item, /** @type {object} */ s) => (typeof item.labelBack === 'function' ? item.labelBack(s) : item.labelBack);
+  for (const kind of ['node', 'subgraph']) {
+    const base = { edgesOk: true, selfLoop: false, nameWhy: null, cut: kind };
+    for (const menu of ['node', 'edge', 'subgraph', 'box', 'space']) {
+      const item = MENUS[menu].find((i) => i.action === 'paste-node');
+      assert.equal(item?.back?.(base), true, menu);
+      assert.equal(label(item, base), `Move ${kind} here`, menu);
+      assert.equal(applies(item, base), true, menu);
+      assert.equal(whyNot(item, { ...base, cutWhy: 'It is already in this subgraph.' }), 'It is already in this subgraph.', menu);
+    }
   }
   const edge = MENUS.edge.find((i) => i.action === 'paste-node');
-  assert.equal(whyNot(edge, { ...base, insertWhy: 'collapsed' }), 'collapsed');
+  assert.equal(whyNot(edge, { edgesOk: true, selfLoop: false, nameWhy: null, cut: 'node', insertWhy: 'collapsed' }), 'collapsed');
+  // A subgraph's move never deletes its edges, so the bare paste is grayed, saying so, wherever it is.
+  for (const menu of ['node', 'subgraph', 'box', 'space']) {
+    const bare = MENUS[menu].find((i) => i.action === 'paste-node-bare');
+    const s = { edgesOk: true, selfLoop: false, nameWhy: null, cut: 'subgraph' };
+    assert.equal(label(bare, s), 'Move subgraph here without edges', menu);
+    assert.equal(whyNot(bare, s), SUBGRAPH_BARE, menu);
+    assert.equal(applies(bare, { ...s, cut: 'node' }), true, menu);
+  }
 });
