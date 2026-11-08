@@ -15,11 +15,11 @@ export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'R
  */
 export const GLOBAL_KEYS = {
   n: ['add-node', 'add-connected-node', 'insert-node'],
-  c: ['connect'],
-  'shift+c': ['connect-from'],
+  c: ['connect', 'reassign-end'],
+  'shift+c': ['connect-from', 'reassign-start'],
   r: ['reverse-edge', 'rotate'],
   'shift+r': ['flip'],
-  e: ['reassign-edge', 'merge-into'],
+  m: ['merge-into'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
   delete: ['delete-node', 'delete-edge'],
@@ -47,7 +47,7 @@ export const GLOBAL_KEYS = {
   '+': [],
   '=': [],
   '-': [],
-  m: [],
+  '.': [],
   escape: [],
 };
 
@@ -177,7 +177,7 @@ export const MENUS = {
     { action: 'add-connected-node', label: 'Add connected node', key: 'n' },
     { action: 'connect', label: 'Connect to…', key: 'c', mode: true },
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
-    { action: 'merge-into', label: 'Merge into…', key: 'e', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
+    { action: 'merge-into', label: 'Merge into…', key: 'm', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'edit-node', label: 'Edit node' },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
@@ -191,7 +191,8 @@ export const MENUS = {
     { action: 'edit-label', label: 'Edit label' },
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
-    { action: 'reassign-edge', label: 'Reassign edge…', key: 'e', mode: true },
+    { action: 'reassign-end', label: 'Reassign end…', key: 'c', mode: true },
+    { action: 'reassign-start', label: 'Reassign start…', key: 'shift+c', mode: true },
     // A cut node moved into an edge leaves its own edges behind, deleted, so the item says so.
     { ...pasteItems((s) => (s.copied === 'subgraph' ? SUBGRAPH_ON_EDGE : s.insertWhy ?? null), (s) => s.cutWhy ?? s.insertWhy ?? null)[0],
       labelBack: (/** @type {MenuState} */ s) => (s.cut === 'subgraph' ? 'Move subgraph here' : s.cut ? 'Move node here without edges'

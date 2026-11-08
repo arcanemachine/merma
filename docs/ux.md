@@ -32,7 +32,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   inside it (edges to a subgraph's box do not count). That is most subgraphs grayed, all of the "Simple" demo's; it is
   Mermaid's layout rule, not a setting. The view fits after a turn.
 - No edit moves an edge: `linkStyle N` styles the Nth edge in the file, so moving one restyles others. The one exception
-  is a move of an edge's end (Reassign edge…, and Merge into…, which moves each of the node's edges so) on
+  is a move of an edge's end (Reassign end… and Reassign start…, and Merge into…, which moves each of the node's edges so) on
   an edge written inside a subgraph block when its new end is named outside that block: an edge line pulls both its ends
   into its block, so the line moves out, after the last edge, and its `linkStyle` number goes with it (the others after
   it move down one).
@@ -60,7 +60,7 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
-  | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign edge… |
+  | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign end…, Reassign start… |
   | Merge | one thing goes into another, which takes its edges | Merge into… |
   | Move | puts a thing in another subgraph, its edges kept | Move node here, Move subgraph here (after a cut) |
   | Find | looks through the diagram | Find… |
@@ -78,17 +78,21 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   there is nothing to add, it shows what exists instead of changing anything.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N and E have no other key, so E moves
-  a selected edge's end outside menus as in its menu, and E on a node is Merge into… ("mErge": a key is a letter of
-  its label; a merge moves every edge's end to the other node, close to E's meaning on an edge). The Edit items have
-  no menu key at all (the user): Enter and F2 already edit the selection, quicker than opening a menu, and in an open
-  menu Enter runs the item in focus. So E is free for Reassign edge…, and Add subgraph is G, menu-only.
-- Reassign edge… is one item for both ends (agreed with the user, in place of Move start to… and Move end to…; the
-  name is the user's): it moves the counted end, the one the tick is at. Its
-  candidate starts on the edge itself, as Connect to…'s does on its item. Space, wherever the candidate is, or a click
-  on the edge's line nearer the other end moves that one instead (the user; with several edges, later, Space would
-  swap only the one the candidate is on). The tick stays through the pick, dashed, as what a pick will change is;
-  the notice stays as it was.
+  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N and M have no other key. A key is a
+  letter of its label where one fits: M is Merge into… on a node. A letter keeps one meaning across kinds: C picks what
+  an edge goes to and Shift+C what it comes from, on a node (Connect to…, Connect from…) and on an edge (Reassign end…,
+  Reassign start…) alike (the user). The Edit items have no menu key at all (the user): Enter and F2 already edit the
+  selection, quicker than opening a menu, and in an open menu Enter runs the item in focus. So E is free, and Add
+  subgraph is G, menu-only.
+- The selection's menu opens with . (period), the menu key or Shift+F10 (the user wanted M back for a letter; "." is
+  Gmail's key for its "More" menu). Keys are matched by the character typed, so on AZERTY . is Shift+;.
+- Reassign end… (C) and Reassign start… (Shift+C) move the end their key names, whatever the tick (the user, in place
+  of one Reassign edge… on E that moved the end at the tick): "end" and "start" are the text's (`A --> B`: start A,
+  end B). Their candidate starts on the edge itself, as Connect to…'s does on its item. Space, wherever the candidate
+  is, or a click on the edge's line nearer the other end moves that one instead (the user; with several edges, later,
+  Space would swap only the one the candidate is on). The tick stays through the pick, dashed at the end that moves,
+  as what a pick will change is; the notice stays as it was. Outside a pick the tick only says which end's edges the
+  cross arrows step.
 - Merge into… (the user, after trying it as three moves): a node's edges move to another node (the end at it moves),
   and the node goes. The user expected moving a node's edges to swing their far ends (a redirect: "Start" now leads to
   "In stock?"), and read every label for the near-end move backwards, so it is named for what it is for: merging a

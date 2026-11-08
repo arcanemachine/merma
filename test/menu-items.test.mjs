@@ -243,6 +243,17 @@ test('Shift+F fits the selection, just after Center in window (F) in its menu; F
   }
 });
 
+test('C and Shift+C on an edge are Reassign end… and Reassign start…, as on a node they connect to and from; M is Merge into…; . opens menus', () => {
+  const edge = (/** @type {string} */ k) => MENUS.edge.find((i) => i.key === k)?.action;
+  assert.deepEqual([edge('c'), edge('shift+c')], ['reassign-end', 'reassign-start']);
+  assert.deepEqual(GLOBAL_KEYS.c, ['connect', 'reassign-end']);
+  assert.deepEqual(GLOBAL_KEYS['shift+c'], ['connect-from', 'reassign-start']);
+  assert.deepEqual(GLOBAL_KEYS.m, ['merge-into']);
+  assert.equal(MENUS.node.find((i) => i.action === 'merge-into')?.key, 'm');
+  assert.deepEqual(GLOBAL_KEYS['.'], []);
+  assert.equal('e' in GLOBAL_KEYS, false);
+});
+
 test('with a subgraph copied, the paste items read Paste subgraph and Paste subgraph without outside edges; an edge grays it', () => {
   const label = (/** @type {any} */ item, /** @type {object} */ s) => (item.back?.(s) ? item.labelBack(s) : item.label);
   const s = { edgesOk: true, selfLoop: false, nameWhy: null, copied: 'subgraph' };

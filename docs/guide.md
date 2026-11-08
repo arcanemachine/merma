@@ -61,7 +61,7 @@ them.
 
 In a flowchart, click a node, an edge's line or label, a subgraph (anywhere on its box that is not a node or an
 edge), or the diagram's title, to select it: it is outlined in blue (the title is underlined). After an edit, what it acted on stays selected (a new node or edge
-included), so you can go on from it: N adds the next node, Enter edits it, M opens its menu. What a delete, an undo
+included), so you can go on from it: N adds the next node, Enter edits it, . (period) opens its menu. What a delete, an undo
 and a redo select is under Undo and redo, below. Click empty space to deselect. Right-click it (or long-press on a
 touch screen) for its menu. Other diagram types are view-only.
 
@@ -78,8 +78,8 @@ are left to the file.
 
 ## Menus
 
-A menu stays open until you click anywhere else on the page or press Escape. M opens the selection's menu, or
-with nothing selected the empty-space menu. Each item's key is shown at its right: press it to run the item. The Edit items have none: Enter or F2 edits the
+A menu stays open until you click anywhere else on the page or press Escape. . (period), the menu key or Shift+F10 opens the
+selection's menu, or with nothing selected the empty-space menu. Each item's key is shown at its right: press it to run the item. The Edit items have none: Enter or F2 edits the
 selection without the menu.
 Up and Down move between items, Enter runs one. An item that does not apply right now is grayed: it says why when you
 point at it or choose it. ▸ opens a submenu: click it, press its key, or press Right; Escape, its key again or
@@ -98,14 +98,14 @@ another click on it closes it.
   Enter in the find puts the outline on the current match without connecting, and Enter again connects.
 - **Connect from…** (Shift+C) is Connect to… the other way round: the edge comes from the node or subgraph picked and
   goes to this one, `<b> --> <a>`.
-- **Merge into…** (E), then a click on another node, merges this node into it: every edge of this node moves to the
+- **Merge into…** (M), then a click on another node, merges this node into it: every edge of this node moves to the
   other one, and this node is deleted (its `style`, `class` and `click` lines with it), in one edit, one undo. For a
   duplicate, or a node being replaced: two "Charge card" nodes become one. An edge between the two goes; a self-loop
   becomes one of the other node; an edge that would come out the same as one the other node has (same ends, arrow
   type and label) goes too, unless it has an edge id or a `linkStyle`. While you pick, the node is outlined dashed and
   its edges glow pale blue; by keyboard, the blue outline starts on the node and moves as in Connect to…, and Enter
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
-  last edge when the other node is named outside it, as Reassign edge… says.
+  last edge when the other node is named outside it, as Reassign end… says.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
   `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
@@ -165,9 +165,9 @@ another click on it closes it.
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
-- **Reassign edge…** (E), then a click on a node or a subgraph, moves the end of the edge at its tick there:
-  `A --> B` with its end moved to C becomes `A --> C`, with the same arrow, label and edge id; moved from the start,
-  `C --> B`. While you pick, the edge glows pale blue and its tick is dashed at the end that moves; **Space**, or a
+- **Reassign end…** (C), then a click on a node or a subgraph, moves where the edge goes to there: `A --> B` becomes
+  `A --> C`, with the same arrow, label and edge id. **Reassign start…** (Shift+C) moves where it comes from: `C --> B`.
+  The start and the end are the text's, whatever the arrowhead (`A <--> B`: start A, end B), and whatever the tick. While you pick, the edge glows pale blue and its tick is dashed at the end that moves; **Space**, or a
   click on the edge's line nearer the other end, moves that end instead. A click anywhere else, or Escape, cancels. By
   keyboard, the blue outline starts on the edge itself (Enter there changes nothing), and the arrows or a find (/)
   move it from the end that moves, as in Connect to…; Enter picks the node or subgraph it is on.
@@ -241,7 +241,7 @@ Removing the title isn't supported. Delete or Backspace on it says so.
 
 ### Empty space
 
-Right-click empty space (or press M with nothing selected) for **Add node** and **Add subgraph**, which add them at the
+Right-click empty space (or press . with nothing selected) for **Add node** and **Add subgraph**, which add them at the
 top level, at the end of the file, and **Paste node** (Ctrl+V) and **Paste node without edges** (Ctrl+Shift+V), which
 add a new node (or, with a subgraph copied, a new subgraph) from the copy there, as the node menu's do. Mermaid lays the diagram out, so what you add lands where the layout puts it.
 **Find…** (/) opens the find (below). **Fit to window** fits the whole diagram to the window, as F does with
@@ -315,10 +315,11 @@ here does just what it does in the selected item's menu:
 |---|---|
 | N | Add a node: connected to the selected node, inside the selected subgraph, or into the selected edge |
 | R with an edge selected | Reverse it |
-| E with an edge selected | Reassign edge… (Space in it: the other end) |
-| E with a node selected | Merge into… |
+| M with a node selected | Merge into… |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
+| C with an edge selected | Reassign end… (Space in it: the other end) |
+| Shift+C with an edge selected | Reassign start… (Space in it: the other end) |
 | Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select again what Escape cleared, else the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
@@ -335,7 +336,7 @@ here does just what it does in the selected item's menu:
 | ? (wherever it is on your keyboard) | Open Help, or close it |
 | R or Shift+R with nothing selected | Rotate, or Flip, the diagram (this tab only) |
 | R or Shift+R with a subgraph selected | Rotate, or Flip, its inside (this tab only) |
-| M (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
+| . (or the menu key, or Shift+F10) | Open the selection's menu; with nothing selected, the empty-space menu |
 | F | Fit the whole diagram to the window (in any diagram, not only flowcharts), leaving a part; with an item selected, center it instead (the title fits) |
 | Shift+F with a node, an edge or a subgraph selected | Fit it to the window: Fit to node, Fit to edge, or Fit to subgraph (the part) |
 | Arrows with nothing selected | Move the diagram a tenth of the view; with Ctrl (Option on a Mac) half of it, with Shift a fiftieth (in any diagram) |
@@ -429,8 +430,8 @@ word starting with it, then any; higher first. Tab stays in the find box, and Es
 shows what you last looked for, selected, so typing replaces it. The bar's **Previous**, **Next** and **Cancel** do
 what Shift+Tab, Tab and Escape do, for the mouse and touch; the find box keeps the keys.
 
-In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Reassign edge…, on the edge
-itself; in Merge into…, on the node being merged) and moves by the same rules as the selection, through
+In Connect to…, the blue outline starts on the node or subgraph the edge comes from (in Reassign end… and Reassign start…, on
+the edge itself; in Merge into…, on the node being merged) and moves by the same rules as the selection, through
 edges (Enter on one is refused), with I and O; Enter picks the outlined one. What the pick will change is marked
 meanwhile: the node or subgraph it starts from dashed, the edges that will move glowing pale blue. / opens the find
 inside them, as it looks anywhere else: Enter there puts the outline on the current match (on the title it is refused,

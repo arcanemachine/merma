@@ -87,7 +87,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   /**
    * The pick of a node or subgraph (clicked, or Enter on the candidate), and what it does:
-   * Connect to… makes an edge to it, Connect from… one from it to the selection; Reassign edge… moves that end of the
+   * Connect to… makes an edge to it, Connect from… one from it to the selection; the reassign pick moves that end of the
    * selected edge there (`start` or `end`, which Space swaps); Merge into… merges the selected node into it; Move into…
    * (`into`) moves the selected node or subgraph into it, a subgraph.
    * @type {null | 'connect' | 'connect-from' | 'start' | 'end' | 'merge'}
@@ -262,10 +262,10 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   /** The selection, where a menu item or a key acts on it: there is one. */
   const selection = () => /** @type {Item} */ (selected);
 
-  /** The end of the picking edge being moved, if this pick is Reassign edge…. */
+  /** The end of the picking edge being moved, if this pick is the reassign pick. */
   const movingEnd = () => (picking === 'start' || picking === 'end' ? picking : null);
   /**
-   * Reassign edge… on the selected edge: it moves the end `end` (its counted end). The candidate starts on the edge
+   * Reassign end… or Reassign start… on the selected edge: it moves the end `end`, the one its key names. The candidate starts on the edge
    * itself, as Connect to…'s does on its item (the user), the arrows going on from that end.
    */
   function startMove(/** @type {'start' | 'end'} */ end) {
@@ -277,7 +277,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   }
 
   /**
-   * In Reassign edge…, move the other end (Space), or `to` (a click on the edge's line). Only the moving end changes,
+   * In the reassign pick, move the other end (Space), or `to` (a click on the edge's line). Only the moving end changes,
    * and the notice stays; a candidate on the edge counts from the new end, as the tick shows.
    */
   function swapMovingEnd(/** @type {'start' | 'end'} */ to) {
@@ -493,7 +493,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'add-connected-node': () => { const from = selection().id; addAndName((text) => addConnected(text, from)); },
     'connect': () => startConnect('connect'),
     'connect-from': () => startConnect('connect-from'),
-    'reassign-edge': () => startMove(endSide ?? 'start'),
+    'reassign-end': () => startMove('end'),
+    'reassign-start': () => startMove('start'),
     'merge-into': () => startMerge(),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
@@ -675,7 +676,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   /**
    * During a pick, what it will change (the user: solid is where the keys are, marked is what changes):
    * the selected node or subgraph outlined dashed in place of its selection, and each edge that will move glows, a
-   * wide pale line under it, so its own dashes and arrowheads still read; in Reassign edge…, the tick dashed at the
+   * wide pale line under it, so its own dashes and arrowheads still read; in the reassign pick, the tick dashed at the
    * end that moves. A collapsed box's glow is only on its own
    * edges, the ones that move.
    */
@@ -804,7 +805,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     for (const [a, v] of Object.entries({ x1: ends[0].x, y1: ends[0].y, x2: ends[1].x, y2: ends[1].y })) el.setAttribute(a, String(v));
     el.setAttribute('stroke-width', String(width));
-    // In Reassign edge…, dashed as what the pick will change is: four dashes across, at any size.
+    // In the reassign pick, dashed as what the pick will change is: four dashes across, at any size.
     if (movingEnd()) { el.setAttribute('stroke-dasharray', String((2 * h) / 7)); el.setAttribute('data-page-moving', ''); }
     el.setAttribute('data-page-end', '');
     el.setAttribute('data-page-only', '');
@@ -933,7 +934,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     const item = itemAt(target);
     clickedDuringEdit(item);
     if (picking) {
-      // In Reassign edge…, a click on the edge itself makes it the candidate, and its side is the end that moves.
+      // In the reassign pick, a click on the edge itself makes it the candidate, and its side is the end that moves.
       const side = movingEnd() && item && same(item, selected) && !Number.isNaN(x) ? clickedSide(target, x, y) : null;
       if (side) {
         // Its arrows count from the clicked side, as a click on a selected edge's line does.
@@ -1018,7 +1019,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     });
   }
 
-  /** End Reassign edge… on `to`: the end being moved of the selected edge moved there, or nothing for null. */
+  /** End the reassign pick on `to`: the end being moved of the selected edge moved there, or nothing for null. */
   function moveTo(/** @type {Item | null} */ to) {
     const edge = selection();   // the pick starts on the selected edge
     const end = /** @type {'start' | 'end'} */ (picking);
@@ -1064,10 +1065,10 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     if (drawn) editDrawn(change, options); else edit(change, options);
   }
 
-  /** A right-click or long-press; or, `byKey`, the menu key or Shift+F10, which open what M opens. */
+  /** A right-click or long-press; or, `byKey`, the menu key or Shift+F10, which open what . opens. */
   function contextMenu(/** @type {Element} */ target, /** @type {number} */ x, /** @type {number} */ y, byKey = false) {
     if (!selectable) return false;
-    if (byKey) { keys.m(); return true; }
+    if (byKey) { keys['.'](); return true; }
     if (picking) return true;
     if (ended()) return true;
     const item = itemAt(target);
@@ -1119,7 +1120,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   // opens its History with it); N adds a node (connected to the selected node, or in the selected subgraph); Enter or F2
   // opens the selected node's panel, or edits the selected edge's label or subgraph's title, and with nothing selected
   // selects the node nearest the middle of the view; the arrows move a selected node along the edges; Delete or
-  // Backspace deletes the selection; M opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
+  // Backspace deletes the selection; . opens the selection's menu, or with nothing selected the empty-space menu at the middle of the
   // diagram; F fits the diagram to the window, whatever is selected or being picked; with nothing selected the arrows move
   // the diagram; + (or =) and - zoom; Escape backs out of whatever is open. The view keys (VIEW_KEYS) also work when
   // the diagram is not editable (a sequence diagram still fits and moves).
@@ -1196,8 +1197,10 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     },
     // C starts Connect to… on a selected node or subgraph, as their menus' C does, refused as it is grayed there. While
     // picking it does nothing: Escape or a click away is the way out of every pick (the user), as the notice says.
+    // C on an edge is Reassign end…: what the edge goes to, as C on a node picks what a new edge goes to.
     c: () => {
       if (picking) return true;
+      if (edgeKey('reassign-end')) return true;
       if (selected?.kind !== 'node' && selected?.kind !== 'subgraph') return false;
       const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[selected.kind].find((i) => i.action === 'connect'));
       const state = menuState();
@@ -1205,14 +1208,13 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       handlers.connect();
       return true;
     },
-    // Shift+C, Connect from…: C the other way round (docs/ux.md), refused as the menu grays it; nothing in a pick.
-    'shift+c': () => (picking ? true : itemKey('connect-from')),
+    // Shift+C, Reassign start… on an edge and Connect from… on a node: C the other way round (docs/ux.md), refused as
+    // the menu grays it; nothing in a pick.
+    'shift+c': () => (picking ? true : edgeKey('reassign-start') || itemKey('connect-from')),
     // R reverses a selected edge; with nothing selected it rotates the diagram, Shift+R flips it, as the empty-space
     // menu's R and Shift+R do. Nothing on a node or a subgraph, nor in a pick.
     r: () => edgeKey('reverse-edge') || spaceKey('rotate') || itemKey('rotate'),
     'shift+r': () => spaceKey('flip') || itemKey('flip'),
-    // E reassigns a selected edge's counted end, or merges a selected node, as their menus' E does.
-    e: () => edgeKey('reassign-edge') || itemKey('merge-into'),
     enter: () => {
       // Enter on the edge being reassigned: nothing to do, as Enter at once on a node's own pick writes nothing.
       if (movingEnd() && candidate && same(candidate, selection())) return true;
@@ -1233,7 +1235,10 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     f2: () => selected && !picking && (editLabelOrTitle(selected), true),
     delete: () => selected && !picking && (deleteSelected(), true),
     backspace: () => selected && !picking && (deleteSelected(), true),
-    m: () => {
+    // M is Merge into… on a node; nothing elsewhere.
+    m: () => itemKey('merge-into'),
+    // . opens the selection's menu, or with nothing selected the empty-space menu, as the menu key and Shift+F10 do.
+    '.': () => {
       if (picking) return false;
       if (selected) { select(selected, { menu: true }); return true; }
       const r = els.diagram.getBoundingClientRect();
@@ -1282,7 +1287,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     },
     '/': () => { openFind(); return true; },
     // Space: the selected edge counts as reached from its other end, whose edges the cross arrows then step. In
-    // Reassign edge…, the other end moves instead, wherever the candidate is (one edge moves: no other to mean).
+    // the reassign pick, the other end moves instead, wherever the candidate is (one edge moves: no other to mean).
     ' ': () => {
       const end = movingEnd();
       if (end) { swapMovingEnd(end === 'start' ? 'end' : 'start'); return true; }
