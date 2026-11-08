@@ -345,12 +345,50 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
    */
   function markCut() {
     clearMarks('data-page-cut');
+    glowCut();
     if (!cut) return;
     const there = cut.kind === 'node' ? hasNode(shownText, cut.id)
       : subgraphs(shownText).some((g) => g.id === cut?.id) && titleOf(cut.id) === cut.title;
-    if (!there) { cut = null; return; }
+    if (!there) { cut = null; glowCut(); return; }
     for (const e of elsOf({ kind: cut.kind, id: cut.id })) mark(e, 'data-page-cut');
   }
+  let shiftHeld = false;
+  /** @type {string | null} the action of the menu item with focus, while a menu is open */
+  let menuFocus = null;
+  /**
+   * A cut node's edges glow while it is cut, as a pick's moving edges do (the user), under a marker of their own, since
+   * a pick's glow goes with each selection. Pale red where the paste would delete them: on an edge, where the move
+   * applies; with Shift held or "Move node here without edges" focused in a menu, where that applies. A cut subgraph's
+   * edges never change in its move, so they do not glow.
+   */
+  function glowCut() {
+    for (const e of drawn('[data-page-cut-glow]')) e.remove();
+    if (cut?.kind !== 'node') return;
+    const id = cut.id;
+    const list = selected ? MENUS[isBox(selected) ? 'box' : selected.kind] : MENUS.space;
+    const action = selected?.kind === 'edge' ? 'paste-node' : (shiftHeld || menuFocus === 'paste-node-bare') ? 'paste-node-bare' : null;
+    const item = action && !picking ? list.find((i) => i.action === action) : undefined;
+    const red = Boolean(item && applies(item, menuState()));
+    const own = drawnEdges(edges(shownText), collapse.subs, collapse.overrides).filter((e) => e.from === id || e.to === id);
+    for (const { svgId } of own) {
+      const path = edgeEls(svgId).find((x) => x.matches('path:not([data-page-only])'));
+      if (!path) continue;
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      glow.setAttribute('d', path.getAttribute('d') ?? '');
+      glow.setAttribute('data-page-cut-glow', red ? 'delete' : '');
+      glow.setAttribute('data-page-only', '');   // the SVG export leaves it out
+      path.before(glow);
+    }
+  }
+  /** Shift held or let go, read from every key and pointer event, since one pressed elsewhere sends no keydown here. */
+  const holdShift = (/** @type {boolean} */ on) => { if (on !== shiftHeld) { shiftHeld = on; if (cut) glowCut(); } };
+  window.addEventListener('keydown', (e) => holdShift(e.shiftKey || e.key === 'Shift'), true);
+  window.addEventListener('keyup', (e) => holdShift(e.key === 'Shift' ? false : e.shiftKey), true);
+  for (const type of ['pointerdown', 'pointermove']) {
+    window.addEventListener(type, (e) => holdShift(/** @type {PointerEvent} */ (e).shiftKey), true);
+  }
+  window.addEventListener('blur', () => holdShift(false));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) holdShift(false); });
 
   /**
    * Move node here: the cut node into the selected edge (its own edges deleted), inside the selected subgraph, into
@@ -521,6 +559,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     onRefuse: (/** @type {string} */ why) => { refused = true; refuse(why); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
+    onFocus: (/** @type {string | null} */ action) => { if (action !== menuFocus) { menuFocus = action; glowCut(); } },
   };
   const menus = Object.fromEntries(Object.entries(MENUS).map(([kind, items]) => [kind, createMenu(items, menuOptions)]));
   const closeMenus = () => { for (const m of Object.values(menus)) m.close(); };
@@ -658,6 +697,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
     if (!keepMode) picking = null;
+    if (cut) glowCut();
     // A pick kept through a new drawing: its marks again, the outline where it was if that is still drawn.
     if (picking) {
       markSource();
@@ -806,6 +846,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     ui.selected(null);
     picking = null;
     closeMenus();
+    if (cut) glowCut();
   }
 
   // The empty-space menu, at the pointer: it adds a node or a subgraph at the top level. Mermaid lays the diagram out,

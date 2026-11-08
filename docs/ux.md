@@ -303,7 +303,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   with no text selected: Ctrl+C with a node selected, Ctrl+V with a node copied. Otherwise the browser's own copy and
   paste go on. Moving a node or a subgraph into or out of a subgraph is cut and paste, with no move items of its own
   (the user: V for a move reads as paste). Cut (Ctrl+X) is a pick spread over time: the node or subgraph is marked
-  dashed while you select where it goes, a click away keeps it (clicking around is how you get there), and Escape
+  dashed while you select where it goes, a cut node's edges glowing as a pick's moving edges do (the user), pale red
+  wherever the paste would delete them, so Ctrl+Shift+V's cost shows before it is pressed; a click away keeps it (clicking around is how you get there), and Escape
   drops it first, before the selection. Undoing the move cuts it again and redoing it drops the cut (the user), so a
   move put in the wrong place is undone and pasted again. A move that would change nothing is grayed with its
   reason, never silent. The page's clipboard is its own, per tab: Copy also writes the node's Mermaid text to the

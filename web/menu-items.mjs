@@ -187,7 +187,9 @@ export const MENUS = {
     { action: 'edit-arrow-type', label: 'Edit arrow type', key: 't', submenu: 'arrow-types' },
     { action: 'reverse-edge', label: 'Reverse edge', key: 'r', applies: (s) => !s.selfLoop, why: () => 'A self-loop has no direction to reverse.' },
     { action: 'reassign-edge', label: 'Reassign edge…', key: 'e', mode: true },
-    pasteItems((s) => s.insertWhy ?? null, (s) => s.cutWhy ?? s.insertWhy ?? null)[0],
+    // A cut node moved into an edge leaves its own edges behind, deleted, so the item says so.
+    { ...pasteItems((s) => s.insertWhy ?? null, (s) => s.cutWhy ?? s.insertWhy ?? null)[0],
+      labelBack: (/** @type {MenuState} */ s) => (s.cut === 'subgraph' ? 'Move subgraph here' : 'Move node here without edges') },
     { action: 'delete-edge', label: 'Delete edge', key: 'd', separated: true },
     { action: 'center-view', label: 'Center in window', key: 'f', separated: true, view: true },
     { action: 'fit-edge', label: 'Fit to edge', key: 'shift+f', view: true },

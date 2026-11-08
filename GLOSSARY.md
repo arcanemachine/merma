@@ -47,6 +47,7 @@ Mermaid syntax.
 | **connect** | Make an edge between two nodes or subgraphs by pointing (Connect to…, Connect from…). |
 | **pick** | The state a menu item (or its key) puts you in when it needs another node or subgraph, such as Connect to… or Merge into…: you pick that node or subgraph by a click, or by the arrows or find and Enter; Escape or a click anywhere else cancels. merma's code calls it `picking`. Choosing an entry in a picker (below) is a pick too, but needs no node. |
 | **candidate** | In a pick, the item the arrows or find have reached, outlined solid, which Enter picks. |
+| **glow** | A wide pale band drawn under an edge about to change: in a pick, each edge that will move; while a node is cut, its edges, pale red where the paste would delete them. merma's own; not dashed, which would read as a dotted edge. |
 | **merge** | Merge into…: a node's edges move to another node, and the node goes. |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |

@@ -116,8 +116,10 @@ another click on it closes it.
   no longer in the file is left out. **Paste node without edges** (Ctrl+Shift+V) adds it with none. Its classes and its
   `style` and `click` lines come either way. One copy can be pasted many times, and still after the node it came from
   is changed or deleted. Grayed until a node has been copied in this tab.
-- **Cut node** (Ctrl+X) marks the node dashed, to move it: select where it goes (walk or click there; a click away
-  keeps the cut), then Ctrl+V, whose items read **Move node here** and **Move node here without edges**. It goes in
+- **Cut node** (Ctrl+X) marks the node dashed and its edges glow pale blue, to move it: select where it goes (walk
+  or click there; a click away keeps the cut), then Ctrl+V, whose items read **Move node here** and **Move node here
+  without edges**. The glow turns pale red where the paste would delete the edges: while Shift is held, while **Move
+  node here without edges** has focus or the pointer in a menu, and with an edge selected. It goes in
   the block of the selected node, inside the selected subgraph (a collapsed one too, its box selected after), to the
   top level with nothing selected, or into the selected edge (below). It keeps its edges, or with Ctrl+Shift+V they
   are deleted; where it was, nothing joins up the ends its edges had. It is declared before the subgraph's `end`, and
@@ -174,8 +176,8 @@ another click on it closes it.
   and its `linkStyle` number goes with it.
 - **Paste node** (Ctrl+V) inserts a new node from the copy (Copy node, in the node menu) into the edge, as Insert
   node does, on the tick's side of the label. It gets the edge's two halves and no other edges, so Ctrl+Shift+V does
-  the same here. Grayed on an edge written inside a collapsed subgraph. With a node cut, **Move node here** moves it
-  into the edge the same way: its own edges are deleted, and it goes into the subgraph the edge is written in. Grayed
+  the same here. Grayed on an edge written inside a collapsed subgraph. With a node cut, **Move node here without
+  edges** moves it into the edge the same way: its own edges are deleted, and it goes into the subgraph the edge is written in. Grayed
   on one of the node's own edges.
 - **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.

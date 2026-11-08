@@ -66,7 +66,8 @@ header .status { color: #666; white-space: nowrap; }
 #diagram:focus { outline: none; }
 /* Declared here, not on :root: a var() in a custom property is resolved where it is declared, so this one follows a
    --select set on the diagram or inside it. */
-#diagram { --select-faint: color-mix(in srgb, var(--select) 30%, transparent); }
+#diagram { --select-faint: color-mix(in srgb, var(--select) 30%, transparent);
+           --delete-faint: color-mix(in srgb, #cf222e 30%, transparent); }
 /* While the code is being edited the diagram can be looked through, not edited: read-only, so muted as the read-only
    code is, a second cue to the notice and the grayed menu items. */
 #diagram.locked { background: var(--muted-bg); }
@@ -233,9 +234,11 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.node[data-page-cut] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-cut] > rect {
   stroke: var(--select) !important; stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
+/* A cut node's edges glow too, while it is cut (the user), pale red where a paste would delete them. */
+#stage path[data-page-cut-glow="delete"] { --glow: var(--delete-faint); }
 /* …and each edge that will move glows: a wide pale line under it, not a dash, which would read as a dotted edge. */
-#stage path[data-page-glow][data-page-only] { fill: none; stroke: var(--select-faint); stroke-width: 12px; stroke-linecap: round;
-  pointer-events: none; }
+#stage path:is([data-page-glow], [data-page-cut-glow])[data-page-only] { fill: none; stroke: var(--glow, var(--select-faint));
+  stroke-width: 12px; stroke-linecap: round; pointer-events: none; }
 /* …while the node or subgraph the arrows have reached, which Enter picks and which is selected after, looks
    selected: solid. */
 #stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
