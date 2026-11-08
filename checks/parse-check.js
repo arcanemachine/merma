@@ -39,9 +39,10 @@
         if (c.kind === 'relabel') continue;
         const before = await db(c.src), after = await db(c.out);
         const { out: was, name } = membership(before, c.renamed ? { [c.renamed.from]: c.renamed.to } : {});
-        const { out: now } = membership(after);
+        const { out: now, name: nameNow } = membership(after);
         const moved = c.relocate?.id;
-        for (const [node, sg] of Object.entries(was)) if (node !== c.gone && node !== moved && now[node] !== sg) fails.push(`${c.name}: ${node} moved ${sg} -> ${now[node]}`);
+        // A subgraph deleted moves what it held, as checked below against blockOf.
+        if (c.kind !== 'delete-subgraph') for (const [node, sg] of Object.entries(was)) if (node !== c.gone && node !== moved && now[node] !== sg) fails.push(`${c.name}: ${node} moved ${sg} -> ${now[node]}`);
         if (c.relocate) {
           const want = c.relocate.to === null ? undefined : name(c.relocate.to);
           if (now[moved] !== want) fails.push(`${c.name}: ${moved} is in ${now[moved]}, expected ${want}`);
@@ -98,6 +99,18 @@
           for (const [of, id] of c.pasteSubgraph.pairs) if (look(n.get(id)) !== look(o.get(of))) fails.push(`${c.name}: ${id} drawn as ${look(n.get(id))}, expected ${look(o.get(of))}`);
           for (const [id, sg] of Object.entries(c.pasteSubgraph.blocks)) if (now[id] !== (sg === null ? undefined : name(sg))) fails.push(`${c.name}: ${id} is in ${now[id]}, blockOf says ${sg}`);
           if (after.getEdges().length !== c.pasteSubgraph.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.pasteSubgraph.edges}`);
+          continue;
+        }
+        if (c.kind === 'delete-subgraph') {
+          /* The contents gone (with contents), every node left in the subgraph blockOf says now, and the edges merma reads all drawn. */
+          const n = after.getVertices();
+          for (const id of c.deleteSubgraph.gone) if (n.has(id)) fails.push(`${c.name}: ${id} still drawn`);
+          for (const [id, sg] of Object.entries(c.deleteSubgraph.blocks)) {
+            if (after.getSubGraphs().some((g) => g.id === id)) continue;
+            /* Named as the file after the delete names them: deleting renumbers id-less subgraphs. */
+            if (now[id] !== (sg === null ? undefined : nameNow(sg))) fails.push(`${c.name}: ${id} is in ${now[id]}, blockOf says ${sg}`);
+          }
+          if (after.getEdges().length !== c.deleteSubgraph.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.deleteSubgraph.edges}`);
           continue;
         }
         if (c.kind === 'merge') {

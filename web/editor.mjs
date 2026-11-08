@@ -15,7 +15,7 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
+  addConnected, addNode, addSubgraph, arrowType, connect, contentsOf, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, deleteSubgraph, deleteSubgraphContents, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
   nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs,
 } from './patch/flowchart.mjs';
@@ -390,8 +390,54 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       path.before(glow);
     }
   }
+  /**
+   * What Delete subgraph and contents would take, pale red, before it is pressed (docs/ux.md, the Shift rule): with a
+   * subgraph selected and Shift held, or the item focused or hovered in its menu, where it applies. Its contents are
+   * marked, not the selected box, which shows the selection: each node and box drawn in it gets a wide pale band under
+   * its shape, and each edge that would go glows.
+   */
+  function glowDoomed() {
+    for (const e of drawn('[data-page-doomed]')) e.remove();
+    if (selected?.kind !== 'subgraph' || picking) return;
+    if (!shiftHeld && menuFocus !== 'delete-subgraph-contents') return;
+    const item = /** @type {import('./menu-items.mjs').MenuItem} */ (MENUS[isBox(selected) ? 'box' : 'subgraph']
+      .find((i) => i.action === 'delete-subgraph-contents'));
+    if (!applies(item, menuState())) return;
+    const sgs = subgraphs(shownText);
+    const { nodes, tree, edges: gone } = contentsOf(shownText, selected.id, sgs);
+    const band = (/** @type {Element} */ shape) => {
+      const copy = /** @type {Element} */ (shape.cloneNode(false));
+      copy.removeAttribute('id');
+      copy.removeAttribute('class');
+      copy.removeAttribute('style');
+      // An edge's arrowheads are its markers: the band has none, as the cut's glow has none.
+      copy.removeAttribute('marker-start');
+      copy.removeAttribute('marker-end');
+      copy.setAttribute('data-page-doomed', '');
+      copy.setAttribute('data-page-only', '');   // the SVG export leaves it out
+      shape.before(copy);
+    };
+    for (const id of nodes) {
+      for (const g of elsOf({ kind: 'node', id })) {
+        for (const shape of g.querySelectorAll(':scope > :is(rect, polygon, circle, ellipse, path), :scope > g > :is(rect, polygon, circle, ellipse, path)')) {
+          if (!shape.closest('.label')) band(shape);
+        }
+      }
+    }
+    for (const k of tree.slice(1)) {
+      const box = clusterEl(/** @type {string} */ (sgs[k].id))?.querySelector(':scope > rect');
+      if (box) band(box);
+    }
+    const ids = new Set(gone.map((e) => e.svgId));
+    for (const { svgId } of drawnEdges(edges(shownText), collapse.subs, collapse.overrides).filter((e) => ids.has(e.svgId))) {
+      const path = edgeEls(svgId).find((x) => x.matches('path:not([data-page-only])'));
+      if (path) band(path);
+    }
+  }
+  /** The glows that Shift and the focused menu item change: the cut's, and what deleting with contents would take. */
+  const glows = () => { glowCut(); glowDoomed(); };
   /** Shift held or let go, read from every key and pointer event, since one pressed elsewhere sends no keydown here. */
-  const holdShift = (/** @type {boolean} */ on) => { if (on !== shiftHeld) { shiftHeld = on; if (cut) glowCut(); } };
+  const holdShift = (/** @type {boolean} */ on) => { if (on !== shiftHeld) { shiftHeld = on; glows(); } };
   window.addEventListener('keydown', (e) => holdShift(e.shiftKey || e.key === 'Shift'), true);
   window.addEventListener('keyup', (e) => holdShift(e.key === 'Shift' ? false : e.shiftKey), true);
   for (const type of ['pointerdown', 'pointermove']) {
@@ -501,6 +547,8 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
+    'delete-subgraph': () => deleteSelected(),
+    'delete-subgraph-contents': () => deleteSelected(true),
     'insert-node': () => startInsert(),
     'copy-node': () => copySelected(),
     'copy-subgraph': () => copySelected(),
@@ -580,7 +628,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     onRefuse: (/** @type {string} */ why) => { refused = true; refuse(why); },
     // Only a menu's own notice goes with it; the one saying there is no edge match stays.
     onClose: () => { if (refused) ui.hideNotice(); refused = false; },
-    onFocus: (/** @type {string | null} */ action) => { if (action !== menuFocus) { menuFocus = action; glowCut(); } },
+    onFocus: (/** @type {string | null} */ action) => { if (action !== menuFocus) { menuFocus = action; glows(); } },
   };
   const menus = Object.fromEntries(Object.entries(MENUS).map(([kind, items]) => [kind, createMenu(items, menuOptions)]));
   const closeMenus = () => { for (const m of Object.values(menus)) m.close(); };
@@ -718,7 +766,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
     if (!keepMode) picking = null;
-    if (cut) glowCut();
+    glows();
     // A pick kept through a new drawing: its marks again, the outline where it was if that is still drawn.
     if (picking) {
       markSource();
@@ -867,7 +915,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     ui.selected(null);
     picking = null;
     closeMenus();
-    if (cut) glowCut();
+    glows();
   }
 
   // The empty-space menu, at the pointer: it adds a node or a subgraph at the top level. Mermaid lays the diagram out,
@@ -1094,24 +1142,33 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
   }
 
   /** Delete the selected node or edge. */
-  function deleteSelected() {
+  /**
+   * Delete the selection: a node or an edge; a subgraph alone (Delete subgraph: what it held stays) or, `contents`,
+   * with everything in it (Delete subgraph and contents). On a node or an edge `contents` changes nothing.
+   */
+  function deleteSelected(contents = false) {
     const sel = selected;
     if (!sel || refuseLocked()) return;
-    if (sel.kind === 'subgraph') { ui.notice("Deleting a subgraph isn't supported yet. Edit it in the file.", 'warning'); return; }
     if (sel.kind === 'title') { ui.notice("Removing the title isn't supported. Edit it in the file.", 'warning'); return; }
     if (!edgesOk) { ui.notice(NO_EDGE_MATCH, 'warning'); return; }
     // Named before the edit: once deleted, the node is no longer drawn.
-    const name = sel.kind === 'node' && named(sel);
+    const name = sel.kind !== 'edge' && named(sel);
+    const count = (/** @type {number} */ n, /** @type {string} */ what) => `${n} ${what}${n === 1 ? '' : 's'}`;
     // Where the keyboard goes after (the user: it keeps its place): back along the trail to the first item still
     // drawn; with no trail, an edge's source (a node clicked: nothing). Taken now: the edit starts the trail afresh.
     const back = moves.fallback(sel);
     const source = sel.kind === 'edge' ? shownEdge(sel.id)?.from : null;
     if (source) back.push({ kind: subgraphs(shownText).some((g) => g.id === source) ? 'subgraph' : 'node', id: source });
-    editDrawn((text) => (sel.kind === 'edge' ? deleteEdge(text, sel.id) : deleteNode(text, sel.id)), {
+    /** @type {(text: string) => { text: string, edges?: number, nodes?: number }} */
+    const change = sel.kind === 'edge' ? (text) => deleteEdge(text, sel.id)
+      : sel.kind === 'node' ? (text) => deleteNode(text, sel.id)
+        : contents ? (text) => deleteSubgraphContents(text, sel.id) : (text) => deleteSubgraph(text, sel.id);
+    editDrawn(change, {
       after: () => (back.length ? { item: back[0], others: back.slice(1), reveal: true } : null),
       afterSave: (result) => {
-        if (sel.kind === 'edge') ui.announce('Deleted the edge');
-        else ui.announce(`Deleted ${name}` + (result.edges ? ` and ${result.edges} edge${result.edges === 1 ? '' : 's'}` : ''));
+        if (sel.kind === 'edge') { ui.announce('Deleted the edge'); return; }
+        const went = [...(result.nodes ? [count(result.nodes, 'node')] : []), ...(result.edges ? [count(result.edges, 'edge')] : [])];
+        ui.announce(`Deleted ${name}` + (went.length ? `, ${went.join(' and ')}` : ''));
       },
     });
   }
@@ -1237,6 +1294,12 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
     f2: () => selected && !picking && (editLabelOrTitle(selected), true),
     delete: () => selected && !picking && (deleteSelected(), true),
     backspace: () => selected && !picking && (deleteSelected(), true),
+    // D deletes as Delete does (the user: the home row). With Shift, a subgraph goes with everything in it; a node or
+    // an edge, which hold nothing, go as with D.
+    d: () => selected && !picking && (deleteSelected(), true),
+    'shift+d': () => selected && !picking && (deleteSelected(true), true),
+    'shift+delete': () => selected && !picking && (deleteSelected(true), true),
+    'shift+backspace': () => selected && !picking && (deleteSelected(true), true),
     // M is Merge into… on a node; nothing elsewhere.
     m: () => itemKey('merge-into'),
     // . opens the selection's menu, or with nothing selected the empty-space menu, as the menu key and Shift+F10 do.
@@ -2258,6 +2321,7 @@ export function createEditor({ source, viewer, parse, limits, display, ui, els }
       }
       tagEdges(text);
       markCut();
+      glowDoomed();
       // A new drawing while finding: find again in it, so no mark is left on what has gone.
       if (finding) { refind(); markMatches(); }
       const back = viewBack;

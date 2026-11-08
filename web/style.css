@@ -235,6 +235,11 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.node[data-page-cut] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-cut] > rect {
   stroke: var(--select) !important; stroke-width: 3px !important; stroke-dasharray: 6 3 !important; }
+/* What Delete subgraph and contents would take, while Shift is held or its item has focus: a wide pale red band under
+   each node, box and edge (docs/ux.md, the Shift rule). */
+#stage [data-page-doomed][data-page-only] { fill: none !important; stroke: var(--delete-faint) !important;
+  stroke-width: 12px !important; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: none !important;
+  filter: none !important; pointer-events: none; }
 /* A cut node's edges glow too, while it is cut (the user), pale red where a paste would delete them. */
 #stage path[data-page-cut-glow="delete"] { --glow: var(--delete-faint); }
 /* …and each edge that will move glows: a wide pale line under it, not a dash, which would read as a dotted edge. */

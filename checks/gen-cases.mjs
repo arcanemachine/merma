@@ -13,11 +13,13 @@
 // moveCut without edges), with `relocate` where it should be drawn and `edges` how many edges Mermaid should draw. `paste`: { id, of, edges } node `of` copied and pasted
 // as `id` (pasteNode): drawn with its shape, label and classes, and `edges` edges in all. `pasteSubgraph`: { pairs, blocks,
 // edges } a subgraph copied and pasted (pasteSubgraph): each [original, copy] node pair drawn alike, each new node in
-// the subgraph `blocks` names, and `edges` edges in all.
+// the subgraph `blocks` names, and `edges` edges in all. `deleteSubgraph`: { gone, blocks, edges } a subgraph deleted
+// alone or with its contents: the nodes `gone` not drawn, every other node in the subgraph blockOf says after (`blocks`),
+// and `edges` edges in all.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, copySubgraph, deleteEdge, deleteNode, edges, freeId, quoteLabel,
+  ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, copySubgraph, deleteEdge, deleteNode, deleteSubgraph, deleteSubgraphContents, contentsOf, edges, freeId, quoteLabel,
   mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs,
 } from '../web/patch/flowchart.mjs';
@@ -180,6 +182,18 @@ for (const [name, , src] of sources) {
       cases.push({ name: `${name} paste subgraph ${sg.id} ${what}`, kind: 'paste-subgraph', src, out: r.text,
         pasteSubgraph: { pairs: nodesOf(c.block).map((n, k) => [n, news[k]]),
           blocks: Object.fromEntries(news.map((n) => [n, blockOf(r.text, n)?.id ?? null])), edges: edges(r.text).length } });
+    }
+  }
+}
+// Each subgraph deleted: alone, and with its contents.
+for (const [name, , src] of sources) {
+  for (const sg of subgraphs(src).filter((s) => s.end !== null)) {
+    const id = /** @type {string} */ (sg.id);
+    const gone = contentsOf(src, id).nodes;
+    for (const [what, r, out] of /** @type {const} */ ([['alone', deleteSubgraph(src, id), []], ['with contents', deleteSubgraphContents(src, id), gone]])) {
+      const left = [...new Set(edges(r.text).flatMap((e) => [e.from, e.to]))];
+      cases.push({ name: `${name} delete subgraph ${id} ${what}`, kind: 'delete-subgraph', src, out: r.text,
+        deleteSubgraph: { gone: out, blocks: Object.fromEntries(left.map((n) => [n, blockOf(r.text, n)?.id ?? null])), edges: edges(r.text).length } });
     }
   }
 }

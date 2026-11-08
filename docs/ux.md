@@ -83,9 +83,22 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 
 - One gesture, one kind of outcome. A gesture that adds never deletes; removing is always a deliberate Delete. When
   there is nothing to add, it shows what exists instead of changing anything.
+- Shift shows a key's extra cost before it is pressed (the user, "a rule emerging here"): where a key's Shift form
+  deletes what the plain form keeps (Ctrl+Shift+V a cut node's edges, Shift+D a subgraph's contents), what would go
+  glows pale red while Shift is held where the key would act, and while that item is in focus or under the pointer in
+  the menu, so mouse and keyboard see it alike. On a node or an edge, which hold nothing, Shift+D, Shift+Delete and
+  Shift+Backspace do what the plain key does. Any Shift key shows the glow for a moment (Shift+F on a subgraph); a
+  subgraph's contents hidden in a collapsed box get no mark, and the announcement counts what went.
+- Deleting a subgraph (the user wants two): Delete subgraph (D, Delete, Backspace) takes the box alone, unwrapping
+  it: its `subgraph`, own `direction` and `end` lines go, and so do the edges to the subgraph itself; what it held
+  keeps its lines and is drawn where Mermaid then draws it (the block around it, or another block that also names a
+  node). Delete subgraph and contents (Shift+D, Shift+Delete, Shift+Backspace) takes every node Mermaid draws in it,
+  each with its edges as Delete node takes them, then the boxes; a line inside it naming only nodes drawn elsewhere
+  stays. Both are one edit, one undo, and work on a collapsed box.
 - A letter outside a menu does exactly what it does in the selected item's menu (the user): R reverses a selected
   edge, as the edge menu's R does. So a letter never means two things. And a letter works outside menus only when no
-  other key does the job (the user): Delete deletes, so D stays in menus; R, C, N and M have no other key. A key is a
+  other key does the job (the user): R, C, N and M have no other key. D is the exception (the user: the home row): it
+  deletes outside menus as Delete and Backspace do, on a node, an edge or a subgraph. A key is a
   letter of its label where one fits: M is Merge into… on a node. A letter keeps one meaning across kinds: C picks what
   an edge goes to and Shift+C what it comes from, on a node (Connect to…, Connect from…) and on an edge (Reassign end…,
   Reassign start…) alike (the user). The Edit items have no menu key at all (the user): Enter and F2 already edit the
@@ -112,8 +125,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   first and the pick after, so the candidate stays the one thing Enter picks.
 - Shift with an item's letter does its counterpart: the other way round, or the same thing further (the user; the
   reviewer's wording). Shift+C is Connect from…, C's edge the other way; Shift+R flips the diagram as R rotates it;
-  Shift+F fits the selection, which F only centers. A Shift key exists only beside its plain letter in the same
-  menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
+  Shift+F fits the selection, which F only centers; Shift+D deletes a subgraph with its contents, which D takes alone
+  (on a node or an edge, which hold nothing more, Shift+D does what D does, with no item of its own). A Shift key
+  exists only beside its plain letter in the same menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
   never from the letter's case, so Caps Lock does not count.
 - In a pick, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
   move, Enter picks and which is selected after, is drawn as the selection is. What the pick will change is marked

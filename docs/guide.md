@@ -130,7 +130,7 @@ another click on it closes it.
   Undo leaves the node cut again, to move it somewhere else; Redo moves it and drops the cut.
   Grayed where it already is ("It is already in this subgraph."). Escape drops the cut, before it lets go of the
   selection. A cut and a copy replace each other: there is one clipboard. Nothing in the file changes until the move.
-- **Delete node** removes the node from every statement, with its edges, its `style` and `click` lines and its name in
+- **Delete node** (D) removes the node from every statement, with its edges, its `style` and `click` lines and its name in
   `class` lines. Grayed without an edge match. Reached by the arrows, the item you came from is selected after it
   (the first one still there); clicked, nothing is.
 
@@ -181,7 +181,7 @@ another click on it closes it.
   pasted into an edge."). With a node cut, **Move node here without
   edges** moves it into the edge the same way: its own edges are deleted, and it goes into the subgraph the edge is written in. Grayed
   on one of the node's own edges.
-- **Delete edge** removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
+- **Delete edge** (D) removes it. Its nodes stay. The item you came from by the arrows is selected after it, else its
   source node.
 
 ### Subgraph menu
@@ -228,7 +228,15 @@ another click on it closes it.
   outside it (or to one in a subgraph inside it): only a subgraph whose nodes link among themselves can run its own way.
   Grayed on a collapsed box too. A change to its own `direction` line in the file drops its turn.
 
-Deleting a subgraph isn't supported yet. Delete or Backspace on one says so. Edit it in the file.
+- **Delete subgraph** (D, or Delete or Backspace outside menus) takes the box away and keeps what it held: the
+  `subgraph`, its own `direction` and `end` lines go, and so do the edges to the subgraph itself (with their
+  `linkStyle` lines) and its `style` and `class` lines. Its nodes and subgraphs are then drawn in the subgraph around
+  it, or at the top level. Grayed without an edge match.
+- **Delete subgraph and contents** (Shift+D, or Shift+Delete or Shift+Backspace outside menus) takes it with
+  everything Mermaid draws in it: each node, with its edges and settings as Delete node takes them, then each box.
+  While Shift is held with the subgraph selected, or while this item has focus or the pointer in the menu, what it
+  would take is marked pale red: its nodes, boxes and edges. "Deleted "Payment", 4 nodes and 7 edges" says what went.
+  Both work on a collapsed box too, and one undo brings it all back.
 
 ### Title menu
 
@@ -333,7 +341,8 @@ here does just what it does in the selected item's menu:
 | I with nothing selected | Select again what O or Escape let go of |
 | H with a subgraph selected | Collapse it, or expand it: this tab's view only, never the file |
 | Up from the top row, Down from the title | Select the diagram's title, and back to the nearest node below it |
-| Delete or Backspace | Delete the selected node or edge |
+| D, Delete or Backspace | Delete the selected node or edge, or the selected subgraph alone (what it held stays) |
+| Shift+D, Shift+Delete or Shift+Backspace | Delete the selected subgraph and its contents; on a node or an edge, as D |
 | ? (wherever it is on your keyboard) | Open Help, or close it |
 | R or Shift+R with nothing selected | Rotate, or Flip, the diagram (this tab only) |
 | R or Shift+R with a subgraph selected | Rotate, or Flip, its inside (this tab only) |

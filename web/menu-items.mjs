@@ -23,8 +23,12 @@ export const GLOBAL_KEYS = {
   s: ['add-subgraph'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
-  delete: ['delete-node', 'delete-edge'],
-  backspace: ['delete-node', 'delete-edge'],
+  d: ['delete-node', 'delete-edge', 'delete-subgraph'],
+  'shift+d': ['delete-node', 'delete-edge', 'delete-subgraph-contents'],
+  delete: ['delete-node', 'delete-edge', 'delete-subgraph'],
+  'shift+delete': ['delete-node', 'delete-edge', 'delete-subgraph-contents'],
+  backspace: ['delete-node', 'delete-edge', 'delete-subgraph'],
+  'shift+backspace': ['delete-node', 'delete-edge', 'delete-subgraph-contents'],
   f: ['fit-view', 'center-view'],
   'shift+f': ['fit-node', 'fit-edge', 'fit-subgraph'],
   0: [],
@@ -144,6 +148,17 @@ const pasteItems = (/** @type {(s: MenuState) => string | null} */ why = () => n
   ];
 };
 
+/**
+ * Delete subgraph (the box goes, what it held stays) and Delete subgraph and contents (everything in it goes too):
+ * set apart, grayed without an edge match, as Delete node is.
+ * @returns {MenuItem[]}
+ */
+const deleteItems = () => [
+  { action: 'delete-subgraph', label: 'Delete subgraph', key: 'd', separated: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
+  { action: 'delete-subgraph-contents', label: 'Delete subgraph and contents', key: 'shift+d', applies: (s) => s.edgesOk,
+    why: () => NO_EDGE_MATCH },
+];
+
 /** How a menu shows `key`, on a Mac (`mac`) or another system: `⇧C`, `Ctrl+⇧V`, `⌘⇧V`. */
 export function keyLabel(/** @type {string} */ key, /** @type {string} */ os) {
   const ctrl = key.startsWith('ctrl+') ? (os === 'mac' ? '⌘' : 'Ctrl+') : '';
@@ -211,6 +226,7 @@ export const MENUS = {
     { action: 'copy-subgraph', label: 'Copy subgraph', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-subgraph', label: 'Cut subgraph', key: 'ctrl+x', view: true },
     ...pasteItems(),
+    ...deleteItems(),
     { action: 'collapse-subgraph', label: 'Collapse subgraph', key: 'h', view: true, separated: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),
@@ -226,6 +242,7 @@ export const MENUS = {
     { action: 'copy-subgraph', label: 'Copy subgraph', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-subgraph', label: 'Cut subgraph', key: 'ctrl+x', view: true },
     ...pasteItems(() => EXPAND_FIRST),
+    ...deleteItems(),
     { action: 'expand-subgraph', label: 'Expand subgraph', key: 'h', view: true, separated: true,
       applies: (s) => !s.collapseWhy, why: (s) => s.collapseWhy ?? null },
     ...turnItems().map((i) => ({ ...i, separated: false })),

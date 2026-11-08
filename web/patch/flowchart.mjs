@@ -1248,6 +1248,68 @@ export function moveIntoEdge(/** @type {string} */ text, /** @type {string} */ i
 }
 
 /**
+ * The text with the `k`th subgraph (in text order) unwrapped: the edges to or from it, and its `style`, `class` and
+ * `click` lines, go as a node's do (with `linkStyle` renumbered); then its `subgraph`, its own `direction` and its
+ * `end` lines. What it holds keeps its lines, in the block around it or at the top level.
+ */
+function unwrap(/** @type {string} */ text, /** @type {number} */ k) {
+  const id = /** @type {string} */ (subgraphs(text)[k].id);
+  const removed = edges(text).filter((e) => e.from === id || e.to === id);
+  if (mentions(text, id).length) text = transform(text, { gone: id, removed });
+  const sgs = subgraphs(text);
+  const sg = sgs[k];
+  const own = statements(text).filter((s) => s.keyword === 'direction' && subgraphsAt(text, s.line, sgs).at(-1) === sg);
+  const drop = new Set([sg.start, /** @type {number} */ (sg.end), ...own.map((s) => s.line)]);
+  return lines(text).filter((_, n) => !drop.has(n)).join('');
+}
+
+/**
+ * Delete subgraph `id`, the box alone: unwrapped, what it held drawn where Mermaid then draws it (the block around it,
+ * or the top level). Returns { text, edges }: the edges deleted with it, those to or from the subgraph itself.
+ */
+export function deleteSubgraph(/** @type {string} */ text, /** @type {string} */ id) {
+  const k = subgraphs(text).findIndex((g) => g.id === id && g.end !== null);
+  if (k < 0) throw new Error('That subgraph is not in the file.');
+  const out = unwrap(text, k);
+  return { text: out, edges: edges(text).length - edges(out).length };
+}
+
+/**
+ * What deleting subgraph `id` with its contents takes: every node Mermaid draws in it or in a subgraph inside it
+ * (blockOf), those subgraphs (`tree`: their places in subgraphs(), it first), and every edge with an end among them or
+ * at it.
+ */
+export function contentsOf(/** @type {string} */ text, /** @type {string} */ id, sgs = subgraphs(text)) {
+  const top = sgs.findIndex((g) => g.id === id && g.end !== null);
+  if (top < 0) throw new Error('That subgraph is not in the file.');
+  const inside = (/** @type {number} */ k) => {
+    for (let at = /** @type {number | null} */ (k); at !== null; at = sgs[at].parent) if (at === top) return true;
+    return false;
+  };
+  const tree = sgs.map((_, k) => k).filter((k) => sgs[k].end !== null && inside(k));
+  const nodes = [...nodeIds(text)].filter((n) => {
+    const g = blockOf(text, n, sgs);
+    return g !== null && tree.includes(sgs.indexOf(g));
+  });
+  const gone = new Set([...nodes, ...tree.map((k) => /** @type {string} */ (sgs[k].id))]);
+  return { nodes, tree, edges: edges(text).filter((e) => gone.has(e.from) || gone.has(e.to)) };
+}
+
+/**
+ * Delete subgraph `id` and its contents (contentsOf): each node with its edges and settings as Delete node does, then
+ * each subgraph, innermost first, as Delete subgraph does. A line inside it naming only nodes drawn elsewhere stays,
+ * in the block around it. Returns { text, nodes, edges }: how many nodes and edges went.
+ */
+export function deleteSubgraphContents(/** @type {string} */ text, /** @type {string} */ id) {
+  const { nodes, tree } = contentsOf(text, id);
+  let out = text;
+  for (const n of nodes) out = transform(out, { gone: n, removed: edges(out).filter((e) => e.from === n || e.to === n) });
+  // Last first: unwrapping one leaves the subgraphs before it where they were in the list.
+  for (const k of [...tree].reverse()) out = unwrap(out, k);
+  return { text: out, nodes: nodes.length, edges: edges(text).length - edges(out).length };
+}
+
+/**
  * What a copy of a node carries, read at copy time so a paste still works once the node has changed or gone.
  * @typedef {object} Copied
  * @property {string} id the node's id when copied

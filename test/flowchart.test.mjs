@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, moveCut, moveIntoEdge, hasNode,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1168,6 +1168,59 @@ test('pasteSubgraph leaves out an outside edge whose far end is gone, keeps its 
   const pasted = pasteSubgraph(bare, copySubgraph(bare, 'subGraph0'), null);
   assert.equal(pasted.text, bare + '  Y --> s1\n  subgraph s1 ["Payment stage"]\n    n1["X"]\n  end\n');
 });
+
+test('deleteSubgraph unwraps it: its subgraph, direction and end lines go, and the edges to it with their linkStyle', () => {
+  const src = 'flowchart TD\n  A --> pay\n  subgraph pay [Payment]\n    direction LR\n    B --> C\n    subgraph card [Card]\n      direction TB\n'
+    + '      D\n    end\n  end\n  C --> E\n  style pay fill:#eef\n  class pay hot\n  linkStyle 0 stroke:red\n  linkStyle 2 stroke:blue\n';
+  const { text, edges: n } = deleteSubgraph(src, 'pay');
+  assert.equal(n, 1);
+  // A stays, on a line of its own: its only line was the edge to the subgraph.
+  assert.equal(text, 'flowchart TD\n  A\n    B --> C\n    subgraph card [Card]\n      direction TB\n      D\n    end\n  C --> E\n  linkStyle 1 stroke:blue\n');
+  assert.equal(blockOf(text, 'D')?.id, 'card');
+  assert.equal(blockOf(text, 'B'), null);
+  // Nested, it leaves its contents in the block around it.
+  const inner = deleteSubgraph(src, 'card').text;
+  assert.equal(blockOf(inner, 'D')?.id, 'pay');
+  assert.ok(inner.includes('    direction LR\n') && !inner.includes('direction TB'), inner);
+  // With no id in the file, it is found by Mermaid's.
+  assert.equal(deleteSubgraph('flowchart TD\n  subgraph Order records\n    X\n  end\n', 'subGraph0').text, 'flowchart TD\n    X\n');
+});
+
+test('deleteSubgraphContents deletes every node drawn in it, each with its edges, and its subgraphs; counts what went', () => {
+  const src = 'flowchart TD\n  A --> B\n  subgraph pay [Payment]\n    B --> C\n    subgraph card [Card]\n      D\n    end\n    C --> D\n'
+    + '    X --> Y\n  end\n  subgraph other [Other]\n    X\n    Y\n  end\n  C --> E\n  A --> pay\n  style C fill:#eef\n';
+  // X and Y are named in both; Payment closes first, so it draws them, and they go with it.
+  const r = deleteSubgraphContents(src, 'pay');
+  assert.deepEqual([r.nodes, r.edges], [5, 6]);
+  assert.equal(r.text, 'flowchart TD\n  subgraph other [Other]\n  end\n  E\n  A\n');
+  // Other closes first here, so it draws X and Y, and they stay.
+  const kept = 'flowchart TD\n  subgraph other [Other]\n    X\n    Y\n  end\n  subgraph pay [Payment]\n    B --> C\n    X --> Y\n  end\n';
+  const k = deleteSubgraphContents(kept, 'pay');
+  assert.deepEqual([k.nodes, k.edges], [2, 1]);
+  // The line naming only nodes drawn elsewhere stays, now at the top level: its edge was drawn outside the box.
+  assert.equal(k.text, 'flowchart TD\n  subgraph other [Other]\n    X\n    Y\n  end\n    X --> Y\n');
+  assert.equal(blockOf(k.text, 'X')?.id, 'other');
+});
+
+for (const [name, ids] of Object.entries(SUBGRAPH_IDS)) {
+  const src = fixture(name);
+  for (const id of ids) {
+    test(`${name} ${id}: deleteSubgraph keeps every node and the other edges in order; with contents, only the outside ones, as contentsOf says`, () => {
+      const sig = (/** @type {any} */ e) => `${e.from} ${e.arrow} ${e.label?.text ?? ''} ${e.to}`;
+      const box = deleteSubgraph(src, id);
+      const left = edges(src).filter((e) => e.from !== id && e.to !== id).map(sig);
+      assert.deepEqual(edges(box.text).map(sig), left);
+      assert.equal(subgraphs(box.text).length, subgraphs(src).length - 1);
+      const c = copySubgraph(src, id);
+      const all = deleteSubgraphContents(src, id);
+      assert.deepEqual(edges(all.text).map(sig), edges(src).filter((e) => !c.ids.includes(e.from) && !c.ids.includes(e.to)).map(sig));
+      assert.equal(all.nodes, c.ids.filter((x) => !subgraphs(src).some((g) => g.id === x)).length);
+      // What the Shift glow marks is what goes.
+      const marked = contentsOf(src, id);
+      assert.deepEqual([marked.nodes.length, marked.edges.length], [all.nodes, all.edges]);
+    });
+  }
+}
 
 for (const [name, ids] of Object.entries(SUBGRAPH_IDS)) {
   const src = fixture(name);
