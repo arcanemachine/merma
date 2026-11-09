@@ -78,6 +78,11 @@ syntax and features as far as they go, and add no markers, comments or metadata 
   (`subgraph pay [Payment]`). A subgraph written with only a quoted title (`subgraph "Order log"`) has no
   id: Mermaid names it by its place among the subgraphs, a name that changes as subgraphs come and go, so
   an edge or a `@{ view }` line in the file cannot rely on it.
+- To link a node to another diagram, add Mermaid's `click charge href "payment.mmd"` on a line of its
+  own, the path read from this file's folder (`payment.mmd?part=pay` opens it fitted to its "pay"
+  subgraph). The user follows it with L, in the same page, and comes back with the browser's Back. The
+  other file must be one the server serves (`MERMA_ROOTS`). A web or `vscode://` address works too, and
+  opens outside the page.
 - To have a subgraph start collapsed, drawn as one box, add Mermaid's `pay@{ view: collapsed }` on a line
   of its own after the subgraph's `end`. The user can expand it in the page without changing the file.
 - Mermaid refuses a diagram with more than 500 edges or 50,000 characters of code, leaving out comments

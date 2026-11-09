@@ -17,8 +17,9 @@ import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, contentsOf, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, deleteSubgraph, deleteSubgraphContents, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
   nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
-  subgraphRefusal, subgraphs,
+  subgraphRefusal, subgraphs, hasClick,
 } from './patch/flowchart.mjs';
+import { linkTarget } from './links.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
 import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
@@ -68,7 +69,7 @@ const END_RUN = 3;
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void, openLink(to: { path: string, part: string | null } | { url: string, app: boolean }, tab: boolean): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -85,6 +86,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   let shownText = '';
   /** @type {{ subs: import('./collapse.mjs').SubgraphInfo[], overrides: import('./collapse.mjs').Overrides }} */
   let collapse = { subs: [], overrides: new Map() };   // how the shown drawing's subgraphs are collapsed
+  /** @type {Map<string, string>} each node's link in the shown drawing, as Mermaid read it (viewer.read) */
+  let links = new Map();
   let edgesOk = false;        // the edges on screen match the text's, so edges can be selected and nodes deleted
   /**
    * The pick of a node or subgraph (clicked, or Enter on the candidate), and what it does:
@@ -545,6 +548,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     'reassign-end': () => startMove('end'),
     'reassign-start': () => startMove('start'),
     'merge-into': () => startMerge(),
+    'open-link': () => openLink(false),
+    'open-link-tab': () => openLink(true),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -657,7 +662,20 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       cut: cut?.kind ?? null,
       cutWhy: cutWhy(),
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
+      link: selected?.kind === 'node' ? linkOf(selected.id) : undefined,
     };
+  }
+
+  /** Where node `id`'s link leads, or why Open link does nothing (links.mjs). */
+  function linkOf(/** @type {string} */ id) {
+    return linkTarget(links.get(id), hasClick(shownText, id), file);
+  }
+  /** Open the selected node's link, in a new tab with `tab` (main.mjs). The menu and the keys gray it when it has none. */
+  function openLink(/** @type {boolean} */ tab) {
+    const to = linkOf(selection().id);
+    if ('why' in to) return;
+    ui.announce(`Opening ${'url' in to ? to.url : to.path}`);
+    ui.openLink(to, tab);
   }
 
   /** Why the cut node or subgraph cannot be moved to the selection (Move … here), or null: it would not move. */
@@ -1305,6 +1323,9 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     'shift+backspace': () => selected && !picking && (deleteSelected(true), true),
     // M is Merge into… on a node; nothing elsewhere.
     m: () => itemKey('merge-into'),
+    // L follows a node's link; Shift+L in a new tab.
+    l: () => itemKey('open-link'),
+    'shift+l': () => itemKey('open-link-tab'),
     // . opens the selection's menu, or with nothing selected the empty-space menu, as the menu key and Shift+F10 do.
     '.': () => {
       if (picking) return false;
@@ -2300,8 +2321,9 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
      * there (an edge's, or an id-less subgraph's, only while the text is the same: their ids are renumbered when edges
      * or subgraphs come and go).
      */
-    rendered(/** @type {string} */ text, view = collapse) {
+    rendered(/** @type {string} */ text, view = collapse, drawnLinks = links) {
       collapse = view;
+      links = drawnLinks;
       drawnEditable = isFlowchart(text);
       setEditable();
       // Tagged while locked too, so unlocking finds the drawing ready.
@@ -2368,6 +2390,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
      */
     switchFile(/** @type {typeof source} */ nextSource, /** @type {string} */ next) {
       source = nextSource;
+      file = next;
+      links = new Map();
       drawnEditable = false;
       setEditable();   // closes find and the menus, and lets go of the selection
       clearTimeout(blinkTimer);

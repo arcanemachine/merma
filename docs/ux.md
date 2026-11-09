@@ -323,6 +323,17 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   zooming over collapsing the rest or drawing the part alone): it changes only what a fit fits, so every edit and key
   works as in the whole. No Escape step. It may zoom in up to twice actual size, the whole diagram never past actual
   size, so a small subgraph fills the window.
+- Links between diagrams (the user: a dev tool, usefulness over security, "nothing ridiculous"). Open link reads a
+  node's link from Mermaid's own reading of the file, so merma keeps Mermaid's strict security level (loose would
+  allow HTML labels), and it opens only http, https and vscode addresses and paths to `.mmd` files. A click never
+  follows a link, since a click selects. A `.mmd` link opens in place as a history entry, so the browser's Back and
+  Forward are the jump list (the user, over merma keys such as Ctrl+I and Ctrl+O). The page switches only once the
+  server has given the new file's text, so the address never names a file that is not shown. A link is refused,
+  rather than waiting, while an edit is under way, since a jump minutes after the press reads as broken. Back and
+  Forward cannot be refused, since the address has already changed, so they wait, with a notice when a code draft
+  holds them. Shift+L opens a new tab without asking the server first: the browser allows a new tab only straight
+  from the key or the click, and the new tab says itself if the file cannot be served. An app's link (`vscode://`)
+  goes to the system, not to a new tab, which would be left blank.
 - Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Alt does not stand in, as
   everywhere else, since Alt+C and Alt+V are no copy or paste). The page takes them only when it acts, on the diagram
   with no text selected: Ctrl+C with a node or a subgraph selected, Ctrl+V with something copied or cut. Otherwise the browser's own copy and

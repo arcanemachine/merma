@@ -1342,6 +1342,11 @@ export function copyNode(/** @type {string} */ text, /** @type {string} */ id) {
   return { id, shape, classes: [...classes], settings: settingsOf(text, id), edges: own };
 }
 
+/** Whether a `click` line names node `id`: a link, or a callback. */
+export function hasClick(/** @type {string} */ text, /** @type {string} */ id) {
+  return settingsOf(text, id).some((s) => s.keyword === 'click');
+}
+
 /** The `style`, `class` and `click` lines naming `id`: what follows the ids in each. */
 function settingsOf(/** @type {string} */ text, /** @type {string} */ id) {
   const settings = [];

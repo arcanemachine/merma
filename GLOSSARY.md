@@ -51,6 +51,7 @@ Mermaid syntax.
 | **merge** | Merge into…: a node's edges move to another node, and the node goes. |
 | **`linkStyle`** | Styles an edge by its number: the Nth edge in the file. Why no edit ever reorders edges. |
 | **`classDef`, `class`, `style`** | Named styles, applying them to nodes, and one-off node styles. |
+| **link** | Where a node leads, by its `click` line: `click A href "payment.mmd"`. Open link (L) follows it. Mermaid's word for where a `click` leads; never an edge, which Mermaid's older docs also call a link (above). |
 
 ## The page
 

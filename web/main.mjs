@@ -263,7 +263,24 @@ const ui = {
   },
   /** Fit to subgraph `id`, or to the whole diagram (null), as the address's part. */
   showPart: (/** @type {string | null} */ id) => setPart(id),
-  /** The subgraph fitted as the part, if any. */
+  /**
+   * Follow a node's link (links.mjs): a diagram in this page, or with `tab` in a new tab of this server, which says
+   * itself if it cannot serve the file; a web address in a new tab. Synchronous, from the key or click, or the
+   * browser blocks the new tab. An app's address goes to the system, which hands it to the app, with no tab left
+   * behind.
+   */
+  openLink(/** @type {{ path: string, part: string | null } | { url: string, app: boolean }} */ to, /** @type {boolean} */ tab) {
+    if ('url' in to) {
+      if (to.app) location.href = to.url; else window.open(to.url, '_blank', 'noopener');
+    } else if (tab) {
+      const url = new URL(location.pathname, location.href);
+      url.searchParams.set('f', to.path);
+      if (to.part !== null) url.searchParams.set('part', to.part);
+      window.open(url, '_blank', 'noopener');
+    } else {
+      openFile(to.path, to.part);
+    }
+  },
   /** Escape on the diagram with nothing of its own to let go: close the code panel. Whether it did. */
   escape: () => codePanel.escape(),
   history(/** @type {{ undo: boolean, redo: boolean }} */ can) {
@@ -324,7 +341,7 @@ async function draw(/** @type {string} */ text) {
   codePanel.show(text);
   // The page's collapses are drawn only when Mermaid's subgraphs are the ones merma reads in the text: an id they
   // disagree on would collapse, or tag, the wrong one.
-  let subs = await viewer.subgraphs(text);
+  let { subs, links } = await viewer.read(text);
   if (of !== file) return;   // before anything below writes this file's collapses or turns under the new file's keys
   const scanned = new Set(scannedSubgraphs(text).map((s) => s.id));
   const agree = subs.length === scanned.size && subs.every((s) => scanned.has(s.id));
@@ -367,7 +384,7 @@ async function draw(/** @type {string} */ text) {
   if (!shownOnce) { shownOnce = true; restoreView(); }
   el('status').textContent = 'updated ' + new Date().toLocaleTimeString();
   shownSubs = subs;
-  editor?.rendered(text, { subs, overrides: agree ? overrides : new Map() });
+  editor?.rendered(text, { subs, overrides: agree ? overrides : new Map() }, links);
   if (warning) ui.notice(warning, 'warning');
   checkPart();
 }

@@ -87,7 +87,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
       if (item.key) b.setAttribute('aria-keyshortcuts', keyAria(item.key, os)); else b.removeAttribute('aria-keyshortcuts');
       const off = !applies(item);
       b.setAttribute('aria-disabled', String(off));
-      if (off) b.title = why(item); else b.removeAttribute('title');
+      const title = off ? why(item) : item.title?.(state);
+      if (title) b.title = title; else b.removeAttribute('title');
     });
   }
 

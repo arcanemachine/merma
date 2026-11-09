@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode, hasClick,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1313,4 +1313,9 @@ for (const [name, ids] of Object.entries(EDGE_IDS)) {
 test('hasNode: a node named in the body, not one only in a label or a comment', () => {
   const src = 'flowchart TD\n  %% B\n  A["B"] --> C\n';
   assert.deepEqual(['A', 'B', 'C'].map((id) => hasNode(src, id)), [true, false, true]);
+});
+
+test('hasClick finds a click line naming the node, a link or a callback, and no other line', () => {
+  const text = 'flowchart TD\n  A --> B --> C\n  click A href "a.mmd"\n  click B callback\n  style C fill:#eef\n';
+  assert.deepEqual(['A', 'B', 'C'].map((id) => hasClick(text, id)), [true, true, false]);
 });

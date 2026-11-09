@@ -75,6 +75,7 @@ from the merma in use and offer to update it, keeping its Custom rules section.
 | `web/source.mjs` | The diagram file: polled from the server, and saved over the version last read |
 | `web/viewer.mjs` | Rendering, zoom, move and fit; reports clicks |
 | `web/limits.mjs` | Mermaid's size limits: telling a render or save over one apart, and what the page says |
+| `web/links.mjs` | Where a node's link leads (Open link), or why merma does not follow it |
 | `web/editor.mjs` | Selection, what each menu item and key does, the label box, saving, undo |
 | `web/keys.mjs` | What the arrows, O and I do to the selection and to Connect to…'s candidate: the trail to retrace, and I's place inside |
 | `web/menu-items.mjs` | What each menu holds, its keys, and the keys the page answers outside menus: data, no DOM |

@@ -24,6 +24,19 @@ them.
   back to the whole diagram. Each is a step in the browser's history, so Back goes to the view before. On a subgraph with no id in the file it is grayed: the address could not name it. A
   part hidden in a collapsed subgraph fits that subgraph's box; a part not in the file shows the whole diagram, with a
   notice, until it is back.
+- **Links between diagrams.** **Open link** (L) on a node with a link in the file (`click A href "payment.mmd"`)
+  follows it. A `.mmd` file opens in this page in place of this one, and Back comes back (Forward goes again). A path
+  is read from this file's folder. `payment.mmd?part=pay` opens the file fitted to its "pay" subgraph, as in the
+  address, and `?part=pay` alone fits a subgraph of this file. A web address opens in a new tab. A `vscode://` link
+  goes to VS Code, and the page stays as it is. **Open link in new tab** (Shift+L) opens a `.mmd` file in a new tab;
+  on any other link it does what L does. Both are grayed, with the reason, on a node with no link, a link that runs a
+  script (`click A callback`, a `javascript:` link), a link of another kind (`mailto:`), and a path to anything but a
+  `.mmd` file. Hovering over the item shows where it leads. A click on a linked node selects it, as on any node: merma
+  never follows a link on a click. A file the server does not serve (missing, or outside the folders merma serves) is
+  refused with a notice. So is opening one while an edit is saving, while a pick or the label box is open, or while
+  the code is being edited. Each file keeps its own view, collapses, turns and undo history in this tab, and a copy
+  can be pasted into the other file. Back or Forward to another file while the code is being edited waits until it is
+  saved or canceled, and says so.
 - The page follows the file: save it anywhere (your editor, an agent) and the diagram updates within a second. A save
   with a syntax error keeps the last good render on screen, with the error above it. So does a file over merma's size
   limits, 500 edges or 50,000 characters of code unless merma was started with higher ones (README.md, Run).
@@ -107,6 +120,7 @@ another click on it closes it.
   picks. A subgraph is refused. Grayed without an edge match. An edge written inside a subgraph moves out after the
   last edge when the other node is named outside it, as Reassign end… says.
 - **Edit node** opens the node panel on it: its label and its shape (below).
+- **Open link** (L) and **Open link in new tab** (Shift+L) follow the node's link (Viewing, Links between diagrams).
 - **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
   `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
   editor or a message. Nothing in the file changes. Ctrl+C on an edge says that only a node or a subgraph can be copied.
@@ -325,6 +339,8 @@ here does just what it does in the selected item's menu:
 | S | Add a subgraph: inside the selected subgraph, or with nothing selected at the top level |
 | R with an edge selected | Reverse it |
 | M with a node selected | Merge into… |
+| L with a node selected | Open link |
+| Shift+L with a node selected | Open link in new tab |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
 | C with an edge selected | Reassign end… (Space in it: the other end) |

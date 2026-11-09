@@ -3,9 +3,11 @@
 // its menu and is shown at the item's right, a key the page also uses outside menus runs the same action here, and only
 // an item that waits for a further click or typing (mode) ends in "…".
 
+import { NO_LINK } from './links.mjs';
+
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Find', 'Fit', 'Center', 'Copy',
+export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Open', 'Find', 'Fit', 'Center', 'Copy',
   'Cut', 'Paste',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
@@ -20,6 +22,8 @@ export const GLOBAL_KEYS = {
   r: ['reverse-edge', 'rotate'],
   'shift+r': ['flip'],
   m: ['merge-into'],
+  l: ['open-link'],
+  'shift+l': ['open-link-tab'],
   s: ['add-subgraph'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
@@ -81,6 +85,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {'node' | 'subgraph' | null} [cut] what has been cut, if anything: the paste items move it
  * @property {string | null} [cutWhy] why the cut node or subgraph cannot be moved to the selection, or null
  * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
+ * @property {import('./links.mjs').LinkTarget} [link] where the selected node's link leads, or why it is not followed
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -101,6 +106,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  *   page answers before the menu does (copy and paste)
  * @property {(state: MenuState) => boolean} [applies] when it does not apply, the item is grayed
  * @property {(state: MenuState) => string | null} [why] what a grayed item says
+ * @property {(state: MenuState) => string | null} [title] what the item says on hover when it applies
  * @property {string} [submenu] the name of what opens beside it: the item's only action
  * @property {boolean} [mode] it waits for a further click or typing
  * @property {boolean} [view] it changes only the view (or nothing: Copy node), so it works while the code is being edited
@@ -115,6 +121,12 @@ export const INSERT_COLLAPSED = 'This edge is inside a collapsed subgraph. Expan
 const EXPAND_FIRST = 'This subgraph is collapsed. Expand it first (H) to add to it.';
 /** Why a subgraph with no id in the file cannot be fitted as the part: the address names it by its id. */
 export const PART_UNNAMED = "This subgraph has no id in the file, so a link can't name it. Give it an id in the file first.";
+/** Open link and Open link in new tab: grayed with the reason a node's link is not followed, its address the title. */
+const linkItem = {
+  applies: (/** @type {MenuState} */ s) => Boolean(s.link && !('why' in s.link)),
+  why: (/** @type {MenuState} */ s) => (s.link && 'why' in s.link ? s.link.why : NO_LINK),
+  title: (/** @type {MenuState} */ s) => (!s.link || 'why' in s.link ? null : 'url' in s.link ? s.link.url : s.link.path),
+};
 /** Fit to subgraph, in a subgraph's menu and a box's. */
 const fitPart = { action: 'fit-subgraph', label: 'Fit to subgraph', view: true, key: 'shift+f',
   applies: (/** @type {MenuState} */ s) => !s.partWhy, why: (/** @type {MenuState} */ s) => s.partWhy ?? null };
@@ -195,6 +207,8 @@ export const MENUS = {
     { action: 'connect-from', label: 'Connect from…', key: 'shift+c', mode: true },
     { action: 'merge-into', label: 'Merge into…', key: 'm', mode: true, applies: (s) => s.edgesOk, why: () => NO_EDGE_MATCH },
     { action: 'edit-node', label: 'Edit node' },
+    { action: 'open-link', label: 'Open link', key: 'l', separated: true, view: true, ...linkItem },
+    { action: 'open-link-tab', label: 'Open link in new tab', key: 'shift+l', view: true, ...linkItem },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
     ...pasteItems(),

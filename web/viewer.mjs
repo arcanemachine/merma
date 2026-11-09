@@ -359,19 +359,24 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     },
 
     /**
-     * A flowchart's subgraphs as Mermaid reads `text`, without drawing it: each with its members (nodes and nested
-     * subgraphs, by Mermaid's own rule of which block a node belongs to) and its view in the file. [] for another type,
-     * or a text Mermaid cannot read.
-     * @returns {Promise<import('./collapse.mjs').SubgraphInfo[]>}
+     * A flowchart as Mermaid reads `text`, without drawing it. `subs`: its subgraphs, each with its members (nodes and
+     * nested subgraphs, by Mermaid's own rule of which block a node belongs to) and its view in the file. `links`: each
+     * node's link (`click A href "…"`), as Mermaid's sanitizer leaves it. Both empty for another type, or a text
+     * Mermaid cannot read.
+     * @returns {Promise<{ subs: import('./collapse.mjs').SubgraphInfo[], links: Map<string, string> }>}
      */
-    async subgraphs(/** @type {string} */ text) {
+    async read(/** @type {string} */ text) {
       try {
         const { db } = await mermaid.mermaidAPI.getDiagramFromText(text);
-        return (db.getSubGraphs?.() ?? []).map((s) => ({
+        const subs = (db.getSubGraphs?.() ?? []).map((s) => (/** @type {import('./collapse.mjs').SubgraphInfo} */ ({
           id: s.id, title: s.title, members: [...s.nodes], view: s.metadata?.view === 'collapsed' ? 'collapsed' : 'expanded',
-        }));
+        })));
+        /** @type {Map<string, string>} */
+        const links = new Map();
+        for (const v of db.getVertices?.()?.values() ?? []) if (v.link) links.set(v.id, v.link);
+        return { subs, links };
       } catch {
-        return [];
+        return { subs: [], links: new Map() };
       }
     },
 

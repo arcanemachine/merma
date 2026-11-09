@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, PART_UNNAMED, SUBGRAPH_BARE, SUBGRAPH_ON_EDGE, VERBS, whyNot } from '../web/menu-items.mjs';
+import { NO_LINK } from '../web/links.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -145,9 +146,9 @@ test('every icon is the shared frame around at least one drawing', () => {
 });
 
 test('while the code is being edited only the view items apply, and the rest say why', () => {
-  const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true };
+  const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true, link: { url: 'https://example.com/', app: false } };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'open-link', 'open-link-tab', 'rotate']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -324,5 +325,25 @@ test('with a node or a subgraph cut, the paste items read Move … here, gray by
     assert.equal(label(bare, s), 'Move subgraph here without edges', menu);
     assert.equal(whyNot(bare, s), SUBGRAPH_BARE, menu);
     assert.equal(applies(bare, { ...s, cut: 'node' }), true, menu);
+  }
+});
+
+test('Open link (L) and Open link in new tab (Shift+L) in the node menu only: grayed with the link\'s reason, its address the title', () => {
+  for (const [action, key] of [['open-link', 'l'], ['open-link-tab', 'shift+l']]) {
+    const item = /** @type {import('../web/menu-items.mjs').MenuItem} */ (MENUS.node.find((i) => i.action === action));
+    assert.equal(item.key, key);
+    assert.deepEqual(GLOBAL_KEYS[key], [action]);
+    for (const menu of ['edge', 'subgraph', 'box', 'title', 'space']) assert.ok(!MENUS[menu].some((i) => i.action === action), menu);
+    const base = { edgesOk: true, selfLoop: false, nameWhy: null };
+    const web = { ...base, link: { url: 'https://example.com/', app: false } };
+    assert.equal(applies(item, web), true);
+    assert.equal(item.title?.(web), 'https://example.com/');
+    const file = { ...base, link: { path: '/d/other.mmd', part: 'pay' } };
+    assert.equal(applies(item, file), true);
+    assert.equal(item.title?.(file), '/d/other.mmd');
+    const none = { ...base, link: { why: NO_LINK } };
+    assert.equal(applies(item, none), false);
+    assert.equal(whyNot(item, none), NO_LINK);
+    assert.equal(item.title?.(none), null);
   }
 });
