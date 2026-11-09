@@ -317,7 +317,7 @@ const codePanel = createCodePanel({
   toggle: el('code-toggle'), diagram: el('diagram'), edit: el('code-edit'), save: el('code-save'),
   cancel: el('code-cancel'), status: el('code-status'), follow: /** @type {HTMLInputElement} */ (el('code-follow')),
   band: el('code-band'),
-}, file, {
+}, {
   snapshot: () => source.snapshot(),
   lock: () => editor?.lockForCode() ?? false,
   unlock: () => editor?.unlock(),
@@ -489,7 +489,7 @@ function showFile(/** @type {ReturnType<typeof createSource>} */ s, /** @type {s
   // Before the stage is cleared: the editor lets go of what is selected while it is still drawn.
   editor?.switchFile(s, f);
   viewer.clear();
-  codePanel.setFile(f);
+  codePanel.setFile();
   showHeader();
 }
 

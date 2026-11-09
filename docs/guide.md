@@ -46,7 +46,8 @@ them.
   (a version with a syntax error too). It docks left of the diagram on a wide window and below it on a tall one;
   **Dock** picks Left, Top or Bottom, and Default goes back. Drag the bar between the panel and the diagram to resize
   it, or Tab to the bar and use the arrows. **Close**, or **Code** again, closes it. Its dock and size are kept in the
-  browser for every file, and a reload keeps it open. By keyboard: `` ` `` goes to the panel,
+  browser for every file. A reload keeps it open, and so does opening another diagram by a link, or Back and Forward
+  to one. By keyboard: `` ` `` goes to the panel,
   opening it if it is closed, and back to the diagram, the panel staying open; on the panel, Enter or F2 edits (or goes
   back into a draft) and Escape goes back to the diagram, the panel staying open; Escape in the code, or on a control
   in the panel's bar, goes out to the panel, which Tab reaches too (just before the bar). Escape on the diagram closes the panel, once nothing is selected and no notice shows. Shift+`` ` `` closes it from anywhere at once, the selection staying (in the label box, find or a draft it types `~`); with a changed draft it asks first, as Escape does. The arrows on the panel scroll the

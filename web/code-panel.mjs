@@ -1,7 +1,7 @@
 // The code panel: the file's Mermaid code beside the diagram, read-only, following the file as the diagram does. It
 // docks left, top or bottom of the diagram in main's grid, with a handle to resize it. Where it docks and how big it
-// is are the person's, kept in localStorage for every file; whether it is open is the tab's, per file, in
-// sessionStorage, so the page's own reload on a new build keeps it open.
+// is are the person's, kept in localStorage for every file; whether it is open is the tab's, in sessionStorage, so
+// the page's own reload on a new build keeps it open, and opening another file in the page leaves it as it is.
 //
 // Edit makes the code editable, a draft, and locks the diagram (`hooks.lock`) until Save or Cancel, so the draft and
 // a pointing edit never race in this page. Someone else (an agent, an editor) can still change the file: the draft
@@ -41,7 +41,6 @@ function store(/** @type {() => Storage} */ get) {
  * @param {HTMLElement} els.diagram where Escape in the code sends focus
  * @param {HTMLInputElement} els.follow the Follow selection checkbox
  * @param {HTMLElement} els.band the band behind the selected item's lines
- * @param {string} file
  * @param {object} hooks
  * @param {() => { text: string | null, version: string | null }} hooks.snapshot the file as the page has it
  * @param {() => boolean} hooks.lock stop every other edit in the page; false when one is under way
@@ -49,11 +48,11 @@ function store(/** @type {() => Storage} */ get) {
  * @param {(text: string, base: { text: string, version: string }) => Promise<boolean>} hooks.save save over `base`;
  *   whether it saved (the lock ends then)
  */
-export function createCodePanel(els, file, hooks) {
+export function createCodePanel(els, hooks) {
   const { main, panel, code, dock: dockSelect, handle, close, toggle, diagram, edit, save, cancel, status, follow, band } = els;
   const local = store(() => localStorage);
   const session = store(() => sessionStorage);
-  let openKey = 'merma:code:' + file;
+  const openKey = 'merma:code';
   const dockKey = 'merma:code-dock';
   const sizeKey = (/** @type {'x' | 'y'} */ a) => 'merma:code-size-' + a;
 
@@ -441,15 +440,13 @@ export function createCodePanel(els, file, hooks) {
       refollow(false);
     },
     /**
-     * The page now shows file `next`: the panel opens or closes as this tab last had it for that file, and its code is
-     * empty until the file's text is shown. Never while editing: the page refuses a switch then.
+     * The page now shows another file: the panel stays open or closed, and its code is empty until the file's text is
+     * shown. Never while editing: the page refuses a switch then.
      */
-    setFile(/** @type {string} */ next) {
-      openKey = 'merma:code:' + next;
+    setFile() {
       shown = '';
       code.value = '';
       scroll = { top: 0, left: 0 };
-      setOpen(session.get(openKey) === '1');
     },
     /** The selection changed: `find` gives its lines in a text, or there is none (null). */
     follow(/** @type {((text: string) => { from: number, to: number } | null) | null} */ find) {
