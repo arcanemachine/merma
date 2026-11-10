@@ -19,7 +19,7 @@ import {
   nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs, hasClick,
 } from './patch/flowchart.mjs';
-import { linkTarget } from './links.mjs';
+import { linkTarget, linkTone } from './links.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
 import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
@@ -2337,6 +2337,13 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       for (const g of drawn('g.node')) {
         const id = nodeIdFromSvgId(g.id, renderId);
         if (id) g.dataset.pageNode = id;
+        // A node merma can follow a link from reads as a link (style.css), its blue chosen by its own fill: its first
+        // shape, the body of one drawn in parts (a cylinder's, a double circle's outer ring, a subroutine's box).
+        const link = id ? links.get(id) : undefined;
+        if (link && link !== 'about:blank') {
+          const shape = g.querySelector(':scope > :is(rect, path, polygon, circle, ellipse), :scope > g:not(.label) :is(rect, path, polygon, circle, ellipse)');
+          g.dataset.pageLink = linkTone(shape ? getComputedStyle(shape).fill : '');
+        }
       }
       // A subgraph whose id merma cannot read (`subgraph a-b [X]`) is left unselectable, as such a node's edges are.
       const known = new Set(subgraphs(text).map((s) => s.id));

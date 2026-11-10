@@ -24,8 +24,8 @@ them.
   back to the whole diagram. Each is a step in the browser's history, so Back goes to the view before. On a subgraph with no id in the file it is grayed: the address could not name it. A
   part hidden in a collapsed subgraph fits that subgraph's box; a part not in the file shows the whole diagram, with a
   notice, until it is back.
-- **Links between diagrams.** **Open link** (L) on a node with a link in the file (`click A href "payment.mmd"`)
-  follows it. A `.mmd` file opens in this page in place of this one, and Back comes back (Forward goes again). A path
+- **Links between diagrams.** A node with a link in the file (`click A href "payment.mmd"`) has its label underlined,
+  in blue unless the diagram colors the label itself. **Open link** (L) follows it. A `.mmd` file opens in this page in place of this one, and Back comes back (Forward goes again). A path
   is read from this file's folder. `payment.mmd?part=pay` opens the file fitted to its "pay" subgraph, as in the
   address, and `?part=pay` alone fits a subgraph of this file. A web address opens in a new tab. A `vscode://` link
   goes to VS Code, and the page stays as it is. **Open link in new tab** (Shift+L) opens a `.mmd` file in a new tab;

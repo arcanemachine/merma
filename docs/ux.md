@@ -334,6 +334,12 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   holds them. Shift+L opens a new tab without asking the server first: the browser allows a new tab only straight
   from the key or the click, and the new tab says itself if the file cannot be served. An app's link (`vscode://`)
   goes to the system, not to a new tab, which would be left blank.
+- A linked node looks like a link (the user: "we should have something"), by a stylesheet rule only, nothing drawn:
+  its label underlined, since WCAG asks a link to differ by more than color, and blue where the diagram gives the
+  label no color of its own, so the diagram's styling always wins. The blue is chosen by the node's own fill, light
+  or dark, each keeping 4.5:1. A callback (Mermaid's `clickable` too) gets no look: merma never runs it. A label the
+  diagram underlines itself looks the same (accepted with the user: rare, and L says which). A mark beside the label
+  (↗) was tried: after the text it was clipped on snug labels, and nothing can be added to SVG text labels.
 - Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Option does not stand in,
   as it does for the arrows, since Option+C and Option+V are no copy or paste). The page takes them only when it acts, on the diagram
   with no text selected: Ctrl+C with a node or a subgraph selected, Ctrl+V with something copied or cut. Otherwise the browser's own copy and

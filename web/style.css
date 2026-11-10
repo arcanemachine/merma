@@ -227,6 +227,14 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
 #stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: var(--select); text-decoration: underline 2px; }
+/* A node with a link (Open link) reads as one: underlined always, and blue for its fill (editor.mjs), unless the
+   diagram gives the label a color of its own, whose inline style wins over these rules. Each blue keeps 4.5:1 on
+   Mermaid's fills of its kind. */
+#stage g.node[data-page-link] .label :is(span, text) { text-decoration: underline; }
+#stage g.node[data-page-link="light"] .label span { color: #1d4ed8; }
+#stage g.node[data-page-link="light"] .label text { fill: #1d4ed8; }
+#stage g.node[data-page-link="dark"] .label span { color: #60a5fa; }
+#stage g.node[data-page-link="dark"] .label text { fill: #60a5fa; }
 /* In a pick (Connect to…, a move), what it will change: the node or subgraph dashed (the user)… */
 #stage g.node[data-page-source] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;

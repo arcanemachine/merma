@@ -12,6 +12,22 @@ export const NOT_MMD = 'merma opens only .mmd files from a link to a path.';
  */
 
 /**
+ * Which blue a link's label takes on a node filled `fill`, a computed CSS color (`rgb(…)`): 'dark' on a fill darker
+ * than the luminance where black and white text contrast equally (WCAG's relative luminance), else 'light'. No fill,
+ * or a transparent one, is 'light': the page behind it is white.
+ * @returns {'light' | 'dark'}
+ */
+export function linkTone(/** @type {string} */ fill) {
+  const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/.exec(fill);
+  if (!m || Number.parseFloat(m[4] ?? '1') === 0) return 'light';
+  const [r, g, b] = [m[1], m[2], m[3]].map((v) => {
+    const c = Number(v) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.179 ? 'dark' : 'light';
+}
+
+/**
  * Where node's link `link` (from Mermaid's db; undefined for none) leads, from diagram `file` (an absolute path).
  * `click` says whether the text has a `click` line for the node: with no link, it is a callback.
  * @returns {LinkTarget}

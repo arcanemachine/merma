@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { linkTarget, NO_LINK, NOT_MMD, SCRIPT_LINK } from '../web/links.mjs';
+import { linkTarget, linkTone, NO_LINK, NOT_MMD, SCRIPT_LINK } from '../web/links.mjs';
 
 const FILE = '/diagrams/flows/order.mmd';
 
@@ -33,4 +33,15 @@ test('no link is a callback when the node has a click line, and about:blank is a
   assert.deepEqual(linkTarget(undefined, false, FILE), { why: NO_LINK });
   assert.deepEqual(linkTarget(undefined, true, FILE), { why: SCRIPT_LINK });
   assert.deepEqual(linkTarget('about:blank', true, FILE), { why: SCRIPT_LINK });
+});
+
+test("a link's blue goes by the node's fill: dark on a dark fill, light on a light, missing or clear one", () => {
+  assert.equal(linkTone('rgb(31, 32, 32)'), 'dark');     // Mermaid's dark theme
+  assert.equal(linkTone('rgb(236, 236, 255)'), 'light'); // Mermaid's default theme
+  assert.equal(linkTone('rgb(255, 221, 221)'), 'light');
+  assert.equal(linkTone('rgb(90, 90, 90)'), 'dark');
+  assert.equal(linkTone('rgb(140, 140, 140)'), 'light');
+  assert.equal(linkTone('rgba(0, 0, 0, 0)'), 'light');
+  assert.equal(linkTone('none'), 'light');
+  assert.equal(linkTone(''), 'light');
 });
