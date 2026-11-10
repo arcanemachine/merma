@@ -426,11 +426,10 @@ can retrace your steps; steps across edges are passed over, never undone. An edg
 the arrow along it goes on to its end. Coming back onto an edge from a node, Left and Right step through that node's
 edges. A click, a find, O, I, an edit or Escape starts the trail afresh.
 
-**Ctrl+Arrows skip the edge** (Alt+Arrows also work; Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
+**Ctrl+Arrows skip the edge** (Option+Arrows on a Mac, where macOS keeps Ctrl+Arrows): to the
 box at the far end of the edge the plain arrow would select, else the next thing straight that way. A far end
 inside subgraphs you are not in lands on the outermost of their boxes, so Ctrl goes in a level a press. From an edge,
-Ctrl+Arrow goes to the end that way. With nothing selected, Alt+Arrows move the diagram as Ctrl+Arrows do, so Alt+Left and
-Alt+Right don't go back or forward.
+Ctrl+Arrow goes to the end that way. On Windows and Linux, Alt+Left and Alt+Right are the browser's Back and Forward.
 
 **O and I** go out of and into subgraphs: O selects the subgraph the selection is in; I, on a subgraph, selects the
 item you last left it by with O or an arrow, else its top-left one. A click, a find or an edit forgets that. O from a

@@ -1754,8 +1754,11 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       redo();
       return;
     }
-    // A key's name carries its modifiers: `ctrl+` for Ctrl or Alt (Option on a Mac; either on every system), then
-    // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive.
+    // A key's name carries its modifiers: `ctrl+` for Ctrl, or on a Mac Option too (macOS keeps Ctrl+Arrows), then
+    // `shift+` only where the key has a Shift entry of its own, so letters stay case-insensitive. Off a Mac, Alt is the
+    // browser's (Alt+Left and Alt+Right go back and forward). The system is Help's, as its key labels show.
+    const mac = document.documentElement.dataset.os === 'mac';
+    if (e.altKey && !mac) return;
     const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
     if (e.metaKey || !keys[name]) return;

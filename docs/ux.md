@@ -314,9 +314,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   layout; Shift+digit (the second ten shapes) is that key with Shift held, whatever it types. On AZERTY, where the
   number row types digits only with Shift, the key marked 1 picks shape 1 unshifted and shape 11 with Shift. `
   (the code panel) is likewise the key left of 1, or whichever key types it, and Shift+` likewise by `~` (that place reports another key on ISO
-  keyboards on a Mac); where it is a dead key, it waits for no accent. One exception fights the browser: Alt stands in
-  for Ctrl everywhere, since a Mac has Option only and one rule then holds on every system, so with nothing selected
-  Alt+Left and Alt+Right move the diagram rather than go back or forward.
+  keyboards on a Mac); where it is a dead key, it waits for no accent. Option stands in for Ctrl on a Mac only, where
+  macOS keeps Ctrl+Arrows; on Windows and Linux Alt is left to the browser, so Alt+Left and Alt+Right go back and
+  forward, through links between diagrams too (the user). Which system is Help's choice, the one its key labels show.
 - A part (Fit to subgraph, Shift+F) is a place, not a mode: the address holds it, so a link, a reload and an embed
   agree, and entering or leaving one is a history entry, so Back leaves it. F with nothing selected leaves it: one
   plain way back to the whole (the user), with no key of its own. Nothing is hidden or redrawn for it (the user picked
@@ -334,8 +334,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   holds them. Shift+L opens a new tab without asking the server first: the browser allows a new tab only straight
   from the key or the click, and the new tab says itself if the file cannot be served. An app's link (`vscode://`)
   goes to the system, not to a new tab, which would be left blank.
-- Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Alt does not stand in, as
-  everywhere else, since Alt+C and Alt+V are no copy or paste). The page takes them only when it acts, on the diagram
+- Copy and paste are the system's own keys, Ctrl+C and Ctrl+V (⌘ on a Mac, as undo is; Option does not stand in,
+  as it does for the arrows, since Option+C and Option+V are no copy or paste). The page takes them only when it acts, on the diagram
   with no text selected: Ctrl+C with a node or a subgraph selected, Ctrl+V with something copied or cut. Otherwise the browser's own copy and
   paste go on. Moving a node or a subgraph into or out of a subgraph is cut and paste, with no move items of its own
   (the user: V for a move reads as paste). Cut (Ctrl+X) is a pick spread over time: the node or subgraph is marked
