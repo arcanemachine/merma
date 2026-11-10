@@ -317,6 +317,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   keyboards on a Mac); where it is a dead key, it waits for no accent. Option stands in for Ctrl on a Mac only, where
   macOS keeps Ctrl+Arrows; on Windows and Linux Alt is left to the browser, so Alt+Left and Alt+Right go back and
   forward, through links between diagrams too (the user). Which system is Help's choice, the one its key labels show.
+- The selection is kept per file for the tab (sessionStorage, as the view is), so Back, Forward, a link and a reload
+  select again what was selected there, if it is still drawn, and say nothing: it is not the user's act. An edge is
+  kept by Mermaid's id for it, so after the file changes it may be gone, and then nothing is selected.
 - A part (Fit to subgraph, Shift+F) is a place, not a mode: the address holds it, so a link, a reload and an embed
   agree, and entering or leaving one is a history entry, so Back leaves it. F with nothing selected leaves it: one
   plain way back to the whole (the user), with no key of its own. Nothing is hidden or redrawn for it (the user picked

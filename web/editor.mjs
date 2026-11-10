@@ -80,8 +80,25 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   let locked = false;
   let selectable = false;
   let editable = false;
+  // The selection is kept for this tab per file in sessionStorage, so Back, Forward or a reload to a file selects
+  // again what was selected there, if it is still drawn (rendered()).
+  const selectionKey = () => 'merma:selection:' + file;
+  /** The selection kept for the file shown, or null. */
+  function keptSelection() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem(selectionKey()) ?? 'null');
+      return s && typeof s.kind === 'string' && typeof s.id === 'string' ? /** @type {Item} */ ({ kind: s.kind, id: s.id }) : null;
+    } catch { return null; }
+  }
+  function keepSelection(/** @type {Item | null} */ sel) {
+    try {
+      if (sel) sessionStorage.setItem(selectionKey(), JSON.stringify({ kind: sel.kind, id: sel.id }));
+      else sessionStorage.removeItem(selectionKey());
+    } catch { /* storage unavailable: the selection just is not kept */ }
+  }
   /** @type {Item | null} */
-  let selected = null;
+  let selected = keptSelection();
+  let restoring = Boolean(selected);   // the first drawing selects the kept item, any kind, if it is drawn
   /** @type {string} the text on screen, which edge ids refer to */
   let shownText = '';
   /** @type {{ subs: import('./collapse.mjs').SubgraphInfo[], overrides: import('./collapse.mjs').Overrides }} */
@@ -256,7 +273,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     editable = drawnEditable && !locked;
     els.stage.classList.toggle('selectable', selectable);
     els.diagram.classList.toggle('locked', locked);
-    if (!selectable) { closeFind(null); deselect(); }
+    if (!selectable) { closeFind(null); deselect({ keep: true }); }
     if (!editable) closeLabelBox();
     historyChanged();
   }
@@ -783,6 +800,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     if (!again && !moving) moves.forget();
     for (const [kind, m] of Object.entries(menus)) if (!(menu && again && kind === sel.kind)) m.close();
     selected = sel;
+    keepSelection(sel);
     ui.selected(sel);
     for (const e of elsOf(sel)) mark(e, 'data-page-selected');
     if (sel.kind === 'edge') markEnd();
@@ -930,9 +948,11 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     return !target.closest('g.edgeLabel') && along(x, y) > split ? 'end' : 'start';
   }
 
-  function deselect() {
+  /** Let go of the selection; with `keep`, as the page does when nothing can be selected, the kept one stays kept. */
+  function deselect({ keep = false } = {}) {
     unmark();
     selected = null;
+    if (!keep) keepSelection(null);
     ui.selected(null);
     picking = null;
     closeMenus();
@@ -2382,7 +2402,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
         return;
       }
       const kept = sel && elsOf(sel).length
-        && (sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
+        && (restoring || sel.kind === 'node' || !changed || (sel.kind === 'subgraph' && !drawnOnly(sel.id)));
+      restoring = false;
       if (kept) { select(sel, { keepMode: sel.kind !== 'edge', menu }); return; }
       // A node or subgraph now hidden in a collapsed one: the box it is drawn as, with the trail started afresh.
       const box = sel && (sel.kind === 'node' || sel.kind === 'subgraph') ? drawnEnd(sel.id) : null;
@@ -2400,10 +2421,12 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
      */
     switchFile(/** @type {typeof source} */ nextSource, /** @type {string} */ next) {
       source = nextSource;
-      file = next;
       links = new Map();
       drawnEditable = false;
-      setEditable();   // closes find and the menus, and lets go of the selection
+      setEditable();   // closes find and the menus, and lets go of the selection, which stays kept for that file
+      file = next;
+      selected = keptSelection();
+      restoring = Boolean(selected);
       clearTimeout(blinkTimer);
       dropCut();
       cleared = null;

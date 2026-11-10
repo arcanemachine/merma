@@ -75,7 +75,9 @@ them.
 
 In a flowchart, click a node, an edge's line or label, a subgraph (anywhere on its box that is not a node or an
 edge), or the diagram's title, to select it: it is outlined in blue (the title is underlined). After an edit, what it acted on stays selected (a new node or edge
-included), so you can go on from it: N adds the next node, Enter edits it, . (period) opens its menu. What a delete, an undo
+included), so you can go on from it: N adds the next node, Enter edits it, . (period) opens its menu. Each file
+keeps its selection in this tab: Back, Forward, a link or a reload selects again what was selected there, if it is
+still in the diagram. What a delete, an undo
 and a redo select is under Undo and redo, below. Click empty space to deselect. Right-click it (or long-press on a
 touch screen) for its menu. Other diagram types are view-only.
 
