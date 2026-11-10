@@ -128,7 +128,8 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   Shift+F fits the selection, which F only centers; Shift+D deletes a subgraph with its contents, which D takes alone
   (on a node or an edge, which hold nothing more, Shift+D does what D does, with no item of its own). A Shift key
   exists only beside its plain letter in the same menu, shown as ⇧ and the letter, as the shape picker shows Shift with a digit, and is read from the Shift key held,
-  never from the letter's case, so Caps Lock does not count.
+  never from the letter's case, so Caps Lock does not count. Ctrl+Shift+L (Show link, the user's pick) sits beside L,
+  its letter, as Ctrl+Shift+V does beside Ctrl+V; on a Mac ⌘⇧L works too, since the menus show Ctrl as ⌘ there.
 - In a pick, solid is where the keys are and marked is what will change (the user). The candidate, which the arrows
   move, Enter picks and which is selected after, is drawn as the selection is. What the pick will change is marked
   instead: the node or subgraph it starts from outlined dashed, and each edge that will move or go glows, a wide pale
@@ -337,6 +338,9 @@ the page, each with its reason. What does not: what each control does (`docs/gui
   holds them. Shift+L opens a new tab without asking the server first: the browser allows a new tab only straight
   from the key or the click, and the new tab says itself if the file cannot be served. An app's link (`vscode://`)
   goes to the system, not to a new tab, which would be left blank.
+- Show link puts the address in the info notice, as the file writes it (the user: a notice's text can be selected
+  and copied, a hover tip's cannot), and selecting a linked node says it aloud ("…selected, links to …"), so the
+  keyboard and a screen reader learn what the mouse sees. No hover tip on the node: the user preferred the notice.
 - A linked node looks like a link (the user: "we should have something"), by a stylesheet rule only, nothing drawn:
   its label underlined, since WCAG asks a link to differ by more than color, and blue where the diagram gives the
   label no color of its own, so the diagram's styling always wins. The blue is chosen by the node's own fill, light

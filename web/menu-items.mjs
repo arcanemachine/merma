@@ -7,7 +7,7 @@ import { NO_LINK } from './links.mjs';
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
-export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Open', 'Find', 'Fit', 'Center', 'Copy',
+export const VERBS = ['Add', 'Insert', 'Edit', 'Remove', 'Delete', 'Connect', 'Reverse', 'Reassign', 'Move', 'Merge', 'Open', 'Show', 'Find', 'Fit', 'Center', 'Copy',
   'Cut', 'Paste',
   'Download', 'Collapse', 'Expand', 'Rotate', 'Flip'];
 
@@ -24,6 +24,7 @@ export const GLOBAL_KEYS = {
   m: ['merge-into'],
   l: ['open-link'],
   'shift+l': ['open-link-tab'],
+  'ctrl+shift+l': ['show-link'],
   s: ['add-subgraph'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
@@ -86,6 +87,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {string | null} [cutWhy] why the cut node or subgraph cannot be moved to the selection, or null
  * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
  * @property {import('./links.mjs').LinkTarget} [link] where the selected node's link leads, or why it is not followed
+ * @property {string | null} [linkText] the selected node's link as Mermaid read it, or null for none
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -126,6 +128,11 @@ const linkItem = {
   applies: (/** @type {MenuState} */ s) => Boolean(s.link && !('why' in s.link)),
   why: (/** @type {MenuState} */ s) => (s.link && 'why' in s.link ? s.link.why : NO_LINK),
   title: (/** @type {MenuState} */ s) => (!s.link || 'why' in s.link ? null : 'url' in s.link ? s.link.url : s.link.path),
+};
+/** Show link: any address, followed or not (`mailto:` too); grayed as Open link is with none, or one that runs a script. */
+const showLinkItem = {
+  applies: (/** @type {MenuState} */ s) => Boolean(s.linkText) && s.linkText !== 'about:blank',
+  why: (/** @type {MenuState} */ s) => (s.link && 'why' in s.link ? s.link.why : NO_LINK),
 };
 /** Fit to subgraph, in a subgraph's menu and a box's. */
 const fitPart = { action: 'fit-subgraph', label: 'Fit to subgraph', view: true, key: 'shift+f',
@@ -209,6 +216,7 @@ export const MENUS = {
     { action: 'edit-node', label: 'Edit node' },
     { action: 'open-link', label: 'Open link', key: 'l', separated: true, view: true, ...linkItem },
     { action: 'open-link-tab', label: 'Open link in new tab', key: 'shift+l', view: true, ...linkItem },
+    { action: 'show-link', label: 'Show link', key: 'ctrl+shift+l', view: true, ...showLinkItem },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
     ...pasteItems(),

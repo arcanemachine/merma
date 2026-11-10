@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { applies, EXPORT_MENU, GLOBAL_KEYS, keyAria, keyLabel, LOCKED, MENUS, NOTHING_COPIED, PART_UNNAMED, SUBGRAPH_BARE, SUBGRAPH_ON_EDGE, VERBS, whyNot } from '../web/menu-items.mjs';
-import { NO_LINK } from '../web/links.mjs';
+import { NO_LINK, SCRIPT_LINK } from '../web/links.mjs';
 import { ARROW_TYPES } from '../web/arrow-types.mjs';
 import { ARROWS, arrowType, BRACKETS } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -30,7 +30,8 @@ test('keys are unique within a menu, each one key, Shift only with a letter the 
     assert.equal(new Set(keys).size, keys.length, `${menu}: a key is used twice`);
     for (const k of keys) {
       assert.match(k, /^(ctrl\+)?(shift\+)?[a-z/]$/);
-      if (k.includes('shift+')) assert.ok(keys.includes(k.replace('shift+', '')), `${menu}: ${k} with no ${k.replace('shift+', '')}`);
+      // Ctrl+Shift+L (Show link) sits beside L, as Ctrl+Shift+V does beside Ctrl+V.
+      if (k.includes('shift+')) assert.ok(keys.includes(k.replace('shift+', '')) || keys.includes(k.replace('ctrl+shift+', '')), `${menu}: ${k} with no ${k.replace('shift+', '')}`);
     }
   }
 });
@@ -146,9 +147,9 @@ test('every icon is the shared frame around at least one drawing', () => {
 });
 
 test('while the code is being edited only the view items apply, and the rest say why', () => {
-  const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true, link: { url: 'https://example.com/', app: false } };
+  const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true, link: { url: 'https://example.com/', app: false }, linkText: 'https://example.com/' };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'open-link', 'open-link-tab', 'rotate']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'open-link', 'open-link-tab', 'rotate', 'show-link']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
@@ -346,4 +347,17 @@ test('Open link (L) and Open link in new tab (Shift+L) in the node menu only: gr
     assert.equal(whyNot(item, none), NO_LINK);
     assert.equal(item.title?.(none), null);
   }
+});
+
+test('Show link (Ctrl+Shift+L) in the node menu: any address, grayed as Open link is with none or a script', () => {
+  const item = /** @type {import('../web/menu-items.mjs').MenuItem} */ (MENUS.node.find((i) => i.action === 'show-link'));
+  assert.equal(item.key, 'ctrl+shift+l');
+  assert.deepEqual(GLOBAL_KEYS['ctrl+shift+l'], ['show-link']);
+  const base = { edgesOk: true, selfLoop: false, nameWhy: null };
+  assert.equal(applies(item, { ...base, linkText: 'other.mmd' }), true);
+  assert.equal(applies(item, { ...base, linkText: 'mailto:a@example.com', link: { why: 'merma does not open mailto: links.' } }), true);
+  assert.equal(applies(item, { ...base, linkText: 'about:blank', link: { why: SCRIPT_LINK } }), false);
+  assert.equal(whyNot(item, { ...base, linkText: 'about:blank', link: { why: SCRIPT_LINK } }), SCRIPT_LINK);
+  assert.equal(applies(item, { ...base, linkText: null }), false);
+  assert.equal(whyNot(item, { ...base, linkText: null }), NO_LINK);
 });

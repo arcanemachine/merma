@@ -567,6 +567,10 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     'merge-into': () => startMerge(),
     'open-link': () => openLink(false),
     'open-link-tab': () => openLink(true),
+    'show-link': () => {
+      const link = links.get(selection().id);
+      if (link) ui.notice(`This node links to: ${link}`, 'info');
+    },
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -680,6 +684,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       cutWhy: cutWhy(),
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
       link: selected?.kind === 'node' ? linkOf(selected.id) : undefined,
+      linkText: selected?.kind === 'node' ? links.get(selected.id) ?? null : null,
     };
   }
 
@@ -1038,7 +1043,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     if (item) {
       select(item);
       if (!Number.isNaN(x)) countFromClick(target, x, y);
-      ui.announce(`${named(item)} selected`);
+      ui.announce(selectedSaid(item));
     } else {
       const had = Boolean(selected);
       deselect(); cleared = null; clearedCursor = null;
@@ -1346,6 +1351,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     // L follows a node's link; Shift+L in a new tab.
     l: () => itemKey('open-link'),
     'shift+l': () => itemKey('open-link-tab'),
+    'ctrl+shift+l': () => itemKey('show-link'),
     // . opens the selection's menu, or with nothing selected the empty-space menu, as the menu key and Shift+F10 do.
     '.': () => {
       if (picking) return false;
@@ -1511,13 +1517,18 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     const top = Math.min(...rects.map((r) => r.top)), bottom = Math.max(...rects.map((r) => r.bottom));
     viewer.reveal(new DOMRect(left, top, right - left, bottom - top));
   }
+  /** What a selection says aloud: the item, and where a node links, so the keyboard hears what the mouse sees. */
+  function selectedSaid(/** @type {Item} */ item) {
+    const link = item.kind === 'node' ? links.get(item.id) : undefined;
+    return `${named(item)} selected${link && link !== 'about:blank' ? `, links to ${link}` : ''}`;
+  }
   /**
    * Select from the keyboard: said aloud, since nothing else tells a screen reader, and brought into view; `moving`,
    * by an arrow, O or I, which keep the trail and I's place inside.
    */
   function selectByKey(/** @type {Item} */ item, /** @type {string | undefined} */ said = undefined, moving = false) {
     select(item, { moving });
-    ui.announce(`${said ? `${said}; ` : ''}${named(item)} selected`);
+    ui.announce(`${said ? `${said}; ` : ''}${selectedSaid(item)}`);
     reveal(item);
   }
 
@@ -1656,7 +1667,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       moves.forgetCandidate();
       if (to && elsOf(to).length) markCandidate(to, { quiet: !pick });
     // No reveal for a pick: Enter has centered one off screen, and one on screen stays put (an edge's line may not be).
-    } else if (pick) { select(pick); ui.announce(`${named(pick)} selected`); } else if (was.before && elsOf(was.before).length) select(was.before);
+    } else if (pick) { select(pick); ui.announce(selectedSaid(pick)); } else if (was.before && elsOf(was.before).length) select(was.before);
     if (findBox === document.activeElement) els.diagram.focus();
   }
   findBox.addEventListener('input', () => { if (finding) matchTyped(); });
@@ -1779,9 +1790,12 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     // browser's (Alt+Left and Alt+Right go back and forward). The system is Help's, as its key labels show.
     const mac = document.documentElement.dataset.os === 'mac';
     if (e.altKey && !mac) return;
-    const mod = e.ctrlKey || e.altKey ? 'ctrl+' : '';
+    // A Mac's menus show Ctrl+Shift+L as ⌘⇧L (keyLabel), so ⌘ works for it as it does for copy and paste.
+    const meta = mac && e.metaKey && e.shiftKey && !e.ctrlKey && !e.altKey && key === 'l';
+    if (e.metaKey && !meta) return;
+    const mod = e.ctrlKey || e.altKey || meta ? 'ctrl+' : '';
     const name = e.shiftKey && keys[`${mod}shift+${key}`] ? `${mod}shift+${key}` : mod + key;
-    if (e.metaKey || !keys[name]) return;
+    if (!keys[name]) return;
     // A diagram that cannot be selected (not a flowchart) takes only the view keys, silently.
     if (!selectable && !VIEW_KEYS.includes(name)) return;
     if (name !== 'escape') clearRefusal();   // Escape's own steps take it first
