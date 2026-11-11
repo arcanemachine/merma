@@ -1,9 +1,9 @@
 html, body { height: 100%; }
 /* The color words (GLOSSARY): each kind has a background and a text color that reads on it, as a pair, so a darker
    background brings a lighter text with it. Notices are info, warning or error; success is the toasts'. */
-:root {
-  /* The page's own parts and its controls (header, footer, code panel, menus, Help, the find bar), named by what each
-     color is for. */
+:root, #find {
+  /* The page's own parts and its controls (header, footer, code panel, menus, Help), named by what each color is for.
+     Each has a dark value below. The find bar keeps these light ones: it is amber, as find's marks are. */
   --page-bg: #fff; --text: #222;
   /* Secondary text: soft for headings and key names, muted for hints, paths and key columns. */
   --text-soft: #444; --text-muted: #57606a;
@@ -17,6 +17,24 @@ html, body { height: 100%; }
   --shadow: rgba(0, 0, 0, 0.15); --toast-bg: rgba(255, 255, 255, 0.9);
   /* The read-only code; Follow selection's band behind the code's text. */
   --muted-bg: #f6f8fa; --band-bg: #b6e3ff;
+  color-scheme: light;
+}
+/* Dark mode: the system's look, or the one chosen in this browser (index.html, main.mjs set data-theme). */
+:root[data-theme="dark"] {
+  --page-bg: #0d1117; --text: #e6edf3;
+  --text-soft: #c9d1d9; --text-muted: #9198a1;
+  --border: #30363d; --divider: #21262d; --frame-border: #3d444d;
+  --control-border: #6e7681; --control-bg: #21262d; --control-hover: #30363d;
+  --field-bg: #151b23; --field-hover: #21262d;
+  --menu-focus: #1a3050; --pressed: #182a45; --disabled: #6e7681;
+  --focus: #4493f8; --on-focus: #0d1117;
+  --shadow: rgba(0, 0, 0, 0.6); --toast-bg: rgba(13, 17, 23, 0.9);
+  /* The toast's success text, on the dark page rather than its own pair. */
+  --success-fg: #3fb950;
+  --muted-bg: #212830; --band-bg: #1f3a5f;
+  color-scheme: dark;
+}
+:root {
   /* What stands in for the drawing keeps the file's Mermaid look, which merma never changes: the canvas, the label box
      laid over a label, the marks on the drawing, and the notices with their own pairs. These have no dark values. */
   --canvas: #fff; --canvas-text: #222;
@@ -319,6 +337,11 @@ main:has(#find:not([hidden])) #notice { display: none; }
 .menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid var(--divider); }
 /* An item that does not apply now: grayed, still focusable, its reason in its title. */
 .menu button[aria-disabled="true"] { color: var(--disabled); cursor: default; }
+/* A list of choices (Page theme ▸): the chosen one checked, in a column of its own. */
+.choices { display: flex; flex-direction: column; }
+.menu button[role="menuitemradio"] { gap: 8px; }
+.menu button[role="menuitemradio"] .check { width: 1em; margin: 0; }
+.menu button[role="menuitemradio"]:not([aria-checked="true"]) .check { visibility: hidden; }
 .menu button[aria-disabled="true"] :is(.key, .more) { color: inherit; }
 /* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
 .picker { padding: 2px; }

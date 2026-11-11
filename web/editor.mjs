@@ -10,7 +10,7 @@ import { drawnAs, drawnEdges } from './collapse.mjs';
 import { turnable } from './turn.mjs';
 import { createHistory } from './history.mjs';
 import { find, firstShown, countText } from './find.mjs';
-import { createMenu } from './menu.mjs';
+import { createChoices, createMenu } from './menu.mjs';
 import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, NO_SUBGRAPH_MATCH, PART_UNNAMED, whyNot } from './menu-items.mjs';
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
@@ -22,6 +22,7 @@ import {
 import { linkEdit, linkTarget, linkTone } from './links.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
 import { createPicker } from './picker.mjs';
+import { THEMES } from './theme.mjs';
 import { place } from './place.mjs';
 import { NODE_SHAPES } from './shapes.mjs';
 
@@ -69,7 +70,7 @@ const END_RUN = 3;
  * @param {(text: string) => Promise<unknown>} deps.parse throws when the text is not valid Mermaid
  * @param {import('./limits.mjs').Limits} deps.limits Mermaid's size limits as merma was started with them
  * @param {(text: string) => Promise<void>} deps.display show saved text as the page shows any new version
- * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void, openLink(to: { path: string, part: string | null } | { url: string, app: boolean }, tab: boolean): void }} deps.ui
+ * @param {{ notice(message: string, kind: 'info'|'warning'|'error'): void, hideNotice(): boolean, mode(message: string | null): void, escape(): boolean, setView(id: string, view: 'collapsed' | 'expanded'): Promise<void>, turn(which: 'rotate' | 'flip', id?: string | null): Promise<boolean>, turned(id?: string | null): { rotate: boolean, flip: boolean }, selected(item: Item | null): void, announce(message: string): void, history(can: { undo: boolean, redo: boolean }): void, copied(text: string): void, showPart(id: string | null): void, openLink(to: { path: string, part: string | null } | { url: string, app: boolean }, tab: boolean): void, theme(): string, setTheme(choice: string): void }} deps.ui
  *   `history`: whether there is anything to undo or redo, told whenever that may have changed
  * @param {Record<'stage'|'diagram'|'labelBox'|'find'|'findBox'|'findCount'|'findPrev'|'findNext'|'findCancel'|'findToggle', HTMLElement>} deps.els
  */
@@ -628,6 +629,15 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   for (const a of actions) if (!handlers[a]) throw new Error(`No handler for the menu action ${a}`);
   for (const a of Object.keys(handlers)) if (!actions.has(a)) throw new Error(`No menu item runs ${a}`);
 
+  const themeChoices = createChoices({
+    title: 'Page theme',
+    entries: THEMES,
+    onPick: (choice) => {
+      ui.setTheme(choice);
+      closeMenus();
+      ui.announce(`Page theme: ${THEMES.find((t) => t.key === choice)?.name}`);
+    },
+  });
   const arrowPicker = createPicker({
     title: 'Arrow type',
     entries: ARROW_TYPES,
@@ -653,6 +663,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     returnFocus: els.diagram,
     submenus: {
       'arrow-types': arrowPicker,
+      'page-theme': themeChoices,
     },
     onRun: (/** @type {string} */ action) => handlers[action](),
     onRefuse: (/** @type {string} */ why) => { refused = true; refuse(why); },
@@ -989,6 +1000,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   function openSpaceMenu(/** @type {number} */ x, /** @type {number} */ y) {
     deselect();
     spaceAt = viewer.toStage(x, y);
+    themeChoices.current(ui.theme());
     menus.space.open({ left: x, top: y, right: x, bottom: y }, menuState(), { gap: 0 });
   }
 

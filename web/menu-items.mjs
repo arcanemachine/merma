@@ -115,6 +115,7 @@ export const whyNot = (/** @type {MenuItem} */ item, /** @type {MenuState} */ st
  * @property {boolean} [mode] it waits for a further click or typing
  * @property {boolean} [view] it changes only the view (or nothing: Copy node), so it works while the code is being edited
  * @property {boolean} [separated] set apart from the items above it
+ * @property {boolean} [setting] a page setting: named by its noun, not a verb, and with no key (docs/ux.md)
  * @property {(state: MenuState) => boolean} [back] when true, the item reads `labelBack`: a toggle already on
  * @property {string | ((state: MenuState) => string)} [labelBack]
  */
@@ -284,6 +285,7 @@ export const MENUS = {
     { action: 'find', label: 'Find…', key: '/', mode: true, separated: true, view: true },
     { action: 'fit-view', label: 'Fit to window', key: 'f', view: true },
     ...turnItems(),
+    { action: 'page-theme', label: 'Page theme', submenu: 'page-theme', view: true, separated: true, setting: true },
   ],
 };
 

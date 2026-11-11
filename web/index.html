@@ -7,6 +7,16 @@
   <meta name="merma-max-edges" content="{{MERMA_MAX_EDGES}}">
   <meta name="merma-max-text" content="{{MERMA_MAX_TEXT}}">
   <title>merma</title>
+  <script>
+    // The look, set before the page paints: the one chosen in this browser, else the system's (web/theme.mjs holds
+    // the rule and the key; main.mjs keeps it current).
+    {
+      let chosen = null;
+      try { chosen = localStorage.getItem('merma:theme'); } catch { /* storage unavailable: the system's look */ }
+      document.documentElement.dataset.theme = chosen === 'light' || chosen === 'dark' ? chosen
+        : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+  </script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>

@@ -10,6 +10,7 @@ import { drawnAs, prune, setView, viewText } from './collapse.mjs';
 import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
+import { shownTheme, themeChoice, THEME_KEY } from './theme.mjs';
 import { limitSentence, readLimits } from './limits.mjs';
 import { hide as hideTop, mode as modeNotice, NONE, show as showNotice } from './notices.mjs';
 
@@ -241,6 +242,17 @@ const ui = {
     keepTurn();
     await display(text);
     return id === null ? turn[which] : Boolean(turn.subs.find(([k]) => k === id)?.[1][which]);
+  },
+  /** The page theme chosen: 'system', 'light' or 'dark'. */
+  theme() {
+    return themeChoice(chosenTheme());
+  },
+  /** Choose the page theme, kept in this browser; 'system' keeps none, following the system's setting. */
+  setTheme(/** @type {string} */ choice) {
+    try {
+      if (choice === 'light' || choice === 'dark') localStorage.setItem(THEME_KEY, choice); else localStorage.removeItem(THEME_KEY);
+    } catch { /* not remembered */ }
+    showTheme();
   },
   /** How the page turns the diagram, or subgraph `id` on its own, for the menus. */
   turned(/** @type {string | null} */ id = null) {
@@ -528,6 +540,15 @@ for (const id of ['path', 'host']) {
     toast('Copied!');
   });
 }
+
+// The page theme: the system's, followed as it changes, unless one is chosen; a choice made in another tab shows here too.
+const systemDark = matchMedia('(prefers-color-scheme: dark)');
+function chosenTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+const showTheme = () => { document.documentElement.dataset.theme = shownTheme(chosenTheme(), systemDark.matches); };
+systemDark.addEventListener('change', showTheme);
+window.addEventListener('storage', (e) => { if (e.key === THEME_KEY || e.key === null) showTheme(); });
 
 // Help shows the keys of one system, Windows and Linux or macOS: the browser's own at first, then the one last chosen
 // in this browser (localStorage: the browser's, never the file's).

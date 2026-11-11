@@ -17,7 +17,7 @@ import { place, OPPOSITE } from './place.mjs';
  * @param {HTMLElement} options.parent where the menu lives in the DOM (events from it are the overlay's, not the diagram's)
  * @param {() => DOMRect} options.bounds the area it must stay inside
  * @param {HTMLElement} options.returnFocus what gets focus back when the menu closes with focus in it
- * @param {Record<string, { el: HTMLElement, focus(): void }>} [options.submenus] by an item's `submenu`
+ * @param {Record<string, { el: HTMLElement, focus(): void, list?: boolean }>} [options.submenus] by an item's `submenu`
  * @param {(action: string) => void} options.onRun
  * @param {(why: string) => void} options.onRefuse an item that does not apply was chosen
  * @param {() => void} [options.onClose] it closed, by whatever means
@@ -198,6 +198,8 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
   sub.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'Escape' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
+    // A list of choices goes back to its item by Left, as menus do; a picker's Left moves within its row.
+    else if (e.key === 'ArrowLeft' && openSub && submenus[/** @type {string} */ (openSub.submenu)].list) { e.preventDefault(); closeSub(); }
     e.stopPropagation();
   });
 
@@ -226,6 +228,47 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     isOpen,
     /** Whether an element is part of this menu or its submenu. */
     contains: (/** @type {Node} */ node) => el.contains(node) || sub.contains(node),
+  };
+}
+
+/**
+ * A submenu of choices, one checked: a list of radio items, picked by a click, Enter or Space; Up and Down move round
+ * it. `current(key)` checks one.
+ * @param {{ title: string, entries: { key: string, name: string }[], onPick(key: string): void }} options
+ */
+export function createChoices({ title, entries, onPick }) {
+  const el = document.createElement('div');
+  el.className = 'choices';
+  el.setAttribute('role', 'menu');
+  el.setAttribute('aria-label', title);
+  const buttons = entries.map((entry) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'menuitemradio');
+    b.dataset.choice = entry.key;
+    const mark = Object.assign(document.createElement('span'), { className: 'check', textContent: '✓' });
+    mark.setAttribute('aria-hidden', 'true');
+    b.append(mark, Object.assign(document.createElement('span'), { textContent: entry.name }));
+    b.addEventListener('pointerenter', () => b.focus());
+    b.addEventListener('click', () => onPick(entry.key));
+    el.append(b);
+    return b;
+  });
+  el.addEventListener('keydown', (e) => {
+    const at = buttons.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      buttons[(at + (e.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus();
+    }
+  });
+  return {
+    el,
+    list: true,
+    /** Focus the checked choice, else the first. */
+    focus() { (buttons.find((b) => b.getAttribute('aria-checked') === 'true') ?? buttons[0]).focus(); },
+    current(/** @type {string} */ key) {
+      for (const b of buttons) b.setAttribute('aria-checked', String(b.dataset.choice === key));
+    },
   };
 }
 

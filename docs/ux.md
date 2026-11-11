@@ -49,6 +49,12 @@ differences are kept few. Each one is listed here:
   `useMaxWidth` is off).
 - The diagram is drawn on a white canvas, whatever the page's look or the file's theme.
 
+The page theme follows from it: dark darkens only the page's own parts (the header, the footer, the menus, Help, the
+code panel). What stands in for the drawing keeps its light colors, since it sits on the canvas: the label box, the
+marks, the notices, and the find bar, amber as find's marks are. System, the default, follows the system's setting;
+Light and Dark override it (the user: auto alone "will eventually annoy me"), kept by the browser for every tab.
+"Page theme", not "Theme": Mermaid's theme is the diagram's, which this never changes.
+
 ## Words
 
 - Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit label").
@@ -88,6 +94,7 @@ differences are kept few. Each one is listed here:
 - An ellipsis (…) means "then you do something" (click a node, type), nothing else. ▸ opens a submenu. ▴ on
   a button opens a menu above it (Export ▴): the footer's other buttons act at once.
 - A submenu or picker is titled with the noun alone ("Shape"); the verb is on the item that opens it.
+- A setting of the page's own, not an action, is named by its noun and has no key (the user): Page theme ▸.
 
 ## Gestures and keys
 

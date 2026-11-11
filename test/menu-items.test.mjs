@@ -16,8 +16,8 @@ const ALL_MENUS = { ...MENUS, export: EXPORT_MENU };
 const items = Object.entries(ALL_MENUS).flatMap(([menu, list]) => list.map((item) => ({ menu, item })));
 
 test('every menu label starts with one of the verbs, in sentence case', () => {
-  for (const { item: { label } } of items) {
-    assert.ok(VERBS.includes(label.split(' ')[0].replace(/…$/, '')), `${label}: not a listed verb`);
+  for (const { item: { label, setting } } of items) {
+    assert.ok(setting || VERBS.includes(label.split(' ')[0].replace(/…$/, '')), `${label}: not a listed verb`);
     // An acronym (SVG) and a name (Mermaid) keep their capitals.
     assert.ok(label.split(' ').slice(1).every((w) => w === w.toLowerCase() || /^[A-Z]{2,}$/.test(w) || w === 'Mermaid'),
       `${label}: not sentence case`);
@@ -56,8 +56,12 @@ test('Paste node is grayed until a node is copied, then where the menu would add
   assert.equal(whyNot(paste('edge'), { ...copied, insertWhy: 'collapsed' }), 'collapsed');
 });
 
-test('an item with no key is one that Enter runs outside menus, so a quicker key does its job', () => {
-  for (const { item } of items) if (item.key === undefined) assert.ok(GLOBAL_KEYS.enter.includes(item.action), item.action);
+test('an item with no key is one that Enter runs outside menus, so a quicker key does its job, or a setting', () => {
+  for (const { item } of items) if (item.key === undefined) assert.ok(GLOBAL_KEYS.enter.includes(item.action) || item.setting, item.action);
+});
+
+test('a setting has no key (the user), and only a setting has a label that is not a verb', () => {
+  for (const { item } of items) if (item.setting) assert.equal(item.key, undefined, item.action);
 });
 
 // The letter rule is about the selected item's menu; Export's menu, opened from the footer, is not one.
@@ -149,7 +153,7 @@ test('every icon is the shared frame around at least one drawing', () => {
 test('while the code is being edited only the view items apply, and the rest say why', () => {
   const locked = { edgesOk: true, selfLoop: false, nameWhy: null, locked: true, link: { url: 'https://example.com/', app: false }, linkText: 'https://example.com/' };
   const live = Object.values(MENUS).flat().filter((item) => applies(item, locked)).map((item) => item.action);
-  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'open-link', 'open-link-tab', 'rotate', 'show-link']);
+  assert.deepEqual([...new Set(live)].sort(), ['center-view', 'collapse-subgraph', 'copy-node', 'copy-subgraph', 'cut-node', 'cut-subgraph', 'expand-subgraph', 'find', 'fit-edge', 'fit-node', 'fit-subgraph', 'fit-view', 'flip', 'open-link', 'open-link-tab', 'page-theme', 'rotate', 'show-link']);
   for (const item of Object.values(MENUS).flat()) {
     if (!applies(item, locked)) assert.equal(whyNot(item, locked), LOCKED, item.action);
   }
