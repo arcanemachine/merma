@@ -12,7 +12,7 @@ html, body { height: 100%; }
   --control-border: #888; --control-bg: #f6f6f6; --control-hover: #eee;
   /* What is typed into or chosen from: the editable code, find's field, menus, Help. */
   --field-bg: #fff; --field-hover: #f6f6f6;
-  --menu-focus: #eef3fb; --pressed: #dbe8fb; --disabled: #aaa;
+  --menu-focus: #eef3fb; --pressed: #dbe8fb; --disabled: #888;
   --focus: #0969da; --on-focus: #fff;
   --shadow: rgba(0, 0, 0, 0.15); --toast-bg: rgba(255, 255, 255, 0.9);
   /* The read-only code; Follow selection's band behind the code's text. */
@@ -123,7 +123,7 @@ footer .buttons { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
 footer button { font: inherit; padding: 6px 12px; border: 1px solid var(--frame-border); border-radius: 6px;
                 background: var(--control-bg); color: var(--text); cursor: pointer; }
 footer button:hover { background: var(--control-hover); }
-footer button:disabled { cursor: default; opacity: 0.5; color: var(--disabled); }
+footer button:disabled { cursor: default; color: var(--disabled); }
 /* The Help panel: the browser's own popover, opened by the footer button, closed by Escape or a click elsewhere. */
 /* As wide as its rows on one line, up to the window's width; at most half the window's height (800px on a tall one),
    scrolling inside; on a phone, the whole screen. */
