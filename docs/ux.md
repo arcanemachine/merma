@@ -39,6 +39,16 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - The page never redraws as a preview while you choose (a shape, an arrow type): a redraw is a save, and agents
   watching the file would see each keypress. The choice is shown beside what you are editing, and saved on Enter.
 
+## The diagram looks as Mermaid draws it
+
+A design goal (the user): with nothing selected, the diagram looks as Mermaid draws it from the file, and merma's own
+differences are kept few. Each one is listed here:
+
+- A linked node's label is underlined, and blue unless the diagram colors it (Links between diagrams, below).
+- The diagram is drawn at its natural size and fitted to the window, not scaled to the page's width (Mermaid's
+  `useMaxWidth` is off).
+- The diagram is drawn on a white canvas, whatever the page's look or the file's theme.
+
 ## Words
 
 - Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit label").
