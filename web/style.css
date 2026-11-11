@@ -2,24 +2,44 @@ html, body { height: 100%; }
 /* The color words (GLOSSARY): each kind has a background and a text color that reads on it, as a pair, so a darker
    background brings a lighter text with it. Notices are info, warning or error; success is the toasts'. */
 :root {
+  /* The page's own parts and its controls (header, footer, code panel, menus, Help, the find bar), named by what each
+     color is for. */
+  --page-bg: #fff; --text: #222;
+  /* Secondary text: soft for headings and key names, muted for hints, paths and key columns. */
+  --text-soft: #444; --text-muted: #57606a;
+  /* Lines between parts of the page; a frame (a menu, Help, the footer's buttons); and a field's edge, at 3:1. */
+  --border: #ddd; --divider: #eee; --frame-border: #bbb;
+  --control-border: #888; --control-bg: #f6f6f6; --control-hover: #eee;
+  /* What is typed into or chosen from: the editable code, find's field, menus, Help. */
+  --field-bg: #fff; --field-hover: #f6f6f6;
+  --menu-focus: #eef3fb; --pressed: #dbe8fb; --disabled: #aaa;
+  --focus: #0969da; --on-focus: #fff;
+  --shadow: rgba(0, 0, 0, 0.15); --toast-bg: rgba(255, 255, 255, 0.9);
+  /* The read-only code; Follow selection's band behind the code's text. */
+  --muted-bg: #f6f8fa; --band-bg: #b6e3ff;
+  /* What stands in for the drawing keeps the file's Mermaid look, which merma never changes: the canvas, the label box
+     laid over a label, the marks on the drawing, and the notices with their own pairs. These have no dark values. */
+  --canvas: #fff; --canvas-text: #222;
+  /* The locked diagram: muted as the read-only code is. */
+  --locked-bg: #f6f8fa;
+  --delete: #cf222e;
   --info-bg: #ddf4ff; --info-fg: #0a3069;
   --success-bg: #dafbe1; --success-fg: #1a7f37;
   --warning-bg: #fff4d6; --warning-fg: #5c4400;
   --error-bg: #fde2e2; --error-fg: #7b1d1d;
-  /* Muted: shown, but not to be acted on now. Whichever of the code and the diagram is read-only has this
-     background. */
-  --muted-bg: #f6f8fa;
   /* The selection: an outline, and a node's fill; #diagram derives the faint stroke an invisible edge shows. */
-  --select: #0969da; --select-bg: #b6e3ff;
+  --select: #0969da; --select-bg: #b6e3ff; --on-select: #1f2328;
   /* Find's marks: amber, apart from the selection's blue. */
-  --find-bg: #fff1b8; --find-mark: #bf8700;
+  --find-bg: #fff1b8; --find-fg: #222; --find-mark: #bf8700;
   /* The current match: strong against the plain match mark, so its blink reads at a glance (the user). */
   --find-current-bg: #ffd33d; --find-current: #4d2d00;
+  /* A linked node's label (editor.mjs picks one by the node's fill), each keeping 4.5:1 on Mermaid's fills of its kind. */
+  --link: #1d4ed8; --link-on-dark: #60a5fa;
 }
 /* minmax(0, 1fr): the one column is the window's width, never the width of a long line in it (the header's path). */
 body { margin: 0; display: grid; grid-template-rows: auto auto minmax(240px, 1fr) auto; grid-template-columns: minmax(0, 1fr);
        font-family: system-ui, sans-serif;
-       background: #fff; color: #222; }
+       background: var(--page-bg); color: var(--text); }
 /* main, in the body's third row, is a grid of its own: the diagram, and the code panel docked beside it when open
    (main[data-dock], set by code-panel.mjs; --code-size is the panel's width or height). The notice and the find bar
    share the diagram's cell and lie over its top, so they never resize the diagram: a diagram that moved as a notice
@@ -29,21 +49,21 @@ main[data-dock="left"] { grid-template: "panel handle diagram" minmax(0, 1fr) / 
 main[data-dock="top"] { grid-template: "panel" var(--code-size) "handle" 6px "diagram" minmax(0, 1fr) / minmax(0, 1fr); }
 main[data-dock="bottom"] { grid-template: "diagram" minmax(0, 1fr) "handle" 6px "panel" var(--code-size) / minmax(0, 1fr); }
 #notice, #find, #diagram { grid-area: diagram; }
-header { padding: 8px 16px; border-bottom: 1px solid #ddd; font-size: 13px; display: flex; gap: 16px; }
+header { padding: 8px 16px; border-bottom: 1px solid var(--border); font-size: 13px; display: flex; gap: 16px; }
 header h1 { margin: 0; font-size: 16px; white-space: nowrap; align-self: center; }
 header .paths { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 /* One line, cut at the start so the file name stays in view (the user); the path itself is a <bdi>, so it reads left to
    right inside the right-to-left box that puts the ellipsis on the left. */
 header .path { font-family: ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
                direction: rtl; text-align: left; }
-header .host { color: #666; }
+header .host { color: var(--text-muted); }
 header .host:empty { display: none; }
 header .path[data-copy] { cursor: copy; }
 header .path[data-copy]:hover { text-decoration: underline; }
 header .right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-header .status { color: #666; white-space: nowrap; }
+header .status { color: var(--text-muted); white-space: nowrap; }
 /* Fixed below the "updated" line, so it shows wherever the page is scrolled and never moves the page. */
-.toast { position: fixed; top: 26px; right: 16px; padding: 2px 6px; border-radius: 4px; background: rgba(255, 255, 255, 0.9);
+.toast { position: fixed; top: 26px; right: 16px; padding: 2px 6px; border-radius: 4px; background: var(--toast-bg);
          color: var(--success-fg); font-size: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.6s; pointer-events: none; }
 .toast.show { opacity: 1; transition: none; }
 #error { display: none; padding: 8px 16px; background: var(--error-bg); color: var(--error-fg); font-family: ui-monospace, monospace;
@@ -51,7 +71,7 @@ header .status { color: #666; white-space: nowrap; }
 /* The diagram fills the space between header and footer; the wheel zooms it and a drag moves it. Its top padding, with
    the fit's own margin (viewer.mjs), keeps a fitted diagram clear of a one-line notice. Clipped, not just hidden:
    focus() and scrollIntoView() still scroll a hidden box, shifting the drawing against its transform. */
-#diagram { padding-top: 8px; position: relative; overflow: hidden; overflow: clip; touch-action: none; cursor: grab; }
+#diagram { padding-top: 8px; background: var(--canvas); position: relative; overflow: hidden; overflow: clip; touch-action: none; cursor: grab; }
 #diagram.dragging, #diagram.dragging * { cursor: grabbing !important; }
 /* No text selection while dragging. */
 #diagram, #diagram * { user-select: none; }
@@ -67,58 +87,58 @@ header .status { color: #666; white-space: nowrap; }
 /* Declared here, not on :root: a var() in a custom property is resolved where it is declared, so this one follows a
    --select set on the diagram or inside it. */
 #diagram { --select-faint: color-mix(in srgb, var(--select) 30%, transparent);
-           --delete-faint: color-mix(in srgb, #cf222e 30%, transparent); }
+           --delete-faint: color-mix(in srgb, var(--delete) 30%, transparent); }
 /* While the code is being edited the diagram can be looked through, not edited: read-only, so muted as the read-only
    code is, a second cue to the notice and the grayed menu items. */
-#diagram.locked { background: var(--muted-bg); }
-#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#diagram.locked { background: var(--locked-bg); }
+#stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; color: var(--canvas-text); color-scheme: light; }
 #stage svg { display: block; max-width: none; }
-footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid #ddd; display: flex; justify-content: center;
+footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: center;
          font-size: 13px; }
 /* One width for every button, the widest label's (the user): equal columns in a grid only as wide as its content. */
 footer .buttons { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
-footer button { font: inherit; padding: 6px 12px; border: 1px solid #bbb; border-radius: 6px; background: #f6f6f6;
-                cursor: pointer; }
-footer button:hover { background: #eee; }
-footer button:disabled { cursor: default; opacity: 0.5; }
+footer button { font: inherit; padding: 6px 12px; border: 1px solid var(--frame-border); border-radius: 6px;
+                background: var(--control-bg); color: var(--text); cursor: pointer; }
+footer button:hover { background: var(--control-hover); }
+footer button:disabled { cursor: default; opacity: 0.5; color: var(--disabled); }
 /* The Help panel: the browser's own popover, opened by the footer button, closed by Escape or a click elsewhere. */
 /* As wide as its rows on one line, up to the window's width; at most half the window's height (800px on a tall one),
    scrolling inside; on a phone, the whole screen. */
 #help { inset: auto 16px 64px auto; margin: 0; width: max-content; max-width: calc(100vw - 32px);
         max-height: min(50vh, 800px);
         box-sizing: border-box; overflow-y: auto; padding: 12px 16px;
-        border: 1px solid #bbb; border-radius: 8px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); font-size: 13px;
-        line-height: 1.5; color: #222; }
+        border: 1px solid var(--frame-border); border-radius: 8px; box-shadow: 0 4px 16px var(--shadow); font-size: 13px;
+        line-height: 1.5; color: var(--text); background: var(--field-bg); }
 /* Help takes focus as it opens, so its arrows scroll it; the panel itself shows where focus is. */
 #help:focus-visible { outline: none; }
 #help th.section { padding: 10px 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase;
-                   letter-spacing: 0.04em; color: #555; }
+                   letter-spacing: 0.04em; color: var(--text-soft); }
 #help tr:first-child th.section { padding-top: 0; }
 /* A usage note under a section heading: not a key row, and not the heading's scope note. */
-#help td.hint { padding: 0 0 4px; font-size: 12px; font-style: italic; color: #555; }
-#help th.section .note { font-weight: normal; text-transform: none; letter-spacing: 0; color: #666; }
+#help td.hint { padding: 0 0 4px; font-size: 12px; font-style: italic; color: var(--text-soft); }
+#help th.section .note { font-weight: normal; text-transform: none; letter-spacing: 0; color: var(--text-muted); }
 #help table { border-collapse: collapse; }
-#help th { text-align: left; font-weight: normal; white-space: nowrap; padding: 0.25rem 16px 0.25rem 0; vertical-align: top; color: #444; }
+#help th { text-align: left; font-weight: normal; white-space: nowrap; padding: 0.25rem 16px 0.25rem 0; vertical-align: top; color: var(--text-soft); }
 #help td { padding: 0.25rem 0; vertical-align: top; }
 /* The foot: which system's keys the rows show, and where the rest is. Only the chosen system's keys are shown. */
 /* Kept in view at the panel's bottom while the rows scroll, so Close is always there (a phone's Help covers the
    whole screen: nothing outside it to tap). */
 #help .help-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
                    position: sticky; bottom: -12px; margin: 10px 0 -12px; padding: 10px 0 12px;
-                   border-top: 1px solid #eee; background: #fff; }
-#help .help-close { font: inherit; font-size: 12px; padding: 3px 12px; border: 1px solid #bbb; border-radius: 6px;
-                    background: #fff; color: #222; cursor: pointer; }
-#help .help-close:focus-visible { outline: 2px solid #0969da; outline-offset: 1px; }
-#help p.note { margin: 0; color: #666; white-space: nowrap; }
-#help .os-toggle { display: inline-flex; border: 1px solid #bbb; border-radius: 6px; overflow: hidden; }
-#help .os-toggle button { font: inherit; font-size: 12px; padding: 3px 10px; border: 0; background: #fff; color: #444;
+                   border-top: 1px solid var(--divider); background: var(--field-bg); }
+#help .help-close { font: inherit; font-size: 12px; padding: 3px 12px; border: 1px solid var(--frame-border); border-radius: 6px;
+                    background: var(--field-bg); color: var(--text); cursor: pointer; }
+#help .help-close:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+#help p.note { margin: 0; color: var(--text-muted); white-space: nowrap; }
+#help .os-toggle { display: inline-flex; border: 1px solid var(--frame-border); border-radius: 6px; overflow: hidden; }
+#help .os-toggle button { font: inherit; font-size: 12px; padding: 3px 10px; border: 0; background: var(--field-bg); color: var(--text-soft);
                           cursor: pointer; }
-#help .os-toggle button + button { border-left: 1px solid #bbb; }
-#help .os-toggle button[aria-pressed="true"] { background: #0969da; color: #fff; }
-#help .os-toggle button:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
+#help .os-toggle button + button { border-left: 1px solid var(--frame-border); }
+#help .os-toggle button[aria-pressed="true"] { background: var(--focus); color: var(--on-focus); }
+#help .os-toggle button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 #help:not([data-os="mac"]) [data-os="mac"], #help[data-os="mac"] [data-os="pc"] { display: none; }
-#help kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid #ccc; border-bottom-width: 2px;
-            border-radius: 3px; background: #f6f6f6; }
+#help kbd { font: 12px ui-monospace, monospace; padding: 0 4px; border: 1px solid var(--frame-border); border-bottom-width: 2px;
+            border-radius: 3px; background: var(--control-bg); }
 #help code { font: 12px ui-monospace, monospace; }
 /* The code panel: the file's Mermaid code, read-only. */
 #code-panel { grid-area: panel; position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0;
@@ -128,17 +148,17 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 #code-panel:focus { outline: none; }
 /* Drawn over the code (positioned, so it would cover an outline), all round the panel. */
 #code-panel:focus-visible::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-                                   outline: 2px solid #0969da; outline-offset: -2px; }
-#code-panel .code-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid #ddd; }
+                                   outline: 2px solid var(--focus); outline-offset: -2px; }
+#code-panel .code-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 12px; border-bottom: 1px solid var(--border); }
 #code-panel h2 { margin: 0; font-size: inherit; }
 /* The controls wrap to a second row together, right-aligned, before the file name is cut to nothing. */
 #code-panel .code-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
-#code-panel .code-file { flex: 0 1 auto; min-width: 4em; color: #57606a; font-family: ui-monospace, monospace; white-space: nowrap;
+#code-panel .code-file { flex: 0 1 auto; min-width: 4em; color: var(--text-muted); font-family: ui-monospace, monospace; white-space: nowrap;
                          overflow: hidden; text-overflow: ellipsis; }
 #code-panel select, #code-panel button { font: inherit; }
-#code-panel button { padding: 2px 10px; border: 1px solid #888; border-radius: 4px; background: #fff; color: inherit;
+#code-panel button { padding: 2px 10px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--field-bg); color: inherit;
                      cursor: pointer; }
-#code-panel button:hover { background: #f6f6f6; }
+#code-panel button:hover { background: var(--field-hover); }
 #code-panel button[hidden] { display: none; }
 #code-panel .code-status:empty { display: none; }
 #code-panel .code-status { white-space: nowrap; }
@@ -146,18 +166,18 @@ footer button:disabled { cursor: default; opacity: 0.5; }
 /* The code over its background, with Follow selection's band between them, so the text stays crisp. Editable: white,
    as a field is, against the read-only code's muted gray. */
 #code-panel .code-wrap { position: relative; flex: 1; min-height: 0; display: flex; overflow: hidden; background: var(--muted-bg); }
-#code-panel .code-wrap:has(> #code:not([readonly])) { background: #fff; }
-#code-band { position: absolute; left: 0; right: 0; background: var(--select-bg); pointer-events: none; }
+#code-panel .code-wrap:has(> #code:not([readonly])) { background: var(--field-bg); }
+#code-band { position: absolute; left: 0; right: 0; background: var(--band-bg); pointer-events: none; }
 #code-band[hidden] { display: none; }
 #code { position: relative; flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; resize: none;
-        font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.45; color: #222; background: transparent;
+        font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.45; color: var(--text); background: transparent;
         white-space: pre; }
 #code-panel .code-actions label { white-space: nowrap; }
 #code-panel .code-follow { display: flex; align-items: center; gap: 4px; }
 #code:focus { outline: none; }
-#code:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
+#code:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 /* The handle between the panel and the diagram: drag it, or focus it and use the arrows. */
-#code-handle { grid-area: handle; position: relative; z-index: 3; background: #ddd; touch-action: none; user-select: none; }
+#code-handle { grid-area: handle; position: relative; z-index: 3; background: var(--border); touch-action: none; user-select: none; }
 /* Six pixels are thin to grab: the handle takes presses 3 px either side of it too, a 12 px band, and 9 px for a finger
    (24 px). Only for a finger, since the band covers the panel's scrollbar and the find bar's top edge. */
 #code-handle::before { content: ""; position: absolute; inset: -3px 0; }
@@ -168,7 +188,7 @@ main[data-dock="left"] #code-handle::before { inset: 0 -3px; }
 }
 main[data-dock="left"] #code-handle { cursor: col-resize; }
 main:is([data-dock="top"], [data-dock="bottom"]) #code-handle { cursor: row-resize; }
-#code-handle:hover, #code-handle:focus-visible { background: #0969da; outline: none; }
+#code-handle:hover, #code-handle:focus-visible { background: var(--focus); outline: none; }
 body.resizing { user-select: none; }
 /* Messages from editing: what to do next (info), what merma cannot do here (warning), what was not saved and why
    (error). Screen readers hear them from the hidden live regions. */
@@ -180,14 +200,14 @@ body.resizing { user-select: none; }
 main:has(#find:not([hidden])) #notice { display: none; }
 /* Find on /: a bar over the diagram's top, as the notice lies, so the diagram never moves. */
 #find { position: relative; z-index: 2; align-self: start; display: flex; gap: 8px; align-items: center;
-        padding: 6px 16px; font-size: 13px; background: var(--find-bg); color: #222; }
+        padding: 6px 16px; font-size: 13px; background: var(--find-bg); color: var(--find-fg); }
 #find[hidden] { display: none; }
-#find input { font: inherit; padding: 2px 6px; border: 1px solid #888; border-radius: 4px; min-width: 12em; }
-#find .find-keys { color: #57606a; margin-left: auto; }
+#find input { font: inherit; padding: 2px 6px; border: 1px solid var(--control-border); border-radius: 4px; min-width: 12em; }
+#find .find-keys { color: var(--text-muted); margin-left: auto; }
 #find .find-buttons { display: flex; gap: 8px; }
-#find button { font: inherit; padding: 2px 10px; border: 1px solid #888; border-radius: 4px; background: #fff;
+#find button { font: inherit; padding: 2px 10px; border: 1px solid var(--control-border); border-radius: 4px; background: var(--field-bg);
                color: inherit; cursor: pointer; }
-#find button:hover { background: #f6f6f6; }
+#find button:hover { background: var(--field-hover); }
 /* What find finds: every match outlined, the one Enter picks filled. The current one blinks: while the stage has
    data-page-blink-off (editor.mjs), it shows as a plain match. */
 #stage g.node[data-page-match] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
@@ -200,9 +220,9 @@ main:has(#find:not([hidden])) #notice { display: none; }
   stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage path.edge-thickness-thick[data-page-edge][data-page-match]:not([data-page-only]) {
   stroke: var(--find-mark) !important; stroke-width: 4.5px !important; }
-#stage path.edge-thickness-invisible[data-page-match] + path[data-page-only] { stroke: rgba(191, 135, 0, 0.3); }
+#stage path.edge-thickness-invisible[data-page-match] + path[data-page-only] { stroke: color-mix(in srgb, var(--find-mark) 30%, transparent); }
 #stage:not([data-page-blink-off]) path.edge-thickness-invisible[data-page-current] + path[data-page-only] {
-  stroke: rgba(77, 45, 0, 0.3); }
+  stroke: color-mix(in srgb, var(--find-current) 30%, transparent); }
 /* The current edge's line is the near-black amber, a color change and not a wider line, which would jitter as it blinks.
    Its specificity equals the match rules' above: keep it after them. */
 #stage:not([data-page-blink-off]) path[data-page-edge][data-page-current]:not([data-page-only], .edge-thickness-invisible) {
@@ -224,17 +244,16 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.cluster[data-page-selected] > rect { stroke: var(--select) !important; stroke-width: 3px !important; }
 /* A selected node is also filled pale blue, its label dark on it, so a node's own fill and text color give way. */
 #stage g.node[data-page-selected] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator) { fill: var(--select-bg) !important; }
-#stage g.node[data-page-selected] .label :is(span, p, div) { color: #1f2328 !important; }
-#stage g.node[data-page-selected] .label text { fill: #1f2328 !important; }
+#stage g.node[data-page-selected] .label :is(span, p, div) { color: var(--on-select) !important; }
+#stage g.node[data-page-selected] .label text { fill: var(--on-select) !important; }
 #stage text.flowchartTitleText[data-page-selected] { fill: var(--select); text-decoration: underline 2px; }
 /* A node with a link (Open link) reads as one: underlined always, and blue for its fill (editor.mjs), unless the
-   diagram gives the label a color of its own, whose inline style wins over these rules. Each blue keeps 4.5:1 on
-   Mermaid's fills of its kind. */
+   diagram gives the label a color of its own, whose inline style wins over these rules. */
 #stage g.node[data-page-link] .label :is(span, text) { text-decoration: underline; }
-#stage g.node[data-page-link="light"] .label span { color: #1d4ed8; }
-#stage g.node[data-page-link="light"] .label text { fill: #1d4ed8; }
-#stage g.node[data-page-link="dark"] .label span { color: #60a5fa; }
-#stage g.node[data-page-link="dark"] .label text { fill: #60a5fa; }
+#stage g.node[data-page-link="light"] .label span { color: var(--link); }
+#stage g.node[data-page-link="light"] .label text { fill: var(--link); }
+#stage g.node[data-page-link="dark"] .label span { color: var(--link-on-dark); }
+#stage g.node[data-page-link="dark"] .label text { fill: var(--link-on-dark); }
 /* In a pick (Connect to…, a move), what it will change: the node or subgraph dashed (the user)… */
 #stage g.node[data-page-source] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage g.cluster[data-page-source] > rect { stroke: var(--select) !important;
@@ -259,8 +278,8 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.cluster[data-page-candidate] > rect { stroke: var(--select) !important; stroke-width: 3px !important;
   stroke-dasharray: none !important; }
 #stage g.node[data-page-candidate] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator) { fill: var(--select-bg) !important; }
-#stage g.node[data-page-candidate] .label :is(span, p, div) { color: #1f2328 !important; }
-#stage g.node[data-page-candidate] .label text { fill: #1f2328 !important; }
+#stage g.node[data-page-candidate] .label :is(span, p, div) { color: var(--on-select) !important; }
+#stage g.node[data-page-candidate] .label text { fill: var(--on-select) !important; }
 /* In Connect to…, an edge the arrows have reached (Enter refuses it) is drawn as a selected one is. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-candidate]:not([data-page-only]) { stroke: var(--select) !important;
   stroke-width: 3px !important; }
@@ -283,46 +302,46 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage path[data-page-only] { fill: none; stroke: transparent; stroke-width: 14px; pointer-events: stroke; }
 #stage path.edge-thickness-invisible[data-page-selected] + path[data-page-only] { stroke: var(--select-faint); }
 /* Menus are manual popovers (top layer), placed in viewport coordinates beside what they belong to. */
-.menu { position: fixed; inset: auto; margin: 0; flex-direction: column; padding: 4px; background: #fff; color: #222;
-        border: 1px solid #bbb; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); cursor: default; }
+.menu { position: fixed; inset: auto; margin: 0; flex-direction: column; padding: 4px; background: var(--field-bg); color: var(--text);
+        border: 1px solid var(--frame-border); border-radius: 6px; box-shadow: 0 2px 8px var(--shadow); cursor: default; }
 .menu:popover-open { display: flex; }
 .menu button { font: inherit; font-size: 13px; text-align: left; padding: 6px 10px; border: 0; border-radius: 4px;
                background: none; color: inherit; cursor: pointer; white-space: nowrap; display: flex; gap: 16px; }
-.menu button:focus { background: #eef3fb; outline: none; }
+.menu button:focus { background: var(--menu-focus); outline: none; }
 .menu button > span:first-child { margin-right: auto; }
-.menu button .more { width: 1em; text-align: center; color: #888; }
+.menu button .more { width: 1em; text-align: center; color: var(--text-muted); }
 /* The key and its ▸ sit close, each in its own slot: less than the gap that keeps the label apart. */
 .menu button .key + .more { margin-left: -12px; }
 /* A column of keys, each centered in it, so a narrow letter lines up with a wide one. */
-.menu button .key { min-width: 1.5em; text-align: center; font: inherit; color: #57606a; }
-.menu button[aria-expanded="true"] { background: #eef3fb; }
+.menu button .key { min-width: 1.5em; text-align: center; font: inherit; color: var(--text-muted); }
+.menu button[aria-expanded="true"] { background: var(--menu-focus); }
 .menu button.separated { margin-top: 5px; position: relative; }
-.menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid #eee; }
+.menu button.separated::before { content: ""; position: absolute; left: 6px; right: 6px; top: -3px; border-top: 1px solid var(--divider); }
 /* An item that does not apply now: grayed, still focusable, its reason in its title. */
-.menu button[aria-disabled="true"] { color: #aaa; cursor: default; }
+.menu button[aria-disabled="true"] { color: var(--disabled); cursor: default; }
 .menu button[aria-disabled="true"] :is(.key, .more) { color: inherit; }
 /* A picker: a grid of small drawings, each with its digit; the current one is marked, its name below. */
 .picker { padding: 2px; }
-.picker-title { font-size: 12px; color: #666; padding: 2px 4px 4px; }
+.picker-title { font-size: 12px; color: var(--text-muted); padding: 2px 4px 4px; }
 .picker-grid { display: grid; grid-template-columns: repeat(var(--columns), auto); gap: 2px; }
-.menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: #222; }
-.picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #1f2328; }
+.menu .picker-grid button { position: relative; padding: 8px 6px 6px; justify-content: center; color: var(--text); }
+.picker-grid .digit { position: absolute; top: 1px; right: 3px; font-size: 9px; color: var(--text); }
 /* The digits Shift does not pick are gray, still readable (at least 4.5:1 on the pressed fill); holding Shift swaps. */
-.picker-grid .digit.shift, :root[data-shift] .picker-grid .digit { color: #57606a; }
-:root[data-shift] .picker-grid .digit.shift { color: #1f2328; }
+.picker-grid .digit.shift, :root[data-shift] .picker-grid .digit { color: var(--text-muted); }
+:root[data-shift] .picker-grid .digit.shift { color: var(--text); }
 /* Focus is the outline only, and the fill only what is selected (the user): two marks that never look alike. With
    focus elsewhere (in the label box above the shape picker), the outline stays where the arrows start from. */
 .menu .picker-grid button:focus,
-.menu .picker-grid:not(:focus-within) button[data-start] { outline: 2px solid #0969da; outline-offset: -2px; }
+.menu .picker-grid:not(:focus-within) button[data-start] { outline: 2px solid var(--focus); outline-offset: -2px; }
 .menu .picker-grid button:focus { background: none; }
-.menu .picker-grid button[aria-pressed="true"] { background: #dbe8fb; }
+.menu .picker-grid button[aria-pressed="true"] { background: var(--pressed); }
 /* The grid sets the width, never the name: a picker that resized as names changed would move under the pointer. */
-.picker-name { font-size: 12px; color: #444; padding: 4px 4px 2px; min-height: 1.2em; text-align: center;
+.picker-name { font-size: 12px; color: var(--text-soft); padding: 4px 4px 2px; min-height: 1.2em; text-align: center;
                contain: inline-size; }
 /* The label box: laid exactly over the label being edited, so it is edited in place. */
 #label-box { position: absolute; display: none; z-index: 6; box-sizing: border-box; font: inherit; font-size: 14px;
           padding: 4px 6px; line-height: 18px; text-align: center; border: 2px solid var(--select); border-radius: 4px;
-          background: #fff; resize: none; overflow: hidden; user-select: text; cursor: text; }
+          background: var(--canvas); color: var(--canvas-text); color-scheme: light; resize: none; overflow: hidden; user-select: text; cursor: text; }
 /* The shape picker under a node's label box: a menu's look, placed by the editor. */
 .menu.shape-picker { padding: 4px 6px 6px; }
 /* On a narrow screen the shape picker's ten columns would not fit: five, in four rows. The picker's arrow keys follow
