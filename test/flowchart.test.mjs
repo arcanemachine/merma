@@ -10,7 +10,7 @@ import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
   edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
-  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode, hasClick,
+  moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode, hasClick, setLink, writtenLink,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 
@@ -1318,4 +1318,43 @@ test('hasNode: a node named in the body, not one only in a label or a comment', 
 test('hasClick finds a click line naming the node, a link or a callback, and no other line', () => {
   const text = 'flowchart TD\n  A --> B --> C\n  click A href "a.mmd"\n  click B callback\n  style C fill:#eef\n';
   assert.deepEqual(['A', 'B', 'C'].map((id) => hasClick(text, id)), [true, true, false]);
+});
+
+test('writtenLink reads the address as written from the last click line naming the node, javascript: too; a callback is a script', () => {
+  const text = 'flowchart TD\n  A --> B --> C --> D\n  click A "old.mmd"\n  click A href "a.mmd?part=x" "Tip" _blank\n'
+    + '  click B callback\n  click C,D href "https://example.com/"\n';
+  assert.deepEqual(['A', 'B', 'C', 'D', 'X'].map((id) => writtenLink(text, id)),
+    [{ url: 'a.mmd?part=x' }, 'script', { url: 'https://example.com/' }, { url: 'https://example.com/' }, null]);
+  assert.deepEqual(writtenLink('flowchart TD\n  A\n  click A href "javascript:x"\n', 'A'), { url: 'javascript:x' });
+});
+
+test('setLink adds a click line at the end, changes only the address of one written, and removes it with null', () => {
+  const base = 'flowchart TD\n  A --> B\n';
+  assert.equal(setLink(base, 'B', 'other.mmd'), base + '  click B href "other.mmd"\n');
+  const tip = base + '  click B href "a.mmd" "Tip" _blank\n  style B fill:#eef\n';
+  assert.equal(setLink(tip, 'B', 'b.mmd'), base + '  click B href "b.mmd" "Tip" _blank\n  style B fill:#eef\n');
+  assert.equal(setLink(base + '  click B "a.mmd"\n', 'B', 'b.mmd'), base + '  click B "b.mmd"\n');
+  assert.equal(setLink(tip, 'B', null), base + '  style B fill:#eef\n');
+  assert.equal(setLink(base, 'B', null), base);
+});
+
+test('setLink edits the last click line naming the node, the one Mermaid takes', () => {
+  const text = 'flowchart TD\n  A --> B\n  click B href "first.mmd"\n  click B href "last.mmd"\n';
+  assert.equal(setLink(text, 'B', 'new.mmd'), 'flowchart TD\n  A --> B\n  click B href "first.mmd"\n  click B href "new.mmd"\n');
+});
+
+test('setLink moves a node off a click line shared with others, so their links stay', () => {
+  const text = 'flowchart TD\n  A --> B --> C\n  click A,B href "a.mmd" "Tip"\n';
+  assert.equal(setLink(text, 'A', 'new.mmd'), 'flowchart TD\n  A --> B --> C\n  click B href "a.mmd" "Tip"\n  click A href "new.mmd" "Tip"\n');
+  assert.equal(setLink(text, 'B', null), 'flowchart TD\n  A --> B --> C\n  click A href "a.mmd" "Tip"\n');
+});
+
+test('setLink removes the node from every link line naming it, since an earlier one would take over', () => {
+  const text = 'flowchart TD\n  A --> B\n  click B "old.mmd"\n  click A,B href "x.mmd"\n  click B href "two.mmd"\n';
+  assert.equal(setLink(text, 'B', null), 'flowchart TD\n  A --> B\n  click A href "x.mmd"\n');
+});
+
+test('setLink writes a quote as %22, and refuses to overwrite a callback', () => {
+  assert.equal(setLink('flowchart TD\n  A\n', 'A', 'a"b.mmd'), 'flowchart TD\n  A\n  click A href "a%22b.mmd"\n');
+  assert.throws(() => setLink('flowchart TD\n  A\n  click A callback\n', 'A', 'a.mmd'), /runs a script/);
 });

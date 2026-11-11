@@ -45,3 +45,15 @@ export function linkTarget(/** @type {string | undefined} */ link, /** @type {bo
   if (!path.endsWith('.mmd')) return { why: NOT_MMD };
   return { path, part: url.searchParams.get('part') };
 }
+
+/**
+ * What Edit link writes, from the link the file has now (null for none) and the prompt's answer (null: cancelled):
+ * nothing (null), or the link to write, null removing it. An answer the same as the link is no edit.
+ * @returns {{ link: string | null } | null}
+ */
+export function linkEdit(/** @type {string | null} */ now, /** @type {string | null} */ answer) {
+  if (answer === null) return null;
+  const link = answer.trim();
+  if (link === (now ?? '')) return null;
+  return { link: link || null };
+}

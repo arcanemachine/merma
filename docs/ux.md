@@ -341,6 +341,11 @@ the page, each with its reason. What does not: what each control does (`docs/gui
 - Show link puts the address in the info notice, as the file writes it (the user: a notice's text can be selected
   and copied, a hover tip's cannot), and selecting a linked node says it aloud ("…selected, links to …"), so the
   keyboard and a screen reader learn what the mouse sees. No hover tip on the node: the user preferred the notice.
+- Edit link asks in the browser's own prompt (the user: keep it simple), not a box of merma's: a link is one line of
+  text, rarely changed. Emptying it removes the link, as an emptied edge label does, so there is no Remove link
+  item. It edits the link as the file writes it, never Mermaid's sanitized reading, so a `javascript:` link can be
+  fixed; only a callback line is left to the code, which a link would overwrite. In an embedded page from another
+  site the browser shows no prompt, and Edit link does nothing (accepted: an embed is for viewing).
 - A linked node looks like a link (the user: "we should have something"), by a stylesheet rule only, nothing drawn:
   its label underlined, since WCAG asks a link to differ by more than color, and blue where the diagram gives the
   label no color of its own, so the diagram's styling always wins. The blue is chosen by the node's own fill, light

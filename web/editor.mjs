@@ -17,9 +17,9 @@ import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
   addConnected, addNode, addSubgraph, arrowType, connect, contentsOf, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, deleteSubgraph, deleteSubgraphContents, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
   nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
-  subgraphRefusal, subgraphs, hasClick,
+  subgraphRefusal, subgraphs, hasClick, setLink, writtenLink,
 } from './patch/flowchart.mjs';
-import { linkTarget, linkTone } from './links.mjs';
+import { linkEdit, linkTarget, linkTone } from './links.mjs';
 import { limitOf, limitSentence } from './limits.mjs';
 import { createPicker } from './picker.mjs';
 import { place } from './place.mjs';
@@ -571,6 +571,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       const link = links.get(selection().id);
       if (link) ui.notice(`This node links to: ${link}`, 'info');
     },
+    'edit-link': () => editLink(),
     'edit-node': () => openLabelBox(selection()),
     'edit-label': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
@@ -685,6 +686,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       partWhy: selected?.kind === 'subgraph' && !subgraphs(shownText).find((g) => g.id === selected?.id)?.written ? PART_UNNAMED : null,
       link: selected?.kind === 'node' ? linkOf(selected.id) : undefined,
       linkText: selected?.kind === 'node' ? links.get(selected.id) ?? null : null,
+      linkScript: selected?.kind === 'node' && writtenLink(shownText, selected.id) === 'script',
     };
   }
 
@@ -698,6 +700,23 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     if ('why' in to) return;
     ui.announce(`Opening ${'url' in to ? to.url : to.path}`);
     ui.openLink(to, tab);
+  }
+
+  /**
+   * Edit link: the browser's prompt, holding the link as the file writes it; an emptied one is removed. The edit runs
+   * on the file as it is once the prompt is answered, since the page cannot poll while the prompt is open.
+   */
+  function editLink() {
+    if (busy) { ui.notice(BUSY, 'error'); return; }
+    const node = selection();
+    const now = writtenLink(shownText, node.id);
+    const current = now && now !== 'script' ? now.url : null;
+    const change = linkEdit(current, window.prompt(`Edit the link of ${named(node)}. Leave it empty to remove the link.`, current ?? ''));
+    if (!change) return;
+    edit((text) => ({ text: setLink(text, node.id, change.link) }), {
+      after: () => ({ item: node }),
+      afterSave: () => ui.announce(change.link === null ? 'Link removed' : 'Link saved'),
+    });
   }
 
   /** Why the cut node or subgraph cannot be moved to the selection (Move … here), or null: it would not move. */
@@ -1352,6 +1371,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     l: () => itemKey('open-link'),
     'shift+l': () => itemKey('open-link-tab'),
     'ctrl+shift+l': () => itemKey('show-link'),
+    k: () => itemKey('edit-link'),
     // . opens the selection's menu, or with nothing selected the empty-space menu, as the menu key and Shift+F10 do.
     '.': () => {
       if (picking) return false;

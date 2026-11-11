@@ -127,6 +127,10 @@ another click on it closes it.
 - **Edit node** opens the node panel on it: its label and its shape (below).
 - **Open link** (L) and **Open link in new tab** (Shift+L) follow the node's link, and **Show link** (Ctrl+Shift+L)
   shows it (Viewing, Links between diagrams).
+- **Edit link** (K) asks for the node's link in the browser's own box, holding the link as the file writes it. OK
+  writes it as `click A href "payment.mmd"`; empty it to remove the link. A link already in the file keeps its tooltip
+  and target, and a `click` line shared with other nodes (`click A,B href …`) keeps their link. Grayed on a node whose
+  `click` line runs a script (`click A callback`): change that in the code.
 - **Copy node** (Ctrl+C) keeps a copy of the node, as it is now, for this tab: its shape and label, its classes, its
   `style` and `click` lines, and its edges. The node's Mermaid text goes on the system clipboard too, to paste into an
   editor or a message. Nothing in the file changes. Ctrl+C on an edge says that only a node or a subgraph can be copied.
@@ -348,6 +352,7 @@ here does just what it does in the selected item's menu:
 | L with a node selected | Open link |
 | Shift+L with a node selected | Open link in new tab |
 | Ctrl+Shift+L with a node selected | Show link |
+| K with a node selected | Edit link |
 | C with a node or subgraph selected | Connect to… |
 | Shift+C with a node or subgraph selected | Connect from… |
 | C with an edge selected | Reassign end… (Space in it: the other end) |

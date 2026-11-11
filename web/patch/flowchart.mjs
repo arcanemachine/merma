@@ -1347,6 +1347,54 @@ export function hasClick(/** @type {string} */ text, /** @type {string} */ id) {
   return settingsOf(text, id).some((s) => s.keyword === 'click');
 }
 
+/**
+ * The `click` lines naming node `id`, in order: each one's statement, the ids it names, and, for a link, the text
+ * around the address (`click A href "` and `" "tip" _blank`) and the address. A callback has no address.
+ */
+function clickLines(/** @type {string} */ text, /** @type {string} */ id) {
+  const found = [];
+  for (const s of statements(text)) {
+    if (s.keyword !== 'click') continue;
+    const body = text.slice(s.start, s.end);
+    const m = body.match(/^(click\s+)(\S+)(.*)$/s);
+    if (!m || !m[2].split(',').includes(id)) continue;
+    const link = m[3].match(/^(\s+(?:href\s+)?")([^"]*)(".*)$/s);
+    found.push({ s, start: m[1], ids: m[2].split(','), rest: m[3], link: link && { before: link[1], url: link[2], after: link[3] } });
+  }
+  return found;
+}
+
+/** The last `click` line naming node `id`: the one Mermaid takes. */
+function clickLine(/** @type {string} */ text, /** @type {string} */ id) {
+  return clickLines(text, id).at(-1) ?? null;
+}
+
+/** Node `id`'s link as the file writes it, `script` for a callback, or null for no `click` line. */
+export function writtenLink(/** @type {string} */ text, /** @type {string} */ id) {
+  const line = clickLine(text, id);
+  return !line ? null : line.link ? { url: line.link.url } : 'script';
+}
+
+/**
+ * Give node `id` the link `link`, or with null remove it. A link already written keeps its form, tooltip and target;
+ * one on a line shared with other nodes is moved to a line of its own, so their links stay as they were. Removing
+ * takes the node off every link line naming it, since an earlier one would take over. A `"` is written `%22`, since
+ * a Mermaid string cannot hold one. Throws on a callback, which this does not overwrite.
+ */
+export function setLink(/** @type {string} */ text, /** @type {string} */ id, /** @type {string | null} */ link) {
+  assertNode(text, id);
+  const url = link?.replaceAll('"', '%22') ?? null;
+  const line = clickLine(text, id);
+  if (!line) return url === null ? text : appendLine(text, `click ${id} href "${url}"`);
+  if (!line.link) throw new Error('This node runs a script when clicked, so its link can only be changed in the code.');
+  /** @type {(l: NonNullable<typeof line>) => Change} the node taken off line `l` */
+  const off = (l) => ({ s: l.s, parts: l.ids.length === 1 ? [] : [{ text: l.start + l.ids.filter((x) => x !== id).join(',') + l.rest }] });
+  if (url === null) return apply(text, clickLines(text, id).filter((l) => l.link).map(off));
+  const own = `${line.start}${id}${line.link.before}${url}${line.link.after}`;
+  if (line.ids.length === 1) return apply(text, [{ s: line.s, parts: [{ text: own }] }]);
+  return appendLine(apply(text, [off(line)]), own);
+}
+
 /** The `style`, `class` and `click` lines naming `id`: what follows the ids in each. */
 function settingsOf(/** @type {string} */ text, /** @type {string} */ id) {
   const settings = [];

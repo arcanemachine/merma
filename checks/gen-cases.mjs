@@ -16,12 +16,13 @@
 // the subgraph `blocks` names, and `edges` edges in all. `deleteSubgraph`: { gone, blocks, edges } a subgraph deleted
 // alone or with its contents: the nodes `gone` not drawn, every other node in the subgraph blockOf says after (`blocks`),
 // and `edges` edges in all.
+// `link`: { id, url } node id given the link url (null: none), drawn with it, every other node's link as before.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, copySubgraph, deleteEdge, deleteNode, deleteSubgraph, deleteSubgraphContents, contentsOf, edges, freeId, quoteLabel,
-  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
-  subgraphs,
+  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setLink, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  subgraphs, writtenLink,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
 // Mermaid's db names for each arrow type: [type, stroke].
@@ -147,6 +148,18 @@ for (const [name, list, src] of sources) {
       let out;
       try { ({ text: out } = moveSubgraph(src, /** @type {string} */ (sg.id), to)); } catch { continue; }
       if (out !== src) cases.push({ name: `${name} move subgraph ${sg.id} into ${to}`, kind: 'relocate', src, out, relocate: { id: sg.id, to } });
+    }
+  }
+}
+// Each node given a link, and each node with one written given another and then none; a click line shared by two
+// nodes, edited for one.
+for (const [name, list, src] of [...sources, ['shared click line', ['A', 'B'], 'flowchart TD\n  A --> B\n  click A,B href "a.mmd" "Tip"\n'],
+  ['two click lines', ['A', 'B'], 'flowchart TD\n  A --> B\n  click B "old.mmd"\n  click A,B href "a.mmd"\n']]) {
+  for (const id of list) {
+    const now = writtenLink(src, id);
+    if (now === 'script') continue;
+    for (const url of now ? ['other.mmd?part=x', null] : ['other.mmd?part=x']) {
+      cases.push({ name: `${name} link ${id} ${url}`, kind: 'link', src, out: setLink(src, id, url), link: { id, url } });
     }
   }
 }

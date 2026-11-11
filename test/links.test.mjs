@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { linkTarget, linkTone, NO_LINK, NOT_MMD, SCRIPT_LINK } from '../web/links.mjs';
+import { linkEdit, linkTarget, linkTone, NO_LINK, NOT_MMD, SCRIPT_LINK } from '../web/links.mjs';
 
 const FILE = '/diagrams/flows/order.mmd';
 
@@ -44,4 +44,13 @@ test("a link's blue goes by the node's fill: dark on a dark fill, light on a lig
   assert.equal(linkTone('rgba(0, 0, 0, 0)'), 'light');
   assert.equal(linkTone('none'), 'light');
   assert.equal(linkTone(''), 'light');
+});
+
+test('Edit link writes the answer trimmed, removes the link when emptied, and does nothing when cancelled or unchanged', () => {
+  assert.deepEqual(linkEdit(null, ' other.mmd '), { link: 'other.mmd' });
+  assert.deepEqual(linkEdit('a.mmd', 'b.mmd'), { link: 'b.mmd' });
+  assert.deepEqual(linkEdit('a.mmd', '  '), { link: null });
+  assert.equal(linkEdit('a.mmd', null), null);
+  assert.equal(linkEdit('a.mmd', 'a.mmd '), null);
+  assert.equal(linkEdit(null, ''), null);
 });

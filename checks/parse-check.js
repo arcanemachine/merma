@@ -79,6 +79,16 @@
           }
           continue;
         }
+        if (c.kind === 'link') {
+          /* The node has the link asked for, every other node the link it had, and every edge is still drawn. */
+          const o = before.getVertices(), n = after.getVertices();
+          for (const [id, v] of n) {
+            const want = id === c.link.id ? c.link.url ?? undefined : o.get(id)?.link;
+            if (v.link !== want) fails.push(`${c.name}: ${id} links to ${v.link}, expected ${want}`);
+          }
+          if (after.getEdges().length !== before.getEdges().length) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${before.getEdges().length}`);
+          continue;
+        }
         if (c.kind === 'cut') {
           /* Drawn where it was sent (above), every other node where it was, and the edges merma reads all drawn. */
           if (after.getEdges().length !== c.edges) fails.push(`${c.name}: ${after.getEdges().length} edges, expected ${c.edges}`);

@@ -5,7 +5,7 @@ anything under `web/`).
 
 ## Every edit parses
 
-`gen-cases.mjs` applies the node edits (add connected, connect, edit label, every shape, delete) to every node, the edge edits
+`gen-cases.mjs` applies the node edits (add connected, connect, edit label, every shape, delete, edit link) to every node, the edge edits
 (delete, label, unlabel, reverse, every arrow type, each end moved to every node and subgraph) to every edge, and the subgraph edits (edit title, add a node or a
 subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
 and a subgraph at the top level, each node's and subgraph's edges moved (starts, ends, all) to a node and to each
@@ -17,7 +17,7 @@ Mermaid that every other node is still there, and that the edges left are the ol
 its old `linkStyle` style; for an edge edit, that every edge is in its place with its style, and that the changed one
 has the arrow type and drawn label asked for; for a move, that the moved edge has its new end, its type, label and
 `linkStyle` style, at its place (where it was, or last), and the others are in order with theirs; for a move of a node's edges, that the
-edges are the same ones, those ends moved, each with its type, label and style; for a merge, that the node is gone
+edges are the same ones, those ends moved, each with its type, label and style; for a link, that the node has it and every other node the link it had; for a merge, that the node is gone
 and Mermaid draws as many edges as merma reads; for a move into or out of a subgraph (moveNode, moveSubgraph), that
 it is where it was sent and the edges are the same, each with its style; that blockOf reads where Mermaid draws every
 node of every fixture; for a shape, that the node has it, with its label and classes, and that

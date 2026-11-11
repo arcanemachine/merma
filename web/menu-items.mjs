@@ -3,7 +3,7 @@
 // its menu and is shown at the item's right, a key the page also uses outside menus runs the same action here, and only
 // an item that waits for a further click or typing (mode) ends in "…".
 
-import { NO_LINK } from './links.mjs';
+import { NO_LINK, SCRIPT_LINK } from './links.mjs';
 
 /** The verbs menu labels start with: Add makes a thing, Edit changes one of its properties, Remove clears one, Delete
  * removes the thing. */
@@ -25,6 +25,7 @@ export const GLOBAL_KEYS = {
   l: ['open-link'],
   'shift+l': ['open-link-tab'],
   'ctrl+shift+l': ['show-link'],
+  k: ['edit-link'],
   s: ['add-subgraph'],
   enter: ['edit-node', 'edit-label', 'edit-title'],
   f2: ['edit-node', 'edit-label', 'edit-title'],
@@ -88,6 +89,7 @@ export const LOCKED = 'The code is being edited. Save or cancel it to edit the d
  * @property {string | null} [partWhy] why the selected subgraph cannot be fitted as the part, or null
  * @property {import('./links.mjs').LinkTarget} [link] where the selected node's link leads, or why it is not followed
  * @property {string | null} [linkText] the selected node's link as Mermaid read it, or null for none
+ * @property {boolean} [linkScript] the selected node's `click` line, as the file writes it, runs a script
  */
 
 /** Whether `item` can be chosen in `state`. */
@@ -217,6 +219,7 @@ export const MENUS = {
     { action: 'open-link', label: 'Open link', key: 'l', separated: true, view: true, ...linkItem },
     { action: 'open-link-tab', label: 'Open link in new tab', key: 'shift+l', view: true, ...linkItem },
     { action: 'show-link', label: 'Show link', key: 'ctrl+shift+l', view: true, ...showLinkItem },
+    { action: 'edit-link', label: 'Edit link', key: 'k', applies: (s) => !s.linkScript, why: () => SCRIPT_LINK },
     { action: 'copy-node', label: 'Copy node', key: 'ctrl+c', separated: true, view: true },
     { action: 'cut-node', label: 'Cut node', key: 'ctrl+x', view: true },
     ...pasteItems(),
