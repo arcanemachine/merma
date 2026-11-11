@@ -280,8 +280,9 @@ add a new node (or, with a subgraph copied, a new subgraph) from the copy there,
 nothing selected, leaving a part (Viewing, above).
 
 **Page theme ▸** picks how the page's own parts look: **System** (the system's light or dark setting, the default),
-**Light** or **Dark**. Dark darkens the header, the footer, the menus, Help and the code panel; the diagram stays as
-the file draws it, on white, and the find bar stays amber. This browser keeps the choice, in every tab.
+**Light** or **Dark**. Dark darkens the header, the footer, the menus, Help and the code panel, and draws the diagram
+with Mermaid's dark theme, unless the file sets a theme of its own; the find bar stays amber. Export gives the diagram
+as drawn. This browser keeps the choice, in every tab.
 
 **Rotate** (R) turns the diagram sideways, top-down to left-to-right and back (bottom-up to right-to-left), and
 **Flip** (Shift+R) turns it the other way up, top-down to bottom-up, left-to-right to right-to-left; each reads

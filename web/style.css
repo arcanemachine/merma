@@ -35,8 +35,8 @@ html, body { height: 100%; }
   color-scheme: dark;
 }
 :root {
-  /* What stands in for the drawing keeps the file's Mermaid look, which merma never changes: the canvas, the label box
-     laid over a label, the marks on the drawing, and the notices with their own pairs. These have no dark values. */
+  /* What stands in for the drawing: the canvas (dark under Mermaid's dark theme, #diagram[data-dark]), the label box
+     laid over a label, the marks on the drawing, which read on either, and the notices with their own pairs. */
   --canvas: #fff; --canvas-text: #222;
   /* The locked diagram: muted as the read-only code is. */
   --locked-bg: #f6f8fa;
@@ -109,6 +109,11 @@ header .status { color: var(--text-muted); white-space: nowrap; }
 /* While the code is being edited the diagram can be looked through, not edited: read-only, so muted as the read-only
    code is, a second cue to the notice and the grayed menu items. */
 #diagram.locked { background: var(--locked-bg); }
+/* With the Dark page theme, Mermaid draws the diagram with its dark theme, unless the file sets one: a dark canvas
+   under it (main.mjs sets data-dark). */
+#diagram[data-dark] { --canvas: #0d1117; --canvas-text: #e6edf3; --locked-bg: #161b22;
+  /* Find's current edge and title stand apart from the plain matches' amber by a bright one here, not a near-black. */
+  --find-current: #ffd33d; }
 #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; color: var(--canvas-text); color-scheme: light; }
 #stage svg { display: block; max-width: none; }
 footer { grid-row: 4; padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: center;
@@ -232,6 +237,11 @@ main:has(#find:not([hidden])) #notice { display: none; }
 #stage g.cluster[data-page-match] > rect { stroke: var(--find-mark) !important; stroke-width: 3px !important; }
 #stage:not([data-page-blink-off]) g.node[data-page-current] :is(rect, polygon, circle, ellipse, path):not(.label *, .collapsed-indicator),
 #stage:not([data-page-blink-off]) g.cluster[data-page-current] > rect { fill: var(--find-current-bg) !important; }
+/* Its label dark on that fill, whatever color the theme gives labels, as the selection's is. */
+#stage:not([data-page-blink-off]) :is(g.node[data-page-current] .label, g.cluster[data-page-current] .cluster-label) :is(span, p, div) {
+  color: var(--on-select) !important; }
+#stage:not([data-page-blink-off]) :is(g.node[data-page-current] .label, g.cluster[data-page-current] .cluster-label) text {
+  fill: var(--on-select) !important; }
 /* An edge is marked by its line alone, as the selection's (below) in blue; never its label: a border would cut into a
    short label's text, and a blinking fill distracts (the user). The current one shows by its line's near-black amber. */
 #stage path.edge-thickness-normal[data-page-edge][data-page-match]:not([data-page-only]) {

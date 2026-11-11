@@ -49,11 +49,12 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  * @param {() => DOMRect | null} [hooks.fitTo] what a fit shows, in client coordinates, instead of the whole diagram
  */
 export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
-  mermaid.initialize({
+  const config = {
     startOnLoad: false, ...limits,
     flowchart: natural, sequence: natural, class: natural, state: natural, er: natural,
     gantt: natural, journey: natural, pie: natural, mindmap: natural, timeline: natural, gitGraph: natural,
-  });
+  };
+  mermaid.initialize(config);
   const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {}, fitTo = () => null } = hooks;
   // A scale and offset applied to the stage. The first render is fitted to the window (never enlarged); after that the
   // view is kept across re-renders (the user), so an edit moves nothing under the pointer. Until the user zooms or
@@ -350,6 +351,10 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 
+    /** Draw from now on with Mermaid's dark theme, or its default one; a theme the file sets still wins. */
+    theme(/** @type {boolean} */ dark) {
+      mermaid.initialize({ ...config, theme: dark ? 'dark' : 'default' });
+    },
     /** Empty the stage, for another file: its next render is a first one again, fitted, the view no longer touched. */
     clear() {
       stage.replaceChildren();

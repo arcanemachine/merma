@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { shownTheme, themeChoice, THEME_KEY } from '../web/theme.mjs';
+import { fileTheme, shownTheme, themeChoice, THEME_KEY } from '../web/theme.mjs';
 
 test('the theme shown is the one chosen, else the system\'s; anything else kept counts as none', () => {
   assert.equal(shownTheme(null, true), 'dark');
@@ -19,4 +19,11 @@ test('a kept value stands for its choice, and none or anything else for System',
 test('the page reads the theme from the same key before it paints, as theme.mjs keeps it', () => {
   const html = readFileSync(join(import.meta.dirname, '..', 'web', 'index.html'), 'utf8');
   assert.ok(html.includes(`localStorage.getItem('${THEME_KEY}')`));
+});
+
+test('a file sets its own theme in its frontmatter config or an init directive, and nowhere else', () => {
+  assert.equal(fileTheme('---\nconfig:\n  theme: forest\n---\nflowchart TD\n  A --> B\n'), true);
+  assert.equal(fileTheme('%%{init: {"theme": "neutral"}}%%\nflowchart TD\n  A --> B\n'), true);
+  assert.equal(fileTheme('---\ntitle: Theme\n---\nflowchart TD\n  A[theme: x] --> B\n'), false);
+  assert.equal(fileTheme('flowchart TD\n  A --> B\n  %% theme: dark\n'), false);
 });

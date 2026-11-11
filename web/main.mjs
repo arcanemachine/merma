@@ -10,7 +10,7 @@ import { drawnAs, prune, setView, viewText } from './collapse.mjs';
 import { baseDir, subgraphDir, turnText } from './turn.mjs';
 import { itemLines, subgraphs as scannedSubgraphs } from './patch/flowchart.mjs';
 import { createViewer, parse } from './viewer.mjs';
-import { shownTheme, themeChoice, THEME_KEY } from './theme.mjs';
+import { fileTheme, shownTheme, themeChoice, THEME_KEY } from './theme.mjs';
 import { limitSentence, readLimits } from './limits.mjs';
 import { hide as hideTop, mode as modeNotice, NONE, show as showNotice } from './notices.mjs';
 
@@ -312,6 +312,8 @@ let shownOnce = false;   // a diagram has been rendered; until then the view is 
 // Mermaid's size limits, as merma was started with them (MERMA_MAX_EDGES, MERMA_MAX_TEXT); empty: Mermaid's own.
 const meta = (/** @type {string} */ name) => /** @type {HTMLMetaElement} */ (document.querySelector(`meta[name="${name}"]`)).content;
 const limits = readLimits(meta('merma-max-edges'), meta('merma-max-text'));
+// The Mermaid theme the diagram is drawn with: dark with the Dark page theme (showTheme).
+let drawnDark = document.documentElement.dataset.theme === 'dark';
 const viewer = createViewer({ diagram: el('diagram'), stage: el('stage'), limits }, {
   onClick: (target, x, y) => { clickedAway(target); editor?.clicked(target, x, y); },
   // On empty space it fits the whole diagram, leaving a part, as F does.
@@ -320,6 +322,7 @@ const viewer = createViewer({ diagram: el('diagram'), stage: el('stage'), limits
   onViewChange: ({ byUser }) => { editor?.viewChanged(byUser); if (shownOnce) keepView(); },
   fitTo: partRect,
 });
+viewer.theme(drawnDark);
 
 // The code panel, laid out before the first render: docked afterwards, it would shrink the diagram under its first fit,
 // which then refits.
@@ -371,6 +374,8 @@ async function draw(/** @type {string} */ text) {
   const turned = turnText(text, turn, agree ? new Map(turn.subs) : new Map());
   const drawn = agree ? viewText(turned, overrides, subs) : turned;
   drawingSubs = subs;
+  // Mermaid's dark theme draws on a dark canvas; a file's own theme keeps the light one.
+  el('diagram').toggleAttribute('data-dark', drawnDark && !fileTheme(text));
   let shown = await viewer.show(drawn);
   // Drawn as the other file opened: clear it again, so that file's first drawing, queued after this one, is fitted.
   if (of !== file) { viewer.clear(); return; }
@@ -546,7 +551,16 @@ const systemDark = matchMedia('(prefers-color-scheme: dark)');
 function chosenTheme() {
   try { return localStorage.getItem(THEME_KEY); } catch { return null; }
 }
-const showTheme = () => { document.documentElement.dataset.theme = shownTheme(chosenTheme(), systemDark.matches); };
+/** Show the page theme, and draw the diagram again with Mermaid's matching theme when it changed. */
+function showTheme() {
+  const shown = shownTheme(chosenTheme(), systemDark.matches);
+  if (document.documentElement.dataset.theme === shown && drawnDark === (shown === 'dark')) return;
+  document.documentElement.dataset.theme = shown;
+  drawnDark = shown === 'dark';
+  viewer.theme(drawnDark);
+  const { text } = source.snapshot();
+  if (text !== null) display(text);
+}
 systemDark.addEventListener('change', showTheme);
 window.addEventListener('storage', (e) => { if (e.key === THEME_KEY || e.key === null) showTheme(); });
 
