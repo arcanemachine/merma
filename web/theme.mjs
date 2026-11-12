@@ -1,5 +1,5 @@
 // The page's theme, light or dark (docs/ux.md): the system's, unless one is chosen in this browser; with Dark, the
-// diagram is drawn with Mermaid's dark theme unless its file sets one. No DOM.
+// diagram is drawn with Mermaid's dark themes unless its file sets one. No DOM.
 
 /** Where the chosen theme is kept (localStorage); index.html reads it too, before the page paints. */
 export const THEME_KEY = 'merma:theme';
@@ -28,4 +28,23 @@ export function themeChoice(/** @type {string | null} */ chosen) {
 export function fileTheme(/** @type {string} */ text) {
   const front = /^\s*---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? '';
   return /^\s+theme\s*:/m.test(front) || /%%\{[\s\S]*?\btheme\b[\s\S]*?\}%%/.test(text);
+}
+
+/** Each of Mermaid's light themes a diagram type defaults to, and its dark counterpart. */
+const DARK = /** @type {Record<string, string>} */ ({ 'redux-color': 'redux-dark-color' });
+
+/**
+ * The themes a diagram is drawn with under the Dark page theme, as a Mermaid config: `dark`, and for each diagram type
+ * that Mermaid's own defaults (`defaults`) give a theme of its own (a flowchart's redux-color), that theme's dark
+ * counterpart, in the type's section, which wins there.
+ * @param {Record<string, unknown>} defaults
+ */
+export function darkThemes(defaults) {
+  /** @type {Record<string, string | { theme: string }>} */
+  const config = { theme: 'dark' };
+  for (const [type, section] of Object.entries(defaults)) {
+    const own = /** @type {{ theme?: unknown } | null} */ (section)?.theme;
+    if (typeof own === 'string' && DARK[own]) config[type] = { theme: DARK[own] };
+  }
+  return config;
 }

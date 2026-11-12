@@ -374,7 +374,7 @@ async function draw(/** @type {string} */ text) {
   const turned = turnText(text, turn, agree ? new Map(turn.subs) : new Map());
   const drawn = agree ? viewText(turned, overrides, subs) : turned;
   drawingSubs = subs;
-  // Mermaid's dark theme draws on a dark canvas; a file's own theme keeps the light one.
+  // Mermaid's dark themes draw on a dark canvas; a file's own theme keeps the light one.
   el('diagram').toggleAttribute('data-dark', drawnDark && !fileTheme(text));
   let shown = await viewer.show(drawn);
   // Drawn as the other file opened: clear it again, so that file's first drawing, queued after this one, is fitted.

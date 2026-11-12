@@ -47,12 +47,14 @@ differences are kept few. Each one is listed here:
 - A linked node's label is underlined, and blue unless the diagram colors it (Links between diagrams, below).
 - The diagram is drawn at its natural size and fitted to the window, not scaled to the page's width (Mermaid's
   `useMaxWidth` is off).
-- With the Dark page theme, a diagram whose file sets no theme is drawn with Mermaid's own `dark` theme, on a dark
-  canvas (the user); otherwise it is drawn on white. A file's own theme always wins.
+- With the Dark page theme, a diagram whose file sets no theme is drawn with the dark counterpart of the theme Mermaid
+  would draw it with: `redux-dark-color` for a type whose own default is `redux-color` (a flowchart, whose subgraphs
+  each get a color), else `dark`, on a dark canvas (the user); otherwise it is drawn on white. A file's own theme
+  always wins. The Light page theme names no theme, so each type keeps Mermaid's own default.
 
 The page theme: System, the default, follows the system's setting; Light and Dark override it (the user: auto alone
 "will eventually annoy me"), kept by the browser for every tab. Dark darkens the page's own parts and draws the diagram
-with Mermaid's dark theme, which merma asks for and never writes into the file. The marks keep their colors, chosen to
+with Mermaid's dark themes, which merma asks for and never writes into the file. The marks keep their colors, chosen to
 read on either: the selection's fill brings its own dark text, and a link's blue follows the node's fill. The label
 box, the notices and the find bar (amber, as find's marks are) keep their light colors. "Page theme", not "Theme":
 Mermaid's theme is the file's to set.

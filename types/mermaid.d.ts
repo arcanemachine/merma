@@ -7,6 +7,8 @@ declare module 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min
     render(id: string, text: string, svgContainingElement?: Element): Promise<{ svg: string }>;
     parse(text: string): Promise<unknown>;
     mermaidAPI: {
+      // Mermaid's own defaults, a section per diagram type: viewer.mjs reads which types have a theme of their own.
+      defaultConfig: Record<string, unknown>;
       // Not in Mermaid's documented API: viewer.mjs reads a flowchart's subgraphs and links from it.
       getDiagramFromText(text: string): Promise<{
         db: {

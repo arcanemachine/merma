@@ -8,6 +8,7 @@
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.esm.min.mjs';
 import { frame as frameView, tooBig } from './frame.mjs';
 import { limitOf, overTextLimit, TEXT_LIMIT_LABEL } from './limits.mjs';
+import { darkThemes } from './theme.mjs';
 
 // useMaxWidth: false renders every diagram type at its natural size; the view below fits and zooms it.
 const natural = { useMaxWidth: false };
@@ -49,11 +50,12 @@ export const parse = (/** @type {string} */ text) => mermaid.parse(text);
  * @param {() => DOMRect | null} [hooks.fitTo] what a fit shows, in client coordinates, instead of the whole diagram
  */
 export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
-  const config = {
-    startOnLoad: false, ...limits,
+  /** @type {Record<string, object>} each diagram type's settings */
+  const types = {
     flowchart: natural, sequence: natural, class: natural, state: natural, er: natural,
     gantt: natural, journey: natural, pie: natural, mindmap: natural, timeline: natural, gitGraph: natural,
   };
+  const config = { startOnLoad: false, ...limits, ...types };
   mermaid.initialize(config);
   const { onClick = () => {}, onDoubleClick = () => false, onContextMenu = () => false, onViewChange = () => {}, fitTo = () => null } = hooks;
   // A scale and offset applied to the stage. The first render is fitted to the window (never enlarged); after that the
@@ -351,9 +353,19 @@ export function createViewer({ diagram, stage, limits = {} }, hooks = {}) {
     /** The id the shown SVG was rendered under; Mermaid starts its element ids with it. */
     get renderId() { return renderId; },
 
-    /** Draw from now on with Mermaid's dark theme, or its default one; a theme the file sets still wins. */
+    /**
+     * Draw from now on with Mermaid's dark themes, or its own defaults; a theme the file sets still wins. Light names
+     * no theme, since Mermaid gives some diagram types a default of their own (a flowchart's colors each subgraph).
+     */
     theme(/** @type {boolean} */ dark) {
-      mermaid.initialize({ ...config, theme: dark ? 'dark' : 'default' });
+      if (!dark) { mermaid.initialize(config); return; }
+      const themes = darkThemes(mermaid.mermaidAPI.defaultConfig);
+      /** @type {Record<string, unknown>} */
+      const merged = { ...config };
+      for (const [key, value] of Object.entries(themes)) {
+        merged[key] = typeof value === 'string' ? value : { ...types[key], ...value };
+      }
+      mermaid.initialize(merged);
     },
     /** Empty the stage, for another file: its next render is a first one again, fitted, the view no longer touched. */
     clear() {
