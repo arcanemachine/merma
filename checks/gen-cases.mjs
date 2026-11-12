@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ARROWS, BRACKETS, addConnected, addNode, addSubgraph, blockOf, connect, copyNode, copySubgraph, deleteEdge, deleteNode, deleteSubgraph, deleteSubgraphContents, contentsOf, edges, freeId, quoteLabel,
-  mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setLink, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
+  editEdge, mergeNode, moveCut, moveEdges, moveIntoEdge, moveNode, moveSubgraph, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setLink, setShape, setSubgraphTitle, setTitle, subgraphRefusal,
   subgraphs, writtenLink,
 } from '../web/patch/flowchart.mjs';
 import { NODE_SHAPES } from '../web/shapes.mjs';
@@ -84,6 +84,10 @@ for (const [name, list, src] of sources) {
       cases.push({ name: `${name} label ${e.svgId}`, kind: 'change', src, out: setEdgeLabel(src, e.svgId, label).text, at, want });
     }
     cases.push({ name: `${name} unlabel ${e.svgId}`, kind: 'change', src, out: setEdgeLabel(src, e.svgId, '').text, at, want: { label: null } });
+    // The edge panel's save: a label and an arrow type as one change.
+    cases.push({ name: `${name} label and arrow ${e.svgId}`, kind: 'change', src, at,
+      out: editEdge(src, e.svgId, { label: 'Say "hi" #1', arrow: '-.->' }).text,
+      want: { type: 'arrow_point', stroke: 'dotted', label: quoteLabel('Say "hi" #1') } });
     cases.push({ name: `${name} reverse ${e.svgId}`, kind: 'change', src, out: reverseEdge(src, e.svgId).text, at, swap: true, want: { sameLabel: true } });
     for (const arrow of Object.keys(ARROWS)) {
       const [type, stroke] = DRAWN[arrow];

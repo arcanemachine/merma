@@ -1,12 +1,12 @@
-// A grid of choices (arrow types, shapes), each drawn as a small icon with its digit in the corner. The line under it
-// names the entry under the pointer, else the one with keyboard focus, else the current one. It reports a pick; what a
-// pick does is up to whoever shows it (a menu makes the edit at once, the label box keeps it until Enter). Keys while
-// focus is in it: a digit picks, the arrow keys move, wrapping within their row or column (grid.mjs), Enter picks the
-// focused one. Keys it does not use (Escape; hosted under a text field, Up from the top row) go on to whoever holds it.
+// A grid of choices (arrow types, shapes) under a text field, each drawn as a small icon with its digit in the corner.
+// The line under it names the entry under the pointer, else the one with keyboard focus, else the current one. It
+// reports a pick; what a pick does is up to its host (the label box keeps it until Enter). Keys while focus is in it: a
+// digit picks, the arrow keys move, wrapping within their row or column (grid.mjs). Keys it does not use (Enter,
+// Escape, Up from the top row) go on to its host.
 //
-// Hosted under a text field, its buttons take focus only when its host gives it (`focus`), not under the pointer;
-// the host keeps a click from moving focus. It remembers where the arrows were when focus went back to its field, and
-// `focus` returns there; a pick moves that place to the picked entry. A picker in a menu always starts at the current one.
+// Its buttons take focus only when its host gives it (`focus`), not under the pointer; the host keeps a click from
+// moving focus. It remembers where the arrows were when focus went back to its field, and `focus` returns there; a
+// pick moves that place to the picked entry.
 
 import { move } from './grid.mjs';
 
@@ -44,9 +44,8 @@ const label = (/** @type {PickerEntry} */ entry) => entry.name
  * @param {PickerEntry[]} options.entries
  * @param {(key: string) => void} options.onPick
  * @param {number} [options.columns]
- * @param {boolean} [options.hosted] under a text field: its buttons never take focus
  */
-export function createPicker({ title, entries, onPick, columns = 5, hosted = false }) {
+export function createPicker({ title, entries, onPick, columns = 5 }) {
   watchShift();
   const el = document.createElement('div');
   el.className = 'picker';
@@ -70,18 +69,17 @@ export function createPicker({ title, entries, onPick, columns = 5, hosted = fal
     b.setAttribute('aria-label', (entry.digit ? `${entry.shift ? 'Shift ' : ''}${entry.digit} ` : '') + label(entry));
     b.innerHTML = entry.icon() + (entry.digit ? `<span class="digit${entry.shift ? ' shift' : ''}">${entry.shift ? '⇧' : ''}${entry.digit}</span>` : '');
     b.addEventListener('click', () => {
-      // A click moves keyboard focus only when it is in the grid already (a hosted picker's field keeps it).
-      if (!hosted || grid.contains(document.activeElement)) b.focus();
+      // A click moves keyboard focus only when it is in the grid already: else its field keeps it.
+      if (grid.contains(document.activeElement)) b.focus();
       onPick(entry.key);
     });
     b.addEventListener('pointerenter', (e) => {
       // Touch has no hover: a tap names the current one (docs/ux.md).
       if (e.pointerType !== 'touch') hovered = entry;
-      if (!hosted) b.focus();
       showName();
     });
-    b.addEventListener('focus', () => { if (hosted) markStart(b); showName(); });
-    if (hosted) b.tabIndex = -1;
+    b.addEventListener('focus', () => { markStart(b); showName(); });
+    b.tabIndex = -1;
     grid.append(b);
     return b;
   });
@@ -132,8 +130,8 @@ export function createPicker({ title, entries, onPick, columns = 5, hosted = fal
     const digit = entries.findIndex((entry) => entry.digit && Boolean(entry.shift) === e.shiftKey
       && (e.code === `Digit${entry.digit}` || (e.code === `Numpad${entry.digit}` && e.key === entry.digit)));
     if (digit >= 0) { e.preventDefault(); e.stopPropagation(); buttons[digit].focus(); onPick(entries[digit].key); return; }
-    // Hosted, Up from the top row is the way back to its field.
-    if (at < 0 || (hosted && e.key === 'ArrowUp' && at < across)) return;
+    // Up from the top row is the way back to its field.
+    if (at < 0 || (e.key === 'ArrowUp' && at < across)) return;
     const to = move(at, e.key, buttons.length, across);
     if (to === null) return;
     e.preventDefault();

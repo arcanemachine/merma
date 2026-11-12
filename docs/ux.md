@@ -59,7 +59,7 @@ Mermaid's theme is the file's to set.
 
 ## Words
 
-- Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit label").
+- Help reads like the menus: each row's action is verb + noun, no articles or asides ("Fit to window", "Edit edge").
   When a gesture or key does different things depending on what it is on or what is selected, it gets a row per case,
   and the case is named on the left ("Double-click empty space", "N on node"). One action whatever the target ("Open
   menu": the target's own menu) is one row, and so is a key that backs out of whatever is open ("Cancel or deselect").
@@ -82,7 +82,7 @@ Mermaid's theme is the file's to set.
   |---|---|---|
   | Add | makes a new thing | Add node, Add connected node |
   | Insert | makes a new thing inside another, which it splits | Insert node |
-  | Edit | changes a thing's own properties | Edit label, Edit title, Edit arrow type ▸, Edit node |
+  | Edit | changes a thing's own properties | Edit node, Edit edge, Edit title |
   | Remove | clears a property; the thing stays | (none yet: emptying an edge's label removes it) |
   | Delete | the thing goes | Delete node, Delete edge |
   | Connect, Reverse, Reassign | what they say | Connect to…, Connect from…, Reverse edge, Reassign end…, Reassign start… |
@@ -164,7 +164,7 @@ Mermaid's theme is the file's to set.
   has no hover, that is the current one only (a known trade: the picker stays open after a pick, so a tap shows it).
 - Not every key needs a hint on the page (the user). A hint goes on the page only where it fits and is worth its
   space; the guide holds the rest. A little friction while learning is fine when what the page shows leads the way:
-  the shape picker's digits say there is a way in, and Down from the label box is it.
+  a picker's digits say there is a way in, and Down from the label box is it.
 - Nothing moves under the pointer: a menu or picker never changes its items while it is open, and a notice lies over
   the top of the diagram instead of pushing it down (a fitted diagram leaves room for one line of it), since a diagram
   that moved as Connect to… asked for a click would put another node under the click aimed at.
@@ -176,9 +176,9 @@ Mermaid's theme is the file's to set.
   add back, puts the view back as it was, unless you moved it since. An open menu keeps its place across renders too, so after
   someone else's edit it can sit apart from its node until it is reopened: following the node would move it under the
   pointer whenever a pick resizes the node. On a pan or zoom an open menu moves with the diagram: an item's menu with
-  its item, the empty-space menu with the point it was opened at, the label box and its shape picker with their item. It keeps the side it opened on (the user: it jumped
+  its item, the empty-space menu with the point it was opened at, the label box and its picker with their item. It keeps the side it opened on (the user: it jumped
   across its item as it neared the edge), so at the window's edge it stops there, over its item if need be, and stays
-  on that side even when the other has room again. Its submenu and the shape picker do the same.
+  on that side even when the other has room again. Its submenu and the label box's picker do the same.
 - Menus open on click (right-click, long-press, or their key) and stay open until clicked away or Escape. Submenus open
   on click too, never on hover.
 - A drag is never a cancel (the user: it had bitten more than once). In the diagram, where a press can become a pan
@@ -204,17 +204,18 @@ Mermaid's theme is the file's to set.
   the band around its line, a subgraph, the title), the browser's own hand everywhere else, where a drag moves the
   diagram. Menu and picker items do highlight under the pointer, as every menu
   does, and the item under the pointer is the focused one, so there is only ever one highlight and Enter runs it.
+- A picker lies under the label box, filled by what is edited: the shape picker for a node, the arrow type picker
+  for an edge (the user: an edge is edited as a node is, one system for both). There is no other way to a picker, no
+  key and no submenu (the user: consistency over a shorter way to the arrow type).
 - Arrow keys in a picker wrap within their row or column, never on into the next: Right at a row's end goes to its
-  start, Down at the bottom to the top of the same column. So a key always moves along one line of the grid, and
-  Left does not close a picker in a submenu (Escape does). The shape picker's one exception: Up from its top row goes back to
-  the label box above it.
-- In the shape picker, selected and focused are apart (the user): the fill is the selected shape, moved only by a click, a
-  digit or Enter; the outline is keyboard focus, moved by the arrows. While focus is not in the grid, the outline
-  stays where the arrows go on from (the user): Up or Escape back to the label leaves it on the shape last focused, and
-  Down returns there; a pick moves it to the picked shape. A picker in a menu keeps it on the current entry instead,
-  since there the item under the pointer is the focused one. Enter in the grid selects and goes back to the
+  start, Down at the bottom to the top of the same column. So a key always moves along one line of the grid. The one
+  exception: Up from its top row goes back to the label box above it.
+- In a picker, selected and focused are apart (the user): the fill is the selected entry, moved only by a click, a
+  digit, Space or Enter; the outline is keyboard focus, moved by the arrows. While focus is not in the grid, the
+  outline stays where the arrows go on from (the user): Up or Escape back to the label leaves it on the entry last
+  focused, and Down returns there; a pick moves it to the picked entry. Enter in the grid selects and goes back to the
   label; only Enter in the label saves, so each Enter has one meaning. Escape in the grid keeps what was selected
-  there. A picker in a menu saves on each pick, so there the item under the pointer takes focus, as in any menu.
+  there.
 - Outside a field, a menu and a dialog, the arrows are the diagram's, even with a footer button focused: the page has
   nothing else for them. The code panel is the exception: there they scroll the code (below). While Help is open, every key is its own (arrows scroll it, Escape closes it), and the page
   answers none.
@@ -457,8 +458,6 @@ Mermaid's theme is the file's to set.
   subgraph whose label or title changed, the edge whose label, arrow type or direction changed, the node or subgraph
   just added and named (N again adds the next one from it), the edge Connect to… made. Enter on an unchanged label
   does the same: it looks no different. What a delete selects is under Moving by keyboard.
-- A pick in the arrow type picker is the one edit that keeps its menu open, on the new current entry, so
-  the next pick can follow; a click away or Escape closes it. Picking the current entry writes nothing.
 - What undo and redo select is under Moving by keyboard.
 
 ## Messages

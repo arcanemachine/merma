@@ -166,26 +166,7 @@ another click on it closes it.
   side of the label, and the label stays on the other new edge: click the line nearer an end, or press Space, to
   choose. Grayed on an edge written inside a
   collapsed subgraph, where the node would be hidden: expand it first.
-- **Edit label** edits the edge's label in place, in the label box: Enter, a click or tap away, or Tab saves,
-  Shift+Enter starts a new line, Escape cancels. It is written as `-->|"label"|`. Empty it to remove the label.
-- **Edit arrow type ▸** opens the arrow types, each named on the line under them, as the shape picker names shapes; click one
-  or press its digit, and the picker stays open on the new arrow type for another pick, until a click away or Escape;
-  each pick is its own change and undo step. The arrow changes and keeps its label and its length (`---->` asks for a longer edge, and stays longer). An arrow merma does not offer (`o--o`) shows as
-  "Other".
-
-  | Digit | Arrow type | Syntax |
-  |---|---|---|
-  | 1 | Arrow | `-->` |
-  | 2 | Line | `---` |
-  | 3 | Dotted arrow | `-.->` |
-  | 4 | Dotted line | `-.-` |
-  | 5 | Thick arrow | `==>` |
-  | 6 | Thick line | `===` |
-  | 7 | Circle | `--o` |
-  | 8 | Cross | `--x` |
-  | 9 | Two-way arrow | `<-->` |
-  | 0 | Invisible | `~~~` |
-
+- **Edit edge** opens the edge panel on it: its label and its arrow type (below).
 - **Reverse edge** turns the edge around (`A --> B` becomes `B --> A`, same arrow and label). Mermaid places nodes
   partly by the order it first meets them, so the layout may shift a little. Grayed on a self-loop (a node connected
   to itself), which has no direction to reverse.
@@ -343,6 +324,35 @@ into view with its panel, and Escape puts the view back, unless you have moved i
 | Shift+9 | Bow tie rectangle | Stored data | `A@{ shape: bow-rect }` |
 | Shift+0 | Curved trapezoid | Display | `A@{ shape: curv-trap }` |
 
+## The edge panel
+
+Edit edge, Enter, F2 or a double-click on an edge open its panel, as a node's opens: the label box over the edge's
+label (at the edge's middle when it has none), and the arrow type picker under it, the edge's arrow type selected.
+Nothing is drawn until Enter in the label box, or a click or tap away, or Tab, which writes the label and the arrow
+type as one change and one undo step (only what changed). Only Escape closes the panel without writing. On an edge
+with no label, the picker can cover the arrowhead; the picker shows the current arrow type instead.
+
+- **The label:** Shift+Enter starts a new line. Empty it to remove the label: on an edge, Enter, a click or tap away
+  and Tab all save it emptied. It is written as `-->|"label"|`.
+- **The arrow types:** click one to select it, or press Down (from the label's last line) to go into them; the keys are
+  the shapes' (above): the arrows move, a digit or Space selects, Enter selects and goes back to the label, Up from the
+  top row or Escape goes back. The arrow changes and keeps its label and its length (`---->` asks for a longer edge,
+  and stays longer). An arrow merma does not offer (`o--o`) is named on the line as written, with none selected, and
+  stays as it is unless another is selected.
+
+| Digit | Arrow type | Syntax |
+|---|---|---|
+| 1 | Arrow | `-->` |
+| 2 | Line | `---` |
+| 3 | Dotted arrow | `-.->` |
+| 4 | Dotted line | `-.-` |
+| 5 | Thick arrow | `==>` |
+| 6 | Thick line | `===` |
+| 7 | Circle | `--o` |
+| 8 | Cross | `--x` |
+| 9 | Two-way arrow | `<-->` |
+| 0 | Invisible | `~~~` |
+
 ## Keys
 
 Outside menus, and not while typing in the label box. Keys are case-insensitive, here and in menus, and a letter
@@ -362,7 +372,7 @@ here does just what it does in the selected item's menu:
 | Shift+C with a node or subgraph selected | Connect from… |
 | C with an edge selected | Reassign end… (Space in it: the other end) |
 | Shift+C with an edge selected | Reassign start… (Space in it: the other end) |
-| Enter or F2 | Edit the selected node (its panel), the selected edge's label, or the selected subgraph's or diagram's title |
+| Enter or F2 | Edit the selected node or edge (its panel), or the selected subgraph's or diagram's title |
 | Enter with nothing selected | Select again what Escape cleared, else the node nearest the middle of the view |
 | Arrows with something selected | Walk the edges: an edge leaving that way, then on along it; across an edge, step to the next; with no edge, the next thing straight that way; the opposite arrow goes back (below) |
 | Ctrl+Arrows (Option on a Mac) with something selected | Skip the edge to the node at its far end; with none, the next thing straight that way (below) |
@@ -396,7 +406,7 @@ Ctrl | ⌘ is Ctrl on Linux and Windows, ⌘ (Cmd) on macOS. Help shows the keys
 switches between Windows and Linux, and macOS. Its **Close** button, also at its bottom, closes it, as a click away,
 Escape and ? do.
 
-A double-click on a node or an edge edits its label too, and one on a subgraph its title.
+A double-click on a node or an edge opens its panel too, and one on a subgraph edits its title.
 
 ### Moving by keyboard
 

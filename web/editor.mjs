@@ -15,8 +15,8 @@ import { applies, GLOBAL_KEYS, INSERT_COLLAPSED, LOCKED, MENUS, NO_EDGE_MATCH, N
 import { createKeys } from './keys.mjs';
 import { countedEnd, heading, nearest, nest, otherEnd } from './navigate.mjs';
 import {
-  addConnected, addNode, addSubgraph, arrowType, connect, contentsOf, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, deleteSubgraph, deleteSubgraphContents, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
-  nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setEdgeArrow, setEdgeLabel, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
+  addConnected, addNode, addSubgraph, arrowType, connect, contentsOf, copiedSubgraphText, copiedText, copyNode, copySubgraph, deleteEdge, deleteSubgraph, deleteSubgraphContents, editEdge, hasNode, moveCut, moveIntoEdge, blockOf, deleteNode, edges, insertNode, isFlowchart, mergeNode, moveSubgraph,
+  nodeIdFromSvgId, pasteNode, pasteSubgraph, relabel, retarget, reverseEdge, setShape, setSubgraphTitle, setTitle, shapeOf, subgraphIdFromSvgId,
   subgraphRefusal, subgraphs, hasClick, setLink, writtenLink,
 } from './patch/flowchart.mjs';
 import { linkEdit, linkTarget, linkTone } from './links.mjs';
@@ -46,14 +46,12 @@ const END_RUN = 3;
 /**
  * How an edit goes on once saved. `afterSave(result, entry)`: anything to do then (announce it, note what is being
  * named); `into`: the history entry the edit completes; `after(result)`: the item to select once its text is drawn,
- * with `label` to open the label box on it, or `menu` to keep its menu open, or null for nothing; `keep`: the menu the
- * edit was made from stays open meanwhile (a picker's pick).
+ * with `label` to open the label box on it, or null for nothing.
  * @typedef {object} EditOptions
  * @property {(result: any, entry: import('./history.mjs').Entry) => void} [afterSave]
  * @property {import('./history.mjs').Entry | null} [into]
- * @property {(result: any) => ({ item: Item, label?: boolean, menu?: boolean, others?: Item[], reveal?: boolean, far?: boolean } | null)} [after]
+ * @property {(result: any) => ({ item: Item, label?: boolean, others?: Item[], reveal?: boolean, far?: boolean } | null)} [after]
  *   `far`: an edge selected counts from its target
- * @property {boolean} [keep]
  */
 
 /**
@@ -574,7 +572,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     },
     'edit-link': () => editLink(),
     'edit-node': () => openLabelBox(selection()),
-    'edit-label': () => openLabelBox(selection()),
+    'edit-edge': () => openLabelBox(selection()),
     'edit-title': () => openLabelBox(selection()),
     'delete-node': () => deleteSelected(),
     'delete-edge': () => deleteSelected(),
@@ -638,31 +636,11 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       ui.announce(`Page theme: ${THEMES.find((t) => t.key === choice)?.name}`);
     },
   });
-  const arrowPicker = createPicker({
-    title: 'Arrow type',
-    entries: ARROW_TYPES,
-    onPick: (arrow) => setArrow(selection().id, arrow),
-  });
-  /**
-   * Give edge `id` the arrow type `arrow`, from the picker, which stays open on the new entry. The arrow type it has
-   * already writes nothing.
-   */
-  function setArrow(/** @type {string} */ id, /** @type {string} */ arrow) {
-    if (arrowType(shownEdge(id)?.arrow ?? '') === arrow) return;
-    const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
-    const again = sameEdge(id);
-    editDrawn((text) => setEdgeArrow(text, id, arrow), {
-      keep: true,
-      after: (result) => { const next = again(result); return next && { ...next, menu: true }; },
-      afterSave: () => ui.announce(`Changed the edge to ${name}`),
-    });
-  }
   const menuOptions = {
     parent: els.diagram,
     bounds: () => els.diagram.getBoundingClientRect(),
     returnFocus: els.diagram,
     submenus: {
-      'arrow-types': arrowPicker,
       'page-theme': themeChoices,
     },
     onRun: (/** @type {string} */ action) => handlers[action](),
@@ -847,10 +825,6 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       if (was && elsOf(was).length) markCandidate(was, { quiet: true });
     }
     if (!menu || picking) return;
-    if (sel.kind === 'edge') {
-      const arrow = shownEdge(sel.id)?.arrow ?? '';
-      arrowPicker.current(arrowType(arrow), arrow);
-    }
     menuOf(sel).open(/** @type {Element} */ (selectedEl()).getBoundingClientRect(), menuState());
   }
 
@@ -1038,8 +1012,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
 
   /**
    * An item clicked while an edit saves (most often one a click away from the label box started): once the edit's
-   * text is drawn, select that item, not what the edit would select (the edited item, a new edge, a picker's item
-   * with its menu). Clicks on empty space leave the edit's own choice.
+   * text is drawn, select that item, not what the edit would select (the edited item, a new edge). Clicks on empty space leave the edit's own choice.
    */
   function clickedDuringEdit(/** @type {Item | null} */ item, menu = false) {
     if (!item) return;
@@ -1451,7 +1424,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     '=': () => { viewer.zoom(ZOOM_STEP); return true; },
     '-': () => { viewer.zoom(1 / ZOOM_STEP); return true; },
     // Escape steps out one level, the first of these that lets go of something. Help
-    // (main.mjs), a menu or submenu (menu.mjs), the label box and its shape picker, and the find box take it first, as
+    // (main.mjs), a menu or submenu (menu.mjs), the label box and its picker, and the find box take it first, as
     // they hold focus; so does the code panel (code-panel.mjs) for its own levels while focus is in it. It is claimed
     // only when it let go of something, so that otherwise the browser's own use of it goes ahead.
     escape: () => ESCAPE.some(([, step]) => step()),
@@ -1894,20 +1867,26 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  // The panel's picker, under the label box: the shape picker on a node. Down from the box's last line goes into it,
-  // where the arrows move focus; a digit, a click, or Enter on the focused entry selects it (Enter also goes back to
-  // the box); Up from the top row or Escape goes back to the box, keeping what was selected. Enter in the box writes the
-  // label and the picker's choice as one change. Nothing is drawn until then (docs/ux.md, the preview rule).
+  // The panel's picker, under the label box: the shape picker on a node, the arrow type picker on an edge. Down from
+  // the box's last line goes into it, where the arrows move focus; a digit, a click, or Enter on the focused entry
+  // selects it (Enter also goes back to the box); Up from the top row or Escape goes back to the box, keeping what was
+  // selected. Enter in the box writes the label and the picker's choice as one change. Nothing is drawn until then
+  // (docs/ux.md, the preview rule).
   const shapePicker = createPicker({
     title: 'Shape',
     entries: NODE_SHAPES,
     columns: 10,
-    hosted: true,
+    onPick: (at) => choose(at),
+  });
+  const arrowPicker = createPicker({
+    title: 'Arrow type',
+    entries: ARROW_TYPES,
     onPick: (at) => choose(at),
   });
   /** Each kind's picker, what it picks from, and the hint the label box gives for it. */
   const boxPickers = {
     node: { picker: shapePicker, entries: NODE_SHAPES, hint: 'Down arrow chooses a shape' },
+    edge: { picker: arrowPicker, entries: ARROW_TYPES, hint: 'Down arrow chooses an arrow type' },
   };
   /** @type {(typeof boxPickers)[keyof typeof boxPickers] | null} the picker open under the label box */
   let boxPicker = null;
@@ -1971,11 +1950,18 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
 
   /** Open the picker for `target`; `added`: a node just added, so it is a rectangle whatever it reads as. */
   function openBoxPicker(/** @type {Item} */ target, /** @type {boolean} */ added) {
-    if (target.kind !== 'node') return;
-    boxPicker = boxPickers.node;
-    boxPickerFrom = shownShape(target.id) ?? (added ? 'rect' : null);
-    // A shape not in the list is named, with none pressed; one that cannot be read shows nothing as current.
-    boxPicker.picker.current(boxPickerFrom, boxPickerFrom ?? '');
+    if (target.kind === 'node') {
+      boxPicker = boxPickers.node;
+      boxPickerFrom = shownShape(target.id) ?? (added ? 'rect' : null);
+      // A shape not in the list is named, with none pressed; one that cannot be read shows nothing as current.
+      boxPicker.picker.current(boxPickerFrom, boxPickerFrom ?? '');
+    } else if (target.kind === 'edge') {
+      boxPicker = boxPickers.edge;
+      const arrow = shownEdge(target.id)?.arrow ?? '';
+      boxPickerFrom = arrowType(arrow);
+      // An arrow not in the list (`o--o`) is named as written, with none pressed.
+      boxPicker.picker.current(boxPickerFrom, arrow);
+    } else return;
     boxPickerHint.textContent = boxPicker.hint;
     boxPickerEl.replaceChildren(boxPicker.picker.el, boxPickerHint);
     boxPickerEl.showPopover();
@@ -2034,7 +2020,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   }
 
   /**
-   * Focus left the label box and its shape picker (a click or tap away, Tab): save, as Enter does; only Escape discards
+   * Focus left the label box and its picker (a click or tap away, Tab): save, as Enter does; only Escape discards
    * (docs/ux.md). An emptied label is kept as it was, and the click goes on. What cannot be saved (a shape the label
    * cannot take, or another edit still saving) keeps the box open, focus back in it, and the click that left it does
    * nothing.
@@ -2127,7 +2113,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
   }
 
   /**
-   * Save what the label box holds (and the shape picker's shape, while it is open), as Enter does. Returns false when it was
+   * Save what the label box holds and what its picker has selected (a shape, an arrow type), as Enter does. Returns false when it was
    * refused, the box still open. `kept` is the notice for an emptied label kept as it was, shown once the save is done.
    */
   function submitLabel(/** @type {string | null} */ kept = null) {
@@ -2141,8 +2127,11 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
       return false;
     }
+    // One not in the list, or not read, picks nothing, so the item keeps what it has.
     const picked = boxPicker ? boxPicker.picker.value() : null;
-    const shape = picked && picked !== boxPickerFrom ? picked : null;
+    const chosen = picked && picked !== boxPickerFrom ? picked : null;
+    const shape = target.kind === 'node' ? chosen : null;
+    const arrow = target.kind === 'edge' ? chosen : null;
     /** A node's new label and shape, as one change. */
     const renamed = (/** @type {string} */ text) => {
       const named = relabelled ? relabel(text, target.id, label).text : text;
@@ -2155,13 +2144,17 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     closeLabelBox();
     // Enter on an unchanged label is not an edit: the file keeps its own spelling of the label. The item stays
     // selected, as after an edit: the two look alike.
-    if (!relabelled && !shape) { select(target); naming = null; if (kept) ui.notice(kept, 'warning'); return true; }
+    if (!relabelled && !chosen) { select(target); naming = null; if (kept) ui.notice(kept, 'warning'); return true; }
     if (target.kind === 'title') {
       edit((text) => setTitle(text, label), { after: () => ({ item: TITLE }) });
       return true;
     }
     if (target.kind === 'edge') {
-      editDrawn((text) => setEdgeLabel(text, target.id, label), { after: sameEdge(target.id) });
+      const change = (/** @type {string} */ text) => editEdge(text, target.id, { label: relabelled ? label : null, arrow });
+      const name = ARROW_TYPES.find((a) => a.key === arrow)?.name;
+      // An arrow type's change is not seen by a screen reader, unlike a label it typed.
+      const afterSave = arrow && !relabelled ? () => ui.announce(`Changed the edge to ${name}`) : undefined;
+      editDrawn(change, { afterSave, after: sameEdge(target.id) });
       return true;
     }
     const into = naming && same(naming, target) ? naming.entry : null;
@@ -2238,7 +2231,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
    * @param {(text: string) => { text: string }} change
    * @param {EditOptions} [options]
    */
-  function edit(change, { afterSave, into = null, after, keep = false } = {}) {
+  function edit(change, { afterSave, into = null, after } = {}) {
     return exclusively(async () => {
       const was = selected;
       const wasCame = was?.kind === 'edge' ? moves.came() : undefined;
@@ -2257,9 +2250,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       }
       if (!(await save(result.text, base.version))) return;
       const entry = history.record(base.text, result.text, into);
-      // The action is done: its menu closes, but a picker's stays for the next pick. What it acted on is selected again
-      // once drawn (`after`), or nothing.
-      if (!keep) deselect();
+      // The action is done: its menu closes. What it acted on is selected again once drawn (`after`), or nothing.
+      deselect();
       const clickedAway = clickedMeanwhile;
       clickedMeanwhile = null;
       const next = clickedAway ?? after?.(result);
@@ -2445,10 +2437,9 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       // An add's panel does not open then, so the add is over: what it added is not being named.
       if (next && item && finding) { finding.before = item; if (next.label) naming = null; return; }
       if (next && item) {
-        // An edit's own text: what it acted on, its menu still open after a picker's pick; or what was right-clicked
-        // meanwhile, with its menu.
+        // An edit's own text: what it acted on; or what was right-clicked meanwhile, with its menu.
         if (next.reveal) selectByKey(item, next.say);
-        else select(item, { menu: Boolean(next.menu) && (menu || Boolean(next.clicked)) });
+        else select(item, { menu: Boolean(next.menu) });
         if (next.far && item.kind === 'edge') { moves.countFrom(otherEnd(layout(), item.id, null)); markEnd(); }
         else if (next.came !== undefined && item === next.item && item.kind === 'edge') { moves.countFrom(next.came); markEnd(); }
         if (next.label) { openLabelBox(item); revealLabelBox(item); }

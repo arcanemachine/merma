@@ -6,7 +6,7 @@ anything under `web/`).
 ## Every edit parses
 
 `gen-cases.mjs` applies the node edits (add connected, connect, edit label, every shape, delete, edit link) to every node, the edge edits
-(delete, label, unlabel, reverse, every arrow type, each end moved to every node and subgraph) to every edge, and the subgraph edits (edit title, add a node or a
+(delete, label, unlabel, label and arrow type together, reverse, every arrow type, each end moved to every node and subgraph) to every edge, and the subgraph edits (edit title, add a node or a
 subgraph in it, connect to and from it) to every subgraph, of every fixture in `test/fixtures/`, plus adding a node
 and a subgraph at the top level, each node's and subgraph's edges moved (starts, ends, all) to a node and to each
 subgraph, and each node merged into another.
@@ -70,7 +70,7 @@ first targets]`. Pass: `[]`. `pw-repl send eval --all --timeout=30s --file=check
 really shown before scanning (Help: `#help:popover-open`; a menu: its items drawn): a scan of the closed page passes
 and proves nothing. Scan it in each of
 these states, since each shows other elements and colors: nothing open; a node menu; an edge menu with a grayed
-item; a subgraph menu; the empty-space menu; the arrow type picker; the node panel; the node panel with focus in
+item; a subgraph menu; the empty-space menu; the edge panel, and with focus in the arrow type picker's grid; the node panel; the node panel with focus in
 the shape picker's grid; each notice kind (Connect to… for info, an emptied label kept on a click away for warning, an empty label on Enter for error); the
 label box; Help; the code panel open, on a wide window and at 480 px or less, and with a draft (the diagram muted); find
 open, and find inside a pick (Connect to…); a toast (Copy SVG). With `'#stage'` after the file it scans only the diagram: that is Mermaid's

@@ -3,8 +3,7 @@
 // it stays open until whoever opened it closes it: a pan of the diagram is not a click away.
 //
 // Keys while focus is in it (it takes focus when it opens): Up and Down move, an item's letter or Enter runs it, Right
-// opens the focused item's submenu and Escape or the item's letter again closes it (Left too, from the menu's own
-// items; inside a picker Left moves), Escape closes the menu.
+// opens the focused item's submenu and Escape, Left or the item's letter again closes it, Escape closes the menu.
 // Other keys stop here, so the page's own keys (N, Delete…) do not act behind an open menu; Ctrl, Cmd and Alt
 // combinations go on (undo still works).
 
@@ -17,7 +16,7 @@ import { place, OPPOSITE } from './place.mjs';
  * @param {HTMLElement} options.parent where the menu lives in the DOM (events from it are the overlay's, not the diagram's)
  * @param {() => DOMRect} options.bounds the area it must stay inside
  * @param {HTMLElement} options.returnFocus what gets focus back when the menu closes with focus in it
- * @param {Record<string, { el: HTMLElement, focus(): void, list?: boolean }>} [options.submenus] by an item's `submenu`
+ * @param {Record<string, { el: HTMLElement, focus(): void }>} [options.submenus] by an item's `submenu`
  * @param {(action: string) => void} options.onRun
  * @param {(why: string) => void} options.onRefuse an item that does not apply was chosen
  * @param {() => void} [options.onClose] it closed, by whatever means
@@ -193,13 +192,10 @@ export function createMenu(items, { parent, bounds, returnFocus, submenus = {}, 
     e.stopPropagation();
   });
 
-  // Escape, which the picker leaves, closes the submenu, back to its item; so does the item's letter, as a second click
-  // on the item does. Left does not: in a picker it wraps within the row.
+  // Escape and Left close the submenu, back to its item; so does the item's letter, as a second click on the item does.
   sub.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Escape' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
-    // A list of choices goes back to its item by Left, as menus do; a picker's Left moves within its row.
-    else if (e.key === 'ArrowLeft' && openSub && submenus[/** @type {string} */ (openSub.submenu)].list) { e.preventDefault(); closeSub(); }
+    if (e.key === 'Escape' || e.key === 'ArrowLeft' || e.key.toLowerCase() === openSub?.key) { e.preventDefault(); closeSub(); }
     e.stopPropagation();
   });
 
@@ -263,7 +259,6 @@ export function createChoices({ title, entries, onPick }) {
   });
   return {
     el,
-    list: true,
     /** Focus the checked choice, else the first. */
     focus() { (buttons.find((b) => b.getAttribute('aria-checked') === 'true') ?? buttons[0]).focus(); },
     current(/** @type {string} */ key) {

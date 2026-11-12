@@ -77,10 +77,11 @@ note where merma had to make one up.
 | **blink** | The find's current match shown on and off a few times as it becomes current, then steady (`docs/ux.md` has the rule). merma's own: Mermaid has no word for it. |
 | **menu** | What right-click (or long-press) opens: the **node menu**, the **edge menu**, the **subgraph menu**, the **title menu**, or the **empty-space menu**. Its items read verb + noun (`docs/ux.md`). |
 | **submenu** | A menu opened from a menu item marked ▸, by a click on it, its key or Right (never by hovering). |
-| **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** (Edit arrow type ▸) and the **shape picker**. Shows the current one. |
+| **picker** | A grid of choices drawn as small icons, each with its digit, named by what it picks: the **arrow type picker** and the **shape picker**, each under the label box in its panel. Shows the current one. |
 | **grayed** | A menu item that does not apply right now: still there, with its reason. |
-| **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit label, Edit title). merma's own. |
+| **label box** | The text box laid over a node's or an edge's label, or a subgraph's title, to edit it in place (Edit node, Edit edge, Edit title). merma's own. |
 | **node panel** | A node's label box with the shape picker under it: what Edit node, Enter, F2, a double-click on a node and adding a node open. Enter in the label writes both. merma's own: one place to edit a node. |
+| **edge panel** | An edge's label box with the arrow type picker under it: what Edit edge, Enter, F2 and a double-click on an edge open. Enter in the label writes both. merma's own, as the node panel. |
 | **code panel** | The file's code beside the diagram, following the file as the diagram does; Code in the footer opens it, and its Edit edits the code. merma's own: Mermaid has no word for it. |
 | **draft** | The code panel's code while it is being edited, not yet saved. The page says "Editing"; the word is the docs'. |
 | **follow** | The code panel's Follow selection: the code scrolls to the selected item's statement, banded in pale blue. merma's own. |

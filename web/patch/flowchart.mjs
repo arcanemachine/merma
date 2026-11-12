@@ -845,6 +845,18 @@ export function setEdgeArrow(/** @type {string} */ text, /** @type {string} */ s
 }
 
 /**
+ * Edit an edge as the edge panel does, as one change: its label (given as a string; blank removes it), then its arrow
+ * type (a key of ARROWS). Either may be null, leaving it as written. An edge keeps its id through the first.
+ * @param {string} text
+ * @param {string} svgId
+ * @param {{ label?: string | null, arrow?: string | null }} change
+ */
+export function editEdge(text, svgId, { label = null, arrow = null }) {
+  const named = label === null ? text : setEdgeLabel(text, svgId, label).text;
+  return arrow ? setEdgeArrow(named, svgId, arrow) : { text: named };
+}
+
+/**
  * A label as it goes between pipes. A pipe label is kept as written. A text-form label (`-- yes (maybe) -->`) is
  * quoted, since between pipes `(`, `[`, `{` and the like need quotes; only its `"` is escaped, leaving any entity code
  * (`#quot;`) in it as it was.

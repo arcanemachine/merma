@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   addConnected, addNode, connect, relabel, freeId, isFlowchart, quoteLabel, nodeIdFromSvgId, subgraphIdFromSvgId, edges,
-  edgeBySvgId, deleteEdge, deleteNode, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
+  edgeBySvgId, deleteEdge, deleteNode, editEdge, setEdgeLabel, setEdgeArrow, reverseEdge, arrowType, ARROWS, subgraphs,
   setSubgraphTitle, addSubgraph, subgraphRefusal, setShape, shapeOf, BRACKETS, setTitle, itemLines, retarget,
   moveEdges, mergeNode, insertNode, blockOf, moveNode, moveSubgraph, copyNode, copiedText, pasteNode, copySubgraph, copiedSubgraphText, pasteSubgraph, deleteSubgraph, deleteSubgraphContents, contentsOf, moveCut, moveIntoEdge, hasNode, hasClick, setLink, writtenLink,
 } from '../web/patch/flowchart.mjs';
@@ -491,6 +491,19 @@ test('setEdgeArrow keeps the label and the length', () => {
   assert.equal(setEdgeArrow('flowchart LR\n  A -->|yes| B\n', 'L_A_B_0', '==>').text, 'flowchart LR\n  A ==>|yes| B\n');
   assert.equal(setEdgeArrow('flowchart LR\n  A e1@--> B\n', 'e1', '--x').text, 'flowchart LR\n  A e1@--x B\n');
   assert.throws(() => setEdgeArrow('flowchart LR\n  A --> B\n', 'L_A_B_0', '-->>'), /is not an arrow type/);
+});
+
+test('editEdge writes the label and the arrow type as one change, even on a shared statement', () => {
+  const shared = 'flowchart LR\n  A --> B & C\n';
+  assert.equal(editEdge(shared, 'L_A_C_0', { label: 'x', arrow: '-.->' }).text, 'flowchart LR\n  A --> B\n  A -.->|"x"| C\n');
+  assert.equal(editEdge(shared, 'L_A_B_0', { label: 'x', arrow: '-.->' }).text, 'flowchart LR\n  A -.->|"x"| B\n  A --> C\n');
+  // An emptied label goes, and the arrow type changes with it.
+  assert.equal(editEdge('flowchart LR\n  A -->|yes| B\n', 'L_A_B_0', { label: '', arrow: '~~~' }).text, 'flowchart LR\n  A ~~~ B\n');
+});
+
+test('editEdge leaves what it is not given as written: an arrow type not in the list, or the label', () => {
+  assert.equal(editEdge('flowchart LR\n  A o--o B\n', 'L_A_B_0', { label: 'x' }).text, 'flowchart LR\n  A o--o|"x"| B\n');
+  assert.equal(editEdge('flowchart LR\n  A -- yes --> B\n', 'L_A_B_0', { arrow: '==>' }).text, 'flowchart LR\n  A ==>|"yes"| B\n');
 });
 
 test('arrowType names an arrow at any length, and ARROWS gives each back', () => {
