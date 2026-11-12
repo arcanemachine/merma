@@ -1761,9 +1761,9 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     keptClick = false;
     const at = /** @type {Element} */ (e.target);
     // Keep focus in the label box, the find box or a menu through a drag: a press in the diagram would move it to
-    // #diagram. The box and its shape picker keep their own presses (the caret, text selection, the shapes), and so do menus.
+    // #diagram. The box and its picker keep their own presses (the caret, text selection, the shapes), and so do menus.
     if ((labelling || finding || menuOpen() || menus.space.isOpen()) && els.diagram.contains(at) && at !== input
-      && !shapePickerBox.contains(at) && !at.closest('[data-overlay]')) e.preventDefault();
+      && !boxPickerEl.contains(at) && !at.closest('[data-overlay]')) e.preventDefault();
   });
   // A click outside the diagram (header, footer, Help) is a click away: it ends a find and Connect to… as Escape
   // does, and closes the menus. Clicks in the diagram are the viewer's (clicked()): the browser's own click there
@@ -1894,92 +1894,99 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     return { left: x, top: y, width: 0, height: 0 };
   }
 
-  // The node panel: on a node, a shape picker lies under the box. Down from the box's last line goes into it, where
-  // the arrows move focus; a digit, a click, or Enter on the focused shape selects it (Enter also goes back to the box);
-  // Up from the top row or Escape goes back to the box, keeping what was selected. Enter in the box writes the label
-  // and the shape as one change. Nothing is drawn until then (docs/ux.md, the preview rule).
+  // The panel's picker, under the label box: the shape picker on a node. Down from the box's last line goes into it,
+  // where the arrows move focus; a digit, a click, or Enter on the focused entry selects it (Enter also goes back to
+  // the box); Up from the top row or Escape goes back to the box, keeping what was selected. Enter in the box writes the
+  // label and the picker's choice as one change. Nothing is drawn until then (docs/ux.md, the preview rule).
   const shapePicker = createPicker({
     title: 'Shape',
     entries: NODE_SHAPES,
     columns: 10,
     hosted: true,
-    onPick: (at) => selectShape(at),
+    onPick: (at) => choose(at),
   });
-  /** Select shape `at` in the shape picker, and say so: nothing else shows it to a screen reader. */
-  function selectShape(/** @type {string} */ at) {
-    shapePicker.current(at);
-    const entry = NODE_SHAPES.find((e) => e.key === at);
+  /** Each kind's picker, what it picks from, and the hint the label box gives for it. */
+  const boxPickers = {
+    node: { picker: shapePicker, entries: NODE_SHAPES, hint: 'Down arrow chooses a shape' },
+  };
+  /** @type {(typeof boxPickers)[keyof typeof boxPickers] | null} the picker open under the label box */
+  let boxPicker = null;
+  /** Select entry `at` in the open picker, and say so: nothing else shows it to a screen reader. */
+  function choose(/** @type {string} */ at) {
+    if (!boxPicker) return;
+    boxPicker.picker.current(at);
+    /** @type {import('./picker.mjs').PickerEntry | undefined} */
+    const entry = boxPicker.entries.find((e) => e.key === at);
     ui.announce(`${entry?.name}${entry?.meaning && entry.meaning !== entry.name ? `, ${entry.meaning}` : ''} selected`);
   }
-  const shapePickerBox = Object.assign(document.createElement('div'), { className: 'menu shape-picker', popover: 'manual' });
-  shapePickerBox.dataset.overlay = '';
-  // A press anywhere on the shape picker, icon or not, leaves focus where it is: on the body, it would close the box.
-  shapePickerBox.addEventListener('mousedown', (e) => e.preventDefault());
-  // Keys the picker leaves: Enter selects the focused shape and goes back to the box; Up from the top row and Escape go
+  const boxPickerEl = Object.assign(document.createElement('div'), { className: 'menu box-picker', popover: 'manual' });
+  boxPickerEl.dataset.overlay = '';
+  // A press anywhere on the picker, icon or not, leaves focus where it is: on the body, it would close the box.
+  boxPickerEl.addEventListener('mousedown', (e) => e.preventDefault());
+  // Keys the picker leaves: Enter selects the focused entry and goes back to the box; Up from the top row and Escape go
   // back to the box; Tab saves, as from the box. None goes on to the page's own keys; Ctrl, Cmd and Alt combinations do, as from a menu.
-  shapePickerBox.addEventListener('keydown', (e) => {
+  boxPickerEl.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const on = /** @type {HTMLElement} */ (document.activeElement);
-    if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); selectShape(on.dataset.key); input.focus(); }
+    if (e.key === 'Enter' && on.dataset.key) { e.preventDefault(); choose(on.dataset.key); input.focus(); }
     else if (e.key === 'Tab') { e.preventDefault(); saveLabel(keepEmptied()); }
     else if (e.key === 'Escape' || (e.key === 'ArrowUp' && !e.defaultPrevented)) { e.preventDefault(); input.focus(); }
     e.stopPropagation();
   });
-  // The box closes when focus leaves both it and the shape picker.
-  shapePickerBox.addEventListener('focusout', (e) => {
+  // The box closes when focus leaves both it and the picker.
+  boxPickerEl.addEventListener('focusout', (e) => {
     const to = /** @type {Node | null} */ (e.relatedTarget);
-    if (to !== input && !shapePickerBox.contains(to)) commit();
+    if (to !== input && !boxPickerEl.contains(to)) commit();
   });
-  const shapePickerHint = Object.assign(document.createElement('div'), {
-    className: 'visually-hidden', id: 'shape-picker-hint', textContent: 'Down arrow chooses a shape',
-  });
-  shapePickerBox.append(shapePicker.el, shapePickerHint);
-  els.diagram.append(shapePickerBox);
-  let shapePickerOpen = false;
-  /** @type {'below' | 'above'} the side of the label box the shape picker opened on, kept as it follows the box */
-  let shapePickerSide = 'below';
-  /** @type {string | null} the shape the node had when the shape picker opened, or null for one these edits cannot read */
-  let shapePickerFrom = null;
+  const boxPickerHint = Object.assign(document.createElement('div'), { className: 'visually-hidden', id: 'box-picker-hint' });
+  els.diagram.append(boxPickerEl);
+  /** @type {'below' | 'above'} the side of the label box the picker opened on, kept as it follows the box */
+  let boxPickerSide = 'below';
+  /** @type {string | null} what the item had when the picker opened, or null for what these edits cannot read */
+  let boxPickerFrom = null;
 
-  /** Place the shape picker under the label box; `fresh`, as it opens: above it when there is no room below. */
-  function placeShapePicker(fresh = false) {
-    if (!shapePickerOpen) return;
-    const r = input.getBoundingClientRect(), s = shapePickerBox.getBoundingClientRect();
+  /** Place the picker under the label box; `fresh`, as it opens: above it when there is no room below. */
+  function placeBoxPicker(fresh = false) {
+    if (!boxPicker) return;
+    const r = input.getBoundingClientRect(), s = boxPickerEl.getBoundingClientRect();
     const center = (r.left + r.right) / 2 - s.width / 2;
     const at = place({ left: center, top: r.top, right: center + s.width, bottom: r.bottom }, s,
-      els.diagram.getBoundingClientRect(), { side: fresh ? 'below' : shapePickerSide, gap: 6, flip: fresh });
-    if (fresh) shapePickerSide = at.flipped ? 'above' : 'below';
-    shapePickerBox.style.left = at.left + 'px';
-    shapePickerBox.style.top = at.top + 'px';
+      els.diagram.getBoundingClientRect(), { side: fresh ? 'below' : boxPickerSide, gap: 6, flip: fresh });
+    if (fresh) boxPickerSide = at.flipped ? 'above' : 'below';
+    boxPickerEl.style.left = at.left + 'px';
+    boxPickerEl.style.top = at.top + 'px';
   }
 
   /**
-   * Bring what was just added into view with its label box and the shape picker under it (the user), so all of it can
-   * be used. The shape picker counts where it would lie below the box, not where the window's edge has pushed it; once
-   * in view, it is placed afresh, so one flipped above for want of room goes back below.
+   * Bring what was just added into view with its label box and the picker under it (the user), so all of it can be
+   * used. The picker counts where it would lie below the box, not where the window's edge has pushed it; once in view,
+   * it is placed afresh, so one flipped above for want of room goes back below.
    */
   function revealLabelBox(/** @type {Item} */ item) {
-    const r = input.getBoundingClientRect(), s = shapePickerBox.getBoundingClientRect();
+    const r = input.getBoundingClientRect(), s = boxPickerEl.getBoundingClientRect();
     const below = new DOMRect((r.left + r.right) / 2 - s.width / 2, r.bottom + 6, s.width, s.height);
-    reveal(item, shapePickerOpen ? [r, below] : [r]);
-    placeShapePicker(true);
+    reveal(item, boxPicker ? [r, below] : [r]);
+    placeBoxPicker(true);
   }
 
-  /** Open the shape picker for node `id`; `added`: the node was just added, so it is a rectangle whatever it reads as. */
-  function openShapePicker(/** @type {string} */ id, /** @type {boolean} */ added) {
-    shapePickerOpen = true;
-    shapePickerFrom = shownShape(id) ?? (added ? 'rect' : null);
+  /** Open the picker for `target`; `added`: a node just added, so it is a rectangle whatever it reads as. */
+  function openBoxPicker(/** @type {Item} */ target, /** @type {boolean} */ added) {
+    if (target.kind !== 'node') return;
+    boxPicker = boxPickers.node;
+    boxPickerFrom = shownShape(target.id) ?? (added ? 'rect' : null);
     // A shape not in the list is named, with none pressed; one that cannot be read shows nothing as current.
-    shapePicker.current(shapePickerFrom, shapePickerFrom ?? '');
-    shapePickerBox.showPopover();
-    input.setAttribute('aria-describedby', shapePickerHint.id);
-    placeShapePicker(true);
+    boxPicker.picker.current(boxPickerFrom, boxPickerFrom ?? '');
+    boxPickerHint.textContent = boxPicker.hint;
+    boxPickerEl.replaceChildren(boxPicker.picker.el, boxPickerHint);
+    boxPickerEl.showPopover();
+    input.setAttribute('aria-describedby', boxPickerHint.id);
+    placeBoxPicker(true);
   }
 
-  function closeShapePicker() {
-    shapePickerOpen = false;
-    shapePickerFrom = null;
-    if (shapePickerBox.matches(':popover-open')) shapePickerBox.hidePopover();
+  function closeBoxPicker() {
+    boxPicker = null;
+    boxPickerFrom = null;
+    if (boxPickerEl.matches(':popover-open')) boxPickerEl.hidePopover();
     input.removeAttribute('aria-describedby');
   }
 
@@ -1999,7 +2006,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     input.setAttribute('aria-label', { node: 'Node label', edge: 'Edge label', subgraph: 'Subgraph title', title: 'Diagram title' }[target.kind]);
     input.style.display = 'block';
     sizeLabelBox();
-    if (target.kind === 'node') openShapePicker(target.id, same(naming, target));
+    openBoxPicker(target, same(naming, target));
     input.focus();
     input.select();
   }
@@ -2016,14 +2023,14 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
     input.style.height = h + 'px';
     input.style.left = (r.left - box.left + r.width / 2 - w / 2) + 'px';
     input.style.top = (r.top - box.top + r.height / 2 - h / 2) + 'px';
-    placeShapePicker();
+    placeBoxPicker();
   }
 
   // labelling goes first: hiding the input blurs it, and a blur with the box still open would save it (commit).
   function closeLabelBox() {
     labelling = null;
     input.style.display = 'none';
-    closeShapePicker();
+    closeBoxPicker();
   }
 
   /**
@@ -2057,7 +2064,7 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
 
   input.addEventListener('input', sizeLabelBox);
   input.addEventListener('blur', (e) => {
-    if (!shapePickerBox.contains(/** @type {Node | null} */ (e.relatedTarget))) commit();
+    if (!boxPickerEl.contains(/** @type {Node | null} */ (e.relatedTarget))) commit();
   });
   input.addEventListener('keydown', (e) => {
     const target = labelling;
@@ -2071,11 +2078,11 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       if (target) select(target);
       return;
     }
-    // Down goes into the shape picker only from the last line, where it would not move the caret. The line is the text's:
+    // Down goes into the picker only from the last line, where it would not move the caret. The line is the text's:
     // the box widens to its text (sizeLabelBox), so a line never wraps.
-    if (e.key === 'ArrowDown' && shapePickerOpen && !input.value.slice(input.selectionEnd).includes('\n')) {
+    if (e.key === 'ArrowDown' && boxPicker && !input.value.slice(input.selectionEnd).includes('\n')) {
       e.preventDefault();
-      shapePicker.focus();
+      boxPicker.picker.focus();
       return;
     }
     if (!target || !(e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey))) return;
@@ -2134,8 +2141,8 @@ export function createEditor({ source, file, viewer, parse, limits, display, ui,
       ui.notice(target.kind === 'node' ? 'A label cannot be empty.' : 'A title cannot be empty.', 'error');
       return false;
     }
-    const picked = shapePickerOpen ? shapePicker.value() : null;
-    const shape = picked && picked !== shapePickerFrom ? picked : null;
+    const picked = boxPicker ? boxPicker.picker.value() : null;
+    const shape = picked && picked !== boxPickerFrom ? picked : null;
     /** A node's new label and shape, as one change. */
     const renamed = (/** @type {string} */ text) => {
       const named = relabelled ? relabel(text, target.id, label).text : text;
